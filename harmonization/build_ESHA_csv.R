@@ -2,6 +2,8 @@
 #Script for building CSV from ESHA output
 ##Meant to give a starting point to our harmonization dictionaries
 
+rm(list = ls()) #clear workspace
+
 #### Loading libraries and data ####
 #read in libraries
 if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
@@ -9,6 +11,8 @@ if (!requireNamespace("ggplot2", quietly = TRUE))  BiocManager::install("ggplot2
 library("ggplot2")
 if (!requireNamespace("readxl", quietly = TRUE))  BiocManager::install("readxl")
 library("readxl")
+if (!requireNamespace("data.table", quietly = TRUE))  BiocManager::install("data.table")
+library("data.table")
 print("Libraries are loaded.")
 
 #Read in data
@@ -80,6 +84,26 @@ for (ef in 1:length(excel_files)){
           my_whitespace <- paste(rep(" ", 8), collapse = "")
           if (substr(my_food, 1,8) == my_whitespace){
             recipe <- gsub(my_whitespace, "", my_food)
+            #some items are indented like recipes, so adding logic to add them
+            next_row <- item + 1
+            if (next_row <= nrow(df)){#make sure that there's another line to read
+              next_food <- df$`Item Name`[next_row]
+              my_whitespace <- paste(rep(" ", 12), collapse = "")
+              if (substr(next_food, 1,12) == my_whitespace){}
+              else{
+                my_item <- recipe
+                recipe <- "no recipe"
+                my_row <- c(my_file, my_sheet, day, meal, recipe, my_item, df[item,2:ncol(df)])
+                out_df[rows_added,] <- my_row
+                rows_added <- rows_added + 1
+              }
+            }else{#for when the df ends on a recipe item
+              my_item <- recipe
+              recipe <- "no recipe"
+              my_row <- c(my_file, my_sheet, day, meal, recipe, my_item, df[item,2:ncol(df)])
+              out_df[rows_added,] <- my_row
+              rows_added <- rows_added + 1
+            }
           }else{
             my_whitespace <- paste(rep(" ", 4), collapse = "")
             if (substr(my_food, 1,4) == my_whitespace){
@@ -103,19 +127,16 @@ print(my_na)
 
 #remove white space
 out_df <- data.frame(apply(out_df, MARGIN = 2, FUN = trimws))
-out_df <- data.frame(apply(out_df, MARGIN = 2, function(x){
-  gsub("\\\\", "", x, fixed = T)}))
-out_df <- data.frame(apply(out_df, MARGIN = 2, function(x){
-  gsub("\"", "inch", x, fixed = T)}))
 
 #TODO convert numeric columns back to numeric
 # str_df <- sapply(out_df, as.numeric)
 # str_df <- data.frame(lapply(out_df, as.numeric))
 
-write.table(out_df, file = file.path(data_dir, "combined_esha_studies.tsv"), 
-          sep = "\t", row.names = F)
+# write.table(out_df, file = file.path(data_dir, "combined_esha_studies.tsv"), 
+#           sep = "\t", row.names = F)
+data.table::fwrite(out_df, file = file.path(data_dir, "combined_esha_studies.tsv"), 
+                             sep = "\t", row.names = F)
 
 #Reading in and out to strip leading and trailing whitespace
-out_df1 <- read.csv(file = file.path(data_dir, "combined_esha_studies.tsv"), 
-                   sep = "\t", header = T)
+out_df1 <- data.table::fread(file = file.path(data_dir, "combined_esha_studies.tsv"))
 
