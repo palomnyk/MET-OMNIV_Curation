@@ -45,7 +45,7 @@ for (ef in 1:length(excel_files)){
 #If this does not stop at stop(), assume that all sheets have the same column names
 
 #### Create output dataframe ####
-out_names <- c("Study", "Group", "Day", "Meal", "Recipe", last_names)
+out_names <- c("Study", "Intervention", "Day", "Meal", "Recipe", last_names)
 out_df <- data.frame(matrix(1:length(out_names), ncol = length(out_names)))
 names(out_df) <- out_names
 rows_added <- 1
@@ -64,7 +64,7 @@ for (ef in 1:length(excel_files)){
     print(dim(df))
     names(df) <- my_names
     print(dim(df))
-    #### Parsing for day, meal, study group, and food item ####
+    #### Parsing for day, meal, study intervention, and food item ####
     #the order of the if statements is important because those that start with 
     #12 spaces also have 4 spaces, so we must start with the 12 spaces.
     for (item in 1:nrow(df)){
@@ -108,6 +108,15 @@ for (ef in 1:length(excel_files)){
             my_whitespace <- paste(rep(" ", 4), collapse = "")
             if (substr(my_food, 1,4) == my_whitespace){
               meal <- gsub(my_whitespace, "", my_food)
+              my_quant <- df$Quantity[item]
+              if (!is.na(my_quant)){
+                my_item <- meal
+                recipe <- "no recipe"
+                my_row <- c(my_file, my_sheet, day, meal, recipe, my_item, df[item,2:ncol(df)])
+                out_df[rows_added,] <- my_row
+                rows_added <- rows_added + 1
+                
+              }
             }
           }
         }
