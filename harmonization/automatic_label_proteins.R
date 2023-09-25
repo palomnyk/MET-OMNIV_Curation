@@ -1,4 +1,4 @@
-`#Author: Aaron Yerke (aaronyerke@gmail.com)
+#Author: Aaron Yerke (aaronyerke@gmail.com)
 #Script for labeling the protein sources based off of rudimentary text mining
 
 rm(list = ls()) #clear workspace
@@ -42,10 +42,10 @@ protein_source_cancel <- list("beef" = c("impossible", "beyond", "broth", "base"
                               "seafood" = c("goldfish")
                               )#strings to cancel protein source selection
 
-processed_indicators = c("sausage", "sandwich", "bratworst", "smoked",
-                "hormel", "bologna", "cured", "deli", 
-                "salted", "pickled", "bacon",
-                "patties", "nuggets", "tenders")
+processed_indicators <- c("sausage", "sandwich", "bratworst", "smoked",
+                "hormel", "bologna", "cured", "deli", "lunchmeat", "hot dog",
+                "salted", "pickled", "bacon", "BBQ", "barbeque", "hotdog",
+                "patties", "nuggets", "tenders", "jerky", "jerked")
 
 #df to fill out
 pro_source_prediction <- data.frame("item" = character(length = nrow(my_excel)), 
@@ -92,78 +92,95 @@ for (rw in 1:nrow(my_excel)){
   }#END FOR LOOP
 }
 
-#### Compare meat type results to Lauren's manual labeling ####
-hand_label <- my_excel[,c("item", "Beef", "Pork","Chicken","Turkey")]
-partial_predict <- pro_source_prediction[,c("item", "beef", "pork","chicken","turkey")]
-
-mismatches <- data.frame(which(hand_label != partial_predict, arr.ind=TRUE))
-
-print("THE FOLLOWING ARE DIFFERENCES IN THE HAND LABELED MEAT TYPE VERSE PROGRAM LABELED")
-for (m_row in unique(mismatches$row)) {
-  # m_row <- mismatches$row[mism]
-  print(paste(m_row, "hand first"))
-  print(hand_label[m_row,])
-  print(partial_predict[m_row,])
-}
-
-# [1] "12 hand first"
-# # A tibble: 1 × 5
-# item                            Beef  Pork Chicken Turkey
-# <chr>                          <dbl> <dbl>   <dbl>  <dbl>
-# 1 Bologna- beef and pork (BERKS)     1     1       0      0
-# item beef pork chicken turkey
-# 12 Bologna- beef and pork (BERKS)  0.5  0.5       0      0
-# [1] "13 hand first"
-# # A tibble: 1 × 5
-# item                            Beef  Pork Chicken Turkey
-# <chr>                          <dbl> <dbl>   <dbl>  <dbl>
-# 1 Bologna- Beef and Pork (BERKS)     1     1       0      0
-# item beef pork chicken turkey
-# 13 Bologna- Beef and Pork (BERKS)  0.5  0.5 
-
-#The program labeling uses the proportional counts, 
-#which are more useful for downstream actions
-#Need to add it to the table and calculate HEI proportions
-
-#### Compare meat processing and type results to Lauren's manual labeling ####
-#labeling just the type of meat
-hand_label_type <- my_excel[,c("item", "Beef", "Pork","Chicken","Turkey")]
-partial_predict_type <- pro_source_prediction[,c("item", "beef", "pork","chicken","turkey")]
-
-#labeling the type of meat and whether it is processed or min processed
-#columns
-hand_lab_proc_cols <- names(my_excel)[grepl("^Proc_", names(my_excel))]
-hand_lab_Mproc_cols <- names(my_excel)[grepl("^Mproc_", names(my_excel))]
-#collumns to dataframes
-hand_lab_Mproc <- my_
-
-partial_predict <- pro_source_prediction[,c("item", "beef", "pork","chicken","turkey")]
-
-mismatches <- data.frame(which(hand_label != partial_predict, arr.ind=TRUE))
-
-print("THE FOLLOWING ARE DIFFERENCES IN THE HAND LABELED MEAT TYPE VERSE PROGRAM LABELED")
-for (m_row in unique(mismatches$row)) {
-  # m_row <- mismatches$row[mism]
-  print(paste(m_row, "hand first"))
-  print(hand_label[m_row,])
-  print(partial_predict[m_row,])
-}
-
 #### Create Columns for red meat, poultry, and m_processed meat in output ####
-my_excel$beef_proportion <- pro_source_prediction$beef
-my_excel$pork_proportion <- pro_source_prediction$pork
-my_excel$chicken_proportion <- pro_source_prediction$chicken
-my_excel$turkey_proportion <- pro_source_prediction$turkey
-my_excel$seafood_proportion <- pro_source_prediction$seafood
+my_excel$beef <- pro_source_prediction$beef
+my_excel$pork <- pro_source_prediction$pork
+my_excel$chicken <- pro_source_prediction$chicken
+my_excel$turkey <- pro_source_prediction$turkey
+my_excel$seafood <- pro_source_prediction$seafood
 my_excel$processed <- pro_source_prediction$processed
 my_excel$red_meat <- pro_source_prediction$beef + pro_source_prediction$pork
 my_excel$poultry <- pro_source_prediction$chicken + pro_source_prediction$turkey
+
+#Min processed meat
 my_excel$mproc_meat <- pro_source_prediction$meat * !pro_source_prediction$processed
+my_excel$mproc_beef <- pro_source_prediction$beef * !pro_source_prediction$processed
+my_excel$mproc_pork <- pro_source_prediction$pork * !pro_source_prediction$processed
+my_excel$mproc_chicken <- pro_source_prediction$chicken * !pro_source_prediction$processed
+my_excel$mproc_turkey <- pro_source_prediction$turkey * !pro_source_prediction$processed
+
+#processed meat
 my_excel$proc_meat <- pro_source_prediction$meat * pro_source_prediction$processed
 my_excel$proc_beef <- pro_source_prediction$beef * pro_source_prediction$processed
 my_excel$proc_pork <- pro_source_prediction$pork * pro_source_prediction$processed
 my_excel$proc_chicken <- pro_source_prediction$chicken * pro_source_prediction$processed
 my_excel$proc_turkey <- pro_source_prediction$turkey * pro_source_prediction$processed
+
+#### Compare meat processing and type results to Lauren's manual labeling ####
+#Build from hand labeled first
+#labeling just the type of meat and whether it is processed or min processed
+hand_label_type_cols <- c("Beef", "Pork","Chicken","Turkey")
+#labeling the type of meat 
+#columns
+hand_lab_proc_cols <- sort(names(my_excel)[grepl("^Proc_", names(my_excel))])
+hand_lab_Mproc_cols <- sort(names(my_excel)[grepl("^Mproc_", names(my_excel))])
+
+hand_lab_cols <- c(hand_label_type_cols,
+                   hand_lab_Mproc_cols,
+                   hand_lab_proc_cols)
+#columns to dataframes
+hand_lab <- my_excel[,hand_lab_cols]
+
+# Now build from hand labeled, taking advantage of the fact that Lauren's start
+# with a capital and mine start with a lowercase, but spelled the same.
+predicted_lab <- my_excel[,tolower(hand_lab_cols)]
+
+mismatches <- data.frame(which(hand_lab != predicted_lab, arr.ind=TRUE))
+
+print("THE FOLLOWING ARE DIFFERENCES IN THE HAND LABELED MEAT TYPE VERSE PROGRAM LABELED")
+for (m_row in unique(mismatches$row)) {
+  # m_row <- mismatches$row[mism]
+  print(paste(m_row, "hand first"))
+  print(my_excel$item[m_row])
+  print(hand_lab[m_row,])
+  print(predicted_lab[m_row,])
+}
+# [1] "12 hand first"
+# [1] "Bologna- beef and pork (BERKS)"
+# # A tibble: 1 × 12
+# Beef  Pork Chicken Turkey Mproc_Beef Mproc_Chicken Mproc_Pork Mproc_Turkey Proc_Beef Proc_Chicken
+# <dbl> <dbl>   <dbl>  <dbl>      <dbl>         <dbl>      <dbl>        <dbl>     <dbl>        <dbl>
+#   1     1     1       0      0          0             0          0            0         1            0
+# # ℹ 2 more variables: Proc_pork <dbl>, Proc_Turkey <dbl>
+# # A tibble: 1 × 12
+# beef  pork chicken turkey mproc_beef mproc_chicken mproc_pork mproc_turkey proc_beef proc_chicken
+# <dbl> <dbl>   <dbl>  <dbl>      <dbl>         <dbl>      <dbl>        <dbl>     <dbl>        <dbl>
+#   1   0.5   0.5       0      0          0             0          0            0       0.5            0
+# # ℹ 2 more variables: proc_pork <dbl>, proc_turkey <dbl>
+# [1] "13 hand first"
+# [1] "Bologna- Beef and Pork (BERKS)"
+# # A tibble: 1 × 12
+# Beef  Pork Chicken Turkey Mproc_Beef Mproc_Chicken Mproc_Pork Mproc_Turkey Proc_Beef Proc_Chicken
+# <dbl> <dbl>   <dbl>  <dbl>      <dbl>         <dbl>      <dbl>        <dbl>     <dbl>        <dbl>
+#   1     1     1       0      0          0             0          0            0         1            0
+# # ℹ 2 more variables: Proc_pork <dbl>, Proc_Turkey <dbl>
+# # A tibble: 1 × 12
+# beef  pork chicken turkey mproc_beef mproc_chicken mproc_pork mproc_turkey proc_beef proc_chicken
+# <dbl> <dbl>   <dbl>  <dbl>      <dbl>         <dbl>      <dbl>        <dbl>     <dbl>        <dbl>
+#   1   0.5   0.5       0      0          0             0          0            0       0.5            0
+# # ℹ 2 more variables: proc_pork <dbl>, proc_turkey <dbl>
+# [1] "78 hand first"
+# [1] "turkey, ground, raw, 15% fat"
+# # A tibble: 1 × 12
+# Beef  Pork Chicken Turkey Mproc_Beef Mproc_Chicken Mproc_Pork Mproc_Turkey Proc_Beef Proc_Chicken
+# <dbl> <dbl>   <dbl>  <dbl>      <dbl>         <dbl>      <dbl>        <dbl>     <dbl>        <dbl>
+#   1     0     0       0      1          0             0          0            0         0            0
+# # ℹ 2 more variables: Proc_pork <dbl>, Proc_Turkey <dbl>
+# # A tibble: 1 × 12
+# beef  pork chicken turkey mproc_beef mproc_chicken mproc_pork mproc_turkey proc_beef proc_chicken
+# <dbl> <dbl>   <dbl>  <dbl>      <dbl>         <dbl>      <dbl>        <dbl>     <dbl>        <dbl>
+#   1     0     0       0      1          0             0          0            1         0            0
+# # ℹ 2 more variables: proc_pork <dbl>, proc_turkey <dbl>
 
 data.table::fwrite(my_excel, file = file.path(data_dir, "HEI_with_proportions.tsv"), 
                    sep = "\t", row.names = F)
