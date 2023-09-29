@@ -14,7 +14,7 @@ library("readxl")
 print("Libraries are loaded.")
 
 #Read in data
-data_dir <- file.path("nutition_data")
+data_dir <- file.path("nutrition_data")
 my_excel <- "MAP Study Complete ESHA Analysis Spreadsheet.xlsx"
 my_sheets <- readxl::excel_sheets(file.path(data_dir, my_excel))
 my_excel <- readxl::read_excel(file.path(data_dir, my_excel), sheet = my_sheets[1])

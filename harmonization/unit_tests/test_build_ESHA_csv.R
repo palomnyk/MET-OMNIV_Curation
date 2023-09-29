@@ -17,7 +17,7 @@ if (!requireNamespace("readxl", quietly = TRUE))  BiocManager::install("readxl")
 library("readxl")
 ####Establishing directory layout and other constants-----------------------####
 print("Establishing directory layout and other constants.")
-data_dir <- file.path("..","..", "nutition_data")
+data_dir <- file.path("..","..", "nutrition_data")
 print(getwd())
 
 ####Set up constants--------------------------------------------------------####

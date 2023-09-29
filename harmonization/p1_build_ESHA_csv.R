@@ -16,7 +16,7 @@ library("data.table")
 print("Libraries are loaded.")
 
 #Read in data
-data_dir <- file.path("nutition_data")
+data_dir <- file.path("nutrition_data")
 excel_files <- c("MAP Study Complete ESHA Analysis Spreadsheet.xlsx", 
                  "MED Diet Complete ESHA Analysis Spreadsheet.xlsx")
 

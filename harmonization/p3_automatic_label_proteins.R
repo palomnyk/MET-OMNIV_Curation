@@ -16,7 +16,7 @@ library("data.table")
 print("Libraries are loaded.")
 
 #Read in data
-data_dir <- file.path("nutition_data")
+data_dir <- file.path("nutrition_data")
 labeled_file <- "HEI_conversion_table_LEO wide.xlsx"
 labeled_sheet <- 2
 my_excel <- readxl::read_excel(file.path(data_dir, labeled_file), sheet = labeled_sheet, 
