@@ -73,6 +73,7 @@ for (ef in 1:length(excel_files)){
       if (startsWith(my_food, "Day ")) {
         day <- my_food
       }else{
+        #parsing for item
         my_whitespace <- paste(rep(" ", 12), collapse = "")
         if (substr(my_food, 1,12) == my_whitespace){
           my_item <- gsub(my_whitespace, "", my_food)
@@ -81,6 +82,7 @@ for (ef in 1:length(excel_files)){
           out_df[rows_added,] <- my_row
           rows_added <- rows_added + 1
         }else{
+          #parse for recipe
           my_whitespace <- paste(rep(" ", 8), collapse = "")
           if (substr(my_food, 1,8) == my_whitespace){
             recipe <- gsub(my_whitespace, "", my_food)
@@ -92,26 +94,28 @@ for (ef in 1:length(excel_files)){
               if (substr(next_food, 1,12) == my_whitespace){}
               else{
                 my_item <- recipe
-                recipe <- "no recipe"
+                recipe <- "No recipe"
                 my_row <- c(my_file, my_sheet, day, meal, recipe, my_item, df[item,2:ncol(df)])
                 out_df[rows_added,] <- my_row
                 rows_added <- rows_added + 1
               }
             }else{#for when the df ends on a recipe item
               my_item <- recipe
-              recipe <- "no recipe"
+              recipe <- "No recipe"
               my_row <- c(my_file, my_sheet, day, meal, recipe, my_item, df[item,2:ncol(df)])
               out_df[rows_added,] <- my_row
               rows_added <- rows_added + 1
             }
           }else{
+            #parse for meal
             my_whitespace <- paste(rep(" ", 4), collapse = "")
             if (substr(my_food, 1,4) == my_whitespace){
               meal <- gsub(my_whitespace, "", my_food)
               my_quant <- df$Quantity[item]
               if (!is.na(my_quant)){
                 my_item <- meal
-                recipe <- "no recipe"
+                recipe <- "No recipe"
+                meal <- "No meal"
                 my_row <- c(my_file, my_sheet, day, meal, recipe, my_item, df[item,2:ncol(df)])
                 out_df[rows_added,] <- my_row
                 rows_added <- rows_added + 1
@@ -146,6 +150,31 @@ out_df <- data.frame(apply(out_df, MARGIN = 2, FUN = trimws))
 data.table::fwrite(out_df, file = file.path(data_dir, "combined_esha_studies.tsv"), 
                              sep = "\t", row.names = F)
 
+#create xlsx version
+if (!requireNamespace("openxlsx", quietly = TRUE))  BiocManager::install("openxlsx")
+library("openxlsx")
+openxlsx::write.xlsx(out_df, file = file.path(data_dir, "combined_esha_studies.xlsx"),
+                 sheetName="Sheet1")
+
 #Reading in and out to strip leading and trailing whitespace
 out_df1 <- data.table::fread(file = file.path(data_dir, "combined_esha_studies.tsv"))
+
+#some data munging for Lauren
+missing_important_cols <- c("SugAdd..g.", "SatFat..g.", "MonoFat..g.", "PolyFat..g.",
+                            "Sod..mg.", "Pro..g.", "Fat..g.", "Carb..g.")
+missing_important <- c()
+
+for (mic in missing_important_cols){
+  my_missing <- which(is.na(out_df$SugAdd..g.))
+  my_zeros <- which( out_df$SugAdd..g. == 0 )
+  
+  missing_important <- c(missing_important, my_missing, my_zeros)
+}
+
+missing_important <- unique(missing_important)
+
+na_sugAdd <- out_df[missing_important,]
+data.table::fwrite(na_sugAdd, file = file.path(data_dir, "combined_esha_missing_important.tsv"), 
+                   sep = "\t", row.names = F)
+
 
