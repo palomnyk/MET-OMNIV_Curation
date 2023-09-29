@@ -1,5 +1,6 @@
 #Author: Aaron Yerke (aaronyerke@gmail.com)
 #Script for labeling the protein sources based off of rudimentary text mining
+#And adding HEI values
 
 rm(list = ls()) #clear workspace
 
@@ -19,7 +20,9 @@ data_dir <- file.path("nutition_data")
 labeled_file <- "HEI_conversion_table_LEO wide.xlsx"
 labeled_sheet <- 2
 my_excel <- readxl::read_excel(file.path(data_dir, labeled_file), sheet = labeled_sheet, 
-                               trim_ws = F)
+                               trim_ws = F, na = c("", "NA"))
+print("Removing dupiclated rows")
+my_excel <- my_excel[!duplicated(my_excel),]
 
 #### Dictionaries for classifying food ####
 protein_source_pos <- list(
@@ -101,6 +104,7 @@ my_excel$seafood <- pro_source_prediction$seafood
 my_excel$processed <- pro_source_prediction$processed
 my_excel$red_meat <- pro_source_prediction$beef + pro_source_prediction$pork
 my_excel$poultry <- pro_source_prediction$chicken + pro_source_prediction$turkey
+my_excel$meat <- pro_source_prediction$meat
 
 #Min processed meat
 my_excel$mproc_meat <- pro_source_prediction$meat * !pro_source_prediction$processed
@@ -148,70 +152,139 @@ for (m_row in unique(mismatches$row)) {
 # [1] "12 hand first"
 # [1] "Bologna- beef and pork (BERKS)"
 # # A tibble: 1 × 12
-# Beef  Pork Chicken Turkey Mproc_Beef Mproc_Chicken Mproc_Pork Mproc_Turkey Proc_Beef Proc_Chicken
-# <dbl> <dbl>   <dbl>  <dbl>      <dbl>         <dbl>      <dbl>        <dbl>     <dbl>        <dbl>
-#   1     1     1       0      0          0             0          0            0         1            0
-# # ℹ 2 more variables: Proc_pork <dbl>, Proc_Turkey <dbl>
+# Beef  Pork Chicken Turkey Mproc_Beef Mproc_Chicken Mproc_Pork Mproc_Turkey Proc_Beef Proc_Chicken Proc_pork Proc_Turkey
+# <dbl> <dbl>   <dbl>  <dbl>      <dbl>         <dbl>      <dbl>        <dbl>     <dbl>        <dbl>     <dbl>       <dbl>
+#   1     1     1       0      0          0             0          0            0         1            0         1           0
 # # A tibble: 1 × 12
-# beef  pork chicken turkey mproc_beef mproc_chicken mproc_pork mproc_turkey proc_beef proc_chicken
-# <dbl> <dbl>   <dbl>  <dbl>      <dbl>         <dbl>      <dbl>        <dbl>     <dbl>        <dbl>
-#   1   0.5   0.5       0      0          0             0          0            0       0.5            0
-# # ℹ 2 more variables: proc_pork <dbl>, proc_turkey <dbl>
+# beef  pork chicken turkey mproc_beef mproc_chicken mproc_pork mproc_turkey proc_beef proc_chicken proc_pork proc_turkey
+# <dbl> <dbl>   <dbl>  <dbl>      <dbl>         <dbl>      <dbl>        <dbl>     <dbl>        <dbl>     <dbl>       <dbl>
+#   1   0.5   0.5       0      0          0             0          0            0       0.5            0       0.5           0
 # [1] "13 hand first"
 # [1] "Bologna- Beef and Pork (BERKS)"
 # # A tibble: 1 × 12
-# Beef  Pork Chicken Turkey Mproc_Beef Mproc_Chicken Mproc_Pork Mproc_Turkey Proc_Beef Proc_Chicken
-# <dbl> <dbl>   <dbl>  <dbl>      <dbl>         <dbl>      <dbl>        <dbl>     <dbl>        <dbl>
-#   1     1     1       0      0          0             0          0            0         1            0
-# # ℹ 2 more variables: Proc_pork <dbl>, Proc_Turkey <dbl>
+# Beef  Pork Chicken Turkey Mproc_Beef Mproc_Chicken Mproc_Pork Mproc_Turkey Proc_Beef Proc_Chicken Proc_pork Proc_Turkey
+# <dbl> <dbl>   <dbl>  <dbl>      <dbl>         <dbl>      <dbl>        <dbl>     <dbl>        <dbl>     <dbl>       <dbl>
+#   1     1     1       0      0          0             0          0            0         1            0         1           0
 # # A tibble: 1 × 12
-# beef  pork chicken turkey mproc_beef mproc_chicken mproc_pork mproc_turkey proc_beef proc_chicken
-# <dbl> <dbl>   <dbl>  <dbl>      <dbl>         <dbl>      <dbl>        <dbl>     <dbl>        <dbl>
-#   1   0.5   0.5       0      0          0             0          0            0       0.5            0
-# # ℹ 2 more variables: proc_pork <dbl>, proc_turkey <dbl>
+# beef  pork chicken turkey mproc_beef mproc_chicken mproc_pork mproc_turkey proc_beef proc_chicken proc_pork proc_turkey
+# <dbl> <dbl>   <dbl>  <dbl>      <dbl>         <dbl>      <dbl>        <dbl>     <dbl>        <dbl>     <dbl>       <dbl>
+#   1   0.5   0.5       0      0          0             0          0            0       0.5            0       0.5           0
 # [1] "78 hand first"
 # [1] "turkey, ground, raw, 15% fat"
 # # A tibble: 1 × 12
-# Beef  Pork Chicken Turkey Mproc_Beef Mproc_Chicken Mproc_Pork Mproc_Turkey Proc_Beef Proc_Chicken
-# <dbl> <dbl>   <dbl>  <dbl>      <dbl>         <dbl>      <dbl>        <dbl>     <dbl>        <dbl>
-#   1     0     0       0      1          0             0          0            0         0            0
-# # ℹ 2 more variables: Proc_pork <dbl>, Proc_Turkey <dbl>
+# Beef  Pork Chicken Turkey Mproc_Beef Mproc_Chicken Mproc_Pork Mproc_Turkey Proc_Beef Proc_Chicken Proc_pork Proc_Turkey
+# <dbl> <dbl>   <dbl>  <dbl>      <dbl>         <dbl>      <dbl>        <dbl>     <dbl>        <dbl>     <dbl>       <dbl>
+#   1     0     0       0      1          0             0          0            0         0            0         0           1
 # # A tibble: 1 × 12
-# beef  pork chicken turkey mproc_beef mproc_chicken mproc_pork mproc_turkey proc_beef proc_chicken
-# <dbl> <dbl>   <dbl>  <dbl>      <dbl>         <dbl>      <dbl>        <dbl>     <dbl>        <dbl>
-#   1     0     0       0      1          0             0          0            1         0            0
-# # ℹ 2 more variables: proc_pork <dbl>, proc_turkey <dbl>
+# beef  pork chicken turkey mproc_beef mproc_chicken mproc_pork mproc_turkey proc_beef proc_chicken proc_pork proc_turkey
+# <dbl> <dbl>   <dbl>  <dbl>      <dbl>         <dbl>      <dbl>        <dbl>     <dbl>        <dbl>     <dbl>       <dbl>
+#   1     0     0       0      1          0             0          0            1         0            0         0           0
+
 
 data.table::fwrite(my_excel, file = file.path(data_dir, "HEI_with_proportions.tsv"), 
                    sep = "\t", row.names = F)
+openxlsx::write.xlsx(my_excel, file = file.path(data_dir, "HEI_with_proportions_long.xlsx"))
 
+#### Update naming scheme of long combined esha studies  ####
+# Instructions from Lauren (first 2 done in excel)
+# 1. Rename variables: please replace row 2 var names with what I put in row 1. I am creating a codebook that will describe each of these named vars (full name, unit, etc.) that will be used across all studies.
+# 2. Drop unwanted variables: drop all red columns
+# 3. HEI vars: it seems that HEI_TotalFruit, HEI_WholeFruit, and HEI_WholeGrains are missing (highlighted in yellow). Please add.
+  # a. Read in file with new columns
+  # b. add columns
+# 4. Add meat vars (var names in attached sheet) so that quantity equals column J (grams), unless the proportions need to be split (like beef and pork hot dogs split the amount in column J into 50/50).
+# 5. For HEI and meat vars: if there is no value for that var, like redmeat=false for pancakes, then redmeat should = 0. Same for HEI, if there are no veg HEI component of peaches, then HEI_TotalVeg=0 (i.e., most of the HEI vals will be 0. See the attached FPED sheet as an example).
+# 6. Follow Kai's instructions to try to create a dataset from SR legacy and let's discuss how we can impute the data during our next meeting. I think we need the data set up similar to the fped sheet that is attached but with nutrients, not food groups.
+  # Do this in seperate script
+# 7. Lauren to do after this: spot check HEI and meat amounts to see if conversion factors are okay.
+
+esha_studies <- readxl::read_excel(file.path(data_dir, "esha_combined_meats_HEI_vals_LEO_noRed.xlsx"), 
+                                   trim_ws = F, na = c("", "NA"))
+esha_studies <- type.convert(esha_studies, as.is = TRUE)#automatically reset incorrectly classified column types
 
 #### Use HEI values to convert g to oz  ####
-esha_studies <- data.table::fread(file = file.path(data_dir, "combined_esha_studies.tsv"))
+esha_studies$beef <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$pork <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$chicken <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$turkey <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$seafood <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$processed <- vector(length = nrow(esha_studies), mode = "logical")
+esha_studies$red_meat <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$poultry <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$meat <- vector(length = nrow(esha_studies), mode = "double")
 
-HEI_protein_oz <- vector(length = nrow(esha_studies), mode = "double")
+#Min processed meat
+esha_studies$mproc_meat <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$mproc_beef <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$mproc_pork <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$mproc_chicken <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$mproc_turkey <- vector(length = nrow(esha_studies), mode = "double")
+
+#processed meat
+esha_studies$proc_meat <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$proc_beef <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$proc_pork <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$proc_chicken <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$proc_turkey <- vector(length = nrow(esha_studies), mode = "double")
+
+#HEI vars
+esha_studies$HEI_gb_cup <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$HEI_dairy_oz <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$HEI_total_pro_oz <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$HEI_SeaPlantPro_oz <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$HEI_refinedG_oz <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$HEI_addedSug_tsp <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$HEI_total_veg_cup <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$HEI_total_total_fruit_cup <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$HEI_total_wholeFruit_cup <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$HEI_total_wholeGrains_cup <- vector(length = nrow(esha_studies), mode = "double")
 
 for (rw in 1:nrow(esha_studies)){
-  my_item <- esha_studies$Item.Name[rw]
-  my_oz <- 0
-  if (my_item %in% HEI_only_meat$item){
-    HEI_index <- which(HEI_only_meat$item == my_item)
-    my_oz <- as.numeric(esha_studies$Quantity[rw]) / as.numeric(HEI_only_meat$HEI_TotalProtein_Conv[HEI_index])
-  }
-  HEI_protein_oz[rw] <- my_oz
+  my_item <- esha_studies$Item_Name[rw]
+  grms <- as.numeric(esha_studies$Gram_weight[rw])
+  HEI_index <- which(my_excel$item == my_item)
+
+  esha_studies$beef[rw] <- grms * as.numeric(my_excel$beef[HEI_index])
+  esha_studies$pork[rw] <- grms * as.numeric(my_excel$pork[HEI_index])
+  esha_studies$chicken[rw] <- grms * as.numeric(my_excel$chicken[HEI_index])
+  esha_studies$turkey[rw] <- grms * as.numeric(my_excel$turkey[HEI_index])
+  esha_studies$seafood[rw] <- grms * as.numeric(my_excel$seafood[HEI_index])
+  esha_studies$processed[rw] <- my_excel$processed[HEI_index]
+  esha_studies$red_meat[rw] <- grms * as.numeric(my_excel$red_meat[HEI_index])
+  esha_studies$poultry[rw] <- grms * as.numeric(my_excel$poultry[HEI_index])
+  esha_studies$meat[rw] <- grms * as.numeric(my_excel$meat[HEI_index])
+  
+  #Min processed meat
+  esha_studies$mproc_meat[rw] <- grms * as.numeric(my_excel$mproc_meat[HEI_index])
+  esha_studies$mproc_beef[rw] <- grms * as.numeric(my_excel$mproc_beef[HEI_index])
+  esha_studies$mproc_pork[rw] <- grms * as.numeric(my_excel$mproc_pork[HEI_index])
+  esha_studies$mproc_chicken[rw] <- grms * as.numeric(my_excel$mproc_chicken[HEI_index])
+  esha_studies$mproc_turkey[rw] <- grms * as.numeric(my_excel$mproc_turkey[HEI_index])
+  
+  #processed meat
+  esha_studies$proc_meat[rw] <- grms * as.numeric(my_excel$proc_meat[HEI_index])
+  esha_studies$proc_beef[rw] <- grms * as.numeric(my_excel$proc_beef[HEI_index])
+  esha_studies$proc_pork[rw] <- grms * as.numeric(my_excel$proc_pork[HEI_index])
+  esha_studies$proc_chicken[rw] <- grms * as.numeric(my_excel$proc_chicken[HEI_index])
+  esha_studies$proc_turkey[rw] <- grms * as.numeric(my_excel$proc_turkey[HEI_index])
+  
+  #HEI var
+  esha_studies$HEI_gb_cup[rw] <- grms / as.numeric(my_excel$HEI_GreensBeans_Conv[HEI_index])
+  esha_studies$HEI_dairy_oz[rw] <- grms / as.numeric(my_excel$HEI_Dairy_Conv[HEI_index])
+  esha_studies$HEI_total_pro_oz[rw] <- grms / as.numeric(my_excel$HEI_TotalProtein_Conv[HEI_index])
+  esha_studies$HEI_SeaPlantPro_oz[rw] <- grms / as.numeric(my_excel$HEI_SeaPlantPro_Conv[HEI_index])
+  esha_studies$HEI_refinedG_oz[rw] <- grms / as.numeric(my_excel$HEI_RefinedGrains_Conv[HEI_index])
+  esha_studies$HEI_addedSug_tsp[rw] <- grms / as.numeric(my_excel$HEI_AddedSugar_Conv[HEI_index])
+  esha_studies$HEI_total_veg_cup[rw] <- grms / as.numeric(my_excel$HEI_TotalVeg_Conv[HEI_index])
+  esha_studies$HEI_total_total_fruit_cup[rw] <- grms / as.numeric(my_excel$HEI_TotalFruit_Conv[HEI_index])
+  esha_studies$HEI_total_wholeFruit_cup[rw] <- grms / as.numeric(my_excel$HEI_WholeFruit_Conv[HEI_index])
+  esha_studies$HEI_total_wholeGrains_cup[rw] <- grms / as.numeric(my_excel$HEI_WholeGrains_Conv[HEI_index])
 }
 
-esha_studies$meat_HEI_oz <- HEI_protein_oz
+# set missing values to NA, as per Lauren's instruction
+esha_studies[is.na(esha_studies)] <- 0
 
-
-data.table::fwrite(esha_studies, file = file.path(data_dir, "esha_combined_HEI_proteins.tsv"), 
+data.table::fwrite(esha_studies, file = file.path(data_dir, "esha_combined_meats_HEI_vals28Sep2023.tsv"), 
                    sep = "\t", row.names = F)
-
-# TODO: Add red meat HEI, poultry, min_processed, and any other variables from table columns
-# TODO: IMPROVE COMMENTS
-# TODO: ADD FRUITS, VEG, etc from other HEI groups
-
-
-
-
+openxlsx::write.xlsx(esha_studies, file = file.path(data_dir, "esha_combined_meats_HEI_vals28Sep2023.xlsx"))
 
