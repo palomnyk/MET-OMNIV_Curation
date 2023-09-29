@@ -1,6 +1,7 @@
 # beef_biomarkers
-
+This repository was created to document how we organized the dietary data for our beef biomarkers study.
 # Harmonizing data
+We will have 3 ESHA dietary datasets and one from NDSA. Currently, 2 ESHA datasets have been processed and we are waiting for 1 ESHA and one NSDA.
 ## harmonization/p1_build_ESHA_csv.R
 - Script for building tables from ESHA output - making columns from indention
 - Meant to give a starting point to our harmonization dictionaries
