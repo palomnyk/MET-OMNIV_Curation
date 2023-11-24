@@ -51,7 +51,11 @@ sr_header_def <- openxlsx::read.xlsx(xlsxFile = file.path(data_dir, "NUTR_DEF.xl
 words_to_omit_from_search <- c("with", "and", "a", "to")
 #to be used for label processing
 
-SR_abrev_words <- c("RAW")
+SR_abrev_words <- c("RAW" = "RW",
+                    "SLICED" = "SLC",
+                    "WITH" = "W/",
+                    "BONELESS" = "BNLESS",
+)
 
 #### Add labels to "sr_table" from definitions table ####
 sr_header_def$Nutr_No <- as.character(sr_header_def$Nutr_No)#same mode as sr_table
@@ -98,7 +102,8 @@ for (itm2 in 1:nrow(dietary_data)) {
         score <- score +  nchar(word)^2
       }
     }# End for word
-    dietary_scores[itm1] <- score
+    sr_nchar_dif <- abs( nchar(desc_no_punct) - nchar(itm_no_punct) ) + 1
+    dietary_scores[itm1] <- score/sr_nchar_dif
   }# End for itm1
   max_score <- max(dietary_scores)[1]
   # print(length(max(dietary_scores)))
@@ -112,4 +117,4 @@ for (itm2 in 1:nrow(dietary_data)) {
   # }
 }# End for itm2
 
-write.csv(best_matches, file = file.path("nutrition_data", ""))
+# write.csv(best_matches, file = file.path("nutrition_data", "best_matches", "adv_square_nchar.csv"))
