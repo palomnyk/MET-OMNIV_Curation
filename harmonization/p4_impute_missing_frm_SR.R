@@ -53,7 +53,10 @@ SR_abrev_words <- c("RAW" = "RW",
                     "ROUND" = "RND",
                     "LEAN" = "LN",
                     "BEEF" = "BF", 
-                    "BEANS" = "BNS"
+                    "BEANS" = "BNS",
+                    "CHUCK" = "CHK",
+                    "SHOULDER" = "SHLDR",
+                    "BAKED" = "BKD"
 )
 
 #### Add labels to "sr_table" from definitions table ####
@@ -71,17 +74,29 @@ colnames(sr_table) <- sr_cols
 
 #### Find matches between dietary items and sr short descriptions ####
 best_matches <- data.frame(#"esha_dscr" = vector(mode = "character", length = nrow(dietary_data)),
-                           "sr_dscr" = vector(mode = "character", length = 0),
-                           "num_same_score" = vector(mode = "integer", length = 0),
-                           "match_score" = vector(mode = "integer", length = 0))
+                           "sr_dscr_1" = vector(mode = "character", length = 0),
+                           "match_score_1" = vector(mode = "integer", length = 0),
+                           "num_same_max" = vector(mode = "integer", length = 0),
+                           "sr_dscr_2" = vector(mode = "character", length = 0),
+                           "match_score_2" = vector(mode = "integer", length = 0),
+                           "sr_dscr_3" = vector(mode = "character", length = 0),
+                           "match_score_3" = vector(mode = "integer", length = 0))
 
 "
-Cycle through each food in the dietary data,
-Convert it to upper, remove punctuation,
-Split it at punctuation,
+Cycle through each food in the dietary data;
+Convert it to upper, remove punctuation;
+Split it at punctuation (create words);
+If any word is in the SR_abreviations, add the abreviation to the list of words;
+Score is zero;
 
-Cycle through each item in SR table,
+Cycle through each item in SR table;
+If any word is there, add square of length of word to score, 
+  unless it is first word of either ESHA or SR - then add cube of length;
+After adding scores for all words of single food, divide by difference of length of SR item
 
+Sort scores and take top three.
+
+Repeat for ESHA food description.
 "
 for (itm2 in 1:nrow(dietary_data)) {
   my_item <- toupper( dietary_data$item[itm2])
@@ -115,16 +130,15 @@ for (itm2 in 1:nrow(dietary_data)) {
     sr_nchar_dif <- abs( nchar(desc_no_punct) - nchar(itm_no_punct) ) + 1
     dietary_scores[itm1] <- score/sr_nchar_dif
   }# End for itm1
-  max_score <- max(dietary_scores)[1]
-  # print(length(max(dietary_scores)))
-  # if (max_score > best_possible_score/length(my_words)){
-    # print(length(which(dietary_scores == max_score)))
-    # print(which(dietary_scores == max_score))
-    best_match <- names(dietary_scores)[which(dietary_scores == max_score)][1]
-    best_matches[my_item,] <- c(best_match, 
-                                length(which(dietary_scores == max_score)),
-                                max_score[1])
-  # }
+  dietary_scores <- sort(dietary_scores, decreasing = TRUE)
+  num_max <- length(which(dietary_scores == dietary_scores[1]))
+  best_matches[my_item,] <- c(names(dietary_scores)[1],
+                              dietary_scores[1],
+                              num_max,
+                              names(dietary_scores)[2],
+                              dietary_scores[2],
+                              names(dietary_scores)[3],
+                              dietary_scores[3])
 }# End for itm2
 
 write.csv(best_matches, file = file.path("nutrition_data", "best_matches", "adv_square_nchar.csv"))
