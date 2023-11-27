@@ -53,8 +53,13 @@ words_to_omit_from_search <- c("with", "and", "a", "to")
 
 SR_abrev_words <- c("RAW" = "RW",
                     "SLICED" = "SLC",
-                    "WITH" = "W/",
                     "BONELESS" = "BNLESS",
+                    "ROASTED" = "RSTD",
+                    "SWEETENED" = "SWTND",
+                    "TOASTED" = "TSTD",
+                    "CREAMED" = "CRM",
+                    "CANNED" = "CND",
+                    "WATER" = "H2O"
 )
 
 #### Add labels to "sr_table" from definitions table ####
@@ -89,6 +94,11 @@ for (itm2 in 1:nrow(dietary_data)) {
   itm_no_punct <- gsub('[[:punct:] ]+',' ', my_item)
   my_words <- unique(unlist(strsplit(itm_no_punct, " ")))
   #some words are abreviated by SR, adding abrebiations of important words
+  for (word in my_words){
+    if (word %in% names(SR_abrev_words)){
+      my_words <- c(my_words, SR_abrev_words[word])
+    }
+  }
   dietary_scores <- vector(mode = "integer", length = nrow(sr_table))
   names(dietary_scores) <- sr_table$Shrt_Desc
   best_possible_score <- sum(unlist(lapply(my_words, function(x) nchar(x)^2)))
