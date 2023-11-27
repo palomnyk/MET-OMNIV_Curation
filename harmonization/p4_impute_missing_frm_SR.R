@@ -7,16 +7,6 @@
 # Record top 3 matches so we can check by hand
 # Bias towards simplest SR code description
 # Incorporate "skip" words - also only use words that are 3 char or more
-"
-New plan for scoring:
-Score is square of nchar
-Divide score by index of the word.
-Drop all 1-2 letter words.
-Add BF for any with BEEF as a word.
-Add BNS for any ESHA with BEANS
-Record top 3 matches.
-"
-# Sometimes SR uses bf as shorthand for beef - also has beef
 
 rm(list = ls()) #clear workspace
 
@@ -59,7 +49,11 @@ SR_abrev_words <- c("RAW" = "RW",
                     "TOASTED" = "TSTD",
                     "CREAMED" = "CRM",
                     "CANNED" = "CND",
-                    "WATER" = "H2O"
+                    "WATER" = "H2O",
+                    "ROUND" = "RND",
+                    "LEAN" = "LN",
+                    "BEEF" = "BF", 
+                    "BEANS" = "BNS"
 )
 
 #### Add labels to "sr_table" from definitions table ####
@@ -105,12 +99,18 @@ for (itm2 in 1:nrow(dietary_data)) {
   for (itm1 in 1:length(dietary_scores)) {
     desc <- names(dietary_scores)[itm1]
     desc_no_punct <- gsub('[[:punct:] ]+','', desc)
+    first_word <- unique(unlist(strsplit(desc, ",")))[1]
     score <- 0
-    for (word in my_words){
+    for (w in 1:length(my_words)){
+      word <- my_words[w]
       if ( grepl(word, desc_no_punct, fixed = TRUE)){
         # print(score)
-        score <- score +  nchar(word)^2
-      }
+        if (word == first_word || w == 1){
+          score <- score + nchar(word)^3
+        }else{
+          score <- score + nchar(word)^2
+        }
+      }# End if grep
     }# End for word
     sr_nchar_dif <- abs( nchar(desc_no_punct) - nchar(itm_no_punct) ) + 1
     dietary_scores[itm1] <- score/sr_nchar_dif
@@ -127,4 +127,4 @@ for (itm2 in 1:nrow(dietary_data)) {
   # }
 }# End for itm2
 
-# write.csv(best_matches, file = file.path("nutrition_data", "best_matches", "adv_square_nchar.csv"))
+write.csv(best_matches, file = file.path("nutrition_data", "best_matches", "adv_square_nchar.csv"))
