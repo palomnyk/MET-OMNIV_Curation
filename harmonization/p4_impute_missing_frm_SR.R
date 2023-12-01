@@ -41,10 +41,12 @@ sr_header_def <- openxlsx::read.xlsx(xlsxFile = file.path(data_dir, "NUTR_DEF.xl
 words_to_omit_from_search <- c("with", "and", "a", "to")
 #to be used for label processing
 
-SR_abrev_words <- c("RAW" = "RW",
+SR_abrev_words <- c("BONELESS" = "BNLESS",
+                    "RAW" = "RW",
                     "SLICED" = "SLC",
-                    "BONELESS" = "BNLESS",
+                    "FROSTED" = "FRSTD",#Must come before ROASTED
                     "ROASTED" = "RSTD",
+                    "ROAST" = "RST", #Must come after ROASTED
                     "SWEETENED" = "SWTND",
                     "TOASTED" = "TSTD",
                     "CREAMED" = "CRM",
@@ -56,7 +58,14 @@ SR_abrev_words <- c("RAW" = "RW",
                     "BEANS" = "BNS",
                     "CHUCK" = "CHK",
                     "SHOULDER" = "SHLDR",
-                    "BAKED" = "BKD"
+                    "BAKED" = "BKD",
+                    "WITH" = "W/S",
+                    "WITHOUT" = "WO/",
+                    "SPECIAL" = "SPL",
+                    # "APPLE " = "APPL ",
+                    "CEREAL" = "CRL",
+                    "WHOLE" = "WHL"
+                    
 )
 
 #### Add labels to "sr_table" from definitions table ####
@@ -99,40 +108,47 @@ Sort scores and take top three.
 Repeat for ESHA food description.
 "
 for (itm2 in 1:nrow(dietary_data)) {
-  my_item <- toupper( dietary_data$item[itm2])
-  itm_no_punct <- gsub('[[:punct:] ]+',' ', my_item)
-  my_words <- unique(unlist(strsplit(itm_no_punct, " ")))
-  #some words are abreviated by SR, adding abrebiations of important words
-  for (word in my_words){
-    if (word %in% names(SR_abrev_words)){
-      my_words <- c(my_words, SR_abrev_words[word])
-    }
-  }
+  esha_item <- toupper( dietary_data$item[itm2])
+  itm_no_punct <- gsub("[.,() ]", " ", esha_item)
+  esha_words <- unique(unlist(strsplit(itm_no_punct, " ")))
   dietary_scores <- vector(mode = "integer", length = nrow(sr_table))
   names(dietary_scores) <- sr_table$Shrt_Desc
-  best_possible_score <- sum(unlist(lapply(my_words, function(x) nchar(x)^2)))
+  # best_possible_score <- sum(unlist(lapply(esha_words, function(x) nchar(x)^2)))
   for (itm1 in 1:length(dietary_scores)) {
-    desc <- names(dietary_scores)[itm1]
-    desc_no_punct <- gsub('[[:punct:] ]+','', desc)
-    first_word <- unique(unlist(strsplit(desc, ",")))[1]
+    sr_desc <- names(dietary_scores)[itm1]
+    sr_desc_no_punct <- gsub("[.,()\\&;:]","", sr_desc)
+    # print(sr_desc_no_punct)
+    #some words are abvreviated by SR, adding abbreviations of important words
+    for (abrv in 1:length(SR_abrev_words)){
+      abrv_word <- SR_abrev_words[abrv]
+      sr_desc_no_punct <- gsub(abrv_word, names(abrv_word)[1], sr_desc_no_punct)
+      # print(names(abrv_word))
+      # print(abrv_word)
+    }
+    # "([.-])|[[:punct:]]"
+    # print(sr_desc_no_punct)
     score <- 0
-    for (w in 1:length(my_words)){
-      word <- my_words[w]
-      if ( grepl(word, desc_no_punct, fixed = TRUE)){
-        # print(score)
-        if (word == first_word || w == 1){
-          score <- score + nchar(word)^3
+    for (w in 1:length(esha_words)){
+      word <- esha_words[w]
+      if ( grepl(word, sr_desc_no_punct, fixed = TRUE)){
+        if (grepl(paste0("^", word), sr_desc_no_punct) && w == 1){
+          score <- score + nchar(word)^4
         }else{
-          score <- score + nchar(word)^2
-        }
+          if (grepl(paste0("^", word), sr_desc_no_punct)){
+            score <- score + nchar(word)^4
+          }else{
+            score <- score + nchar(word)^2
+          }# End 2nd else
+        }# End 1st else
       }# End if grep
     }# End for word
-    sr_nchar_dif <- abs( nchar(desc_no_punct) - nchar(itm_no_punct) ) + 1
+    sr_nchar_dif <- abs( nchar(sr_desc_no_punct) - nchar(itm_no_punct) ) + 1
     dietary_scores[itm1] <- score/sr_nchar_dif
+    # names(dietary_scores)[itm1] <- sr_desc_no_punct
   }# End for itm1
   dietary_scores <- sort(dietary_scores, decreasing = TRUE)
   num_max <- length(which(dietary_scores == dietary_scores[1]))
-  best_matches[my_item,] <- c(names(dietary_scores)[1],
+  best_matches[esha_item,] <- c(names(dietary_scores)[1],
                               dietary_scores[1],
                               num_max,
                               names(dietary_scores)[2],
