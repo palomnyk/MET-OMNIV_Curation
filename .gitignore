@@ -49,4 +49,10 @@ po/*~
 rsconnect/
 
 # Protected info
-/nutrition_data/*
+/nutrition_data/*.csv
+/nutrition_data/*.xlsx
+/nutrition_data/*.tsv
+
+# Nextflow
+.nextflow*
+/work/*
