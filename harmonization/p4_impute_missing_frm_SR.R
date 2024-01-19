@@ -32,16 +32,17 @@ dietary_data <- openxlsx::read.xlsx(xlsxFile = file.path(data_dir, "HEI_with_pro
                                            sheet = 1)
 #dietary_data contains the HEI and meat labels for each food in esha_studies_leo
 
-sr_table <- openxlsx::read.xlsx(xlsxFile = file.path(data_dir, "NUT_DATA_Crosstab.xlsx"))
+sr_table <- openxlsx::read.xlsx(xlsxFile = file.path(data_dir, "SR", "NUT_DATA_Crosstab.xlsx"))
 #SR table from which we will try to fill in missing values for esha_studies_leo
 
-sr_header_def <- openxlsx::read.xlsx(xlsxFile = file.path(data_dir, "NUTR_DEF.xlsx"))
+sr_header_def <- openxlsx::read.xlsx(xlsxFile = file.path(data_dir, "SR", "NUTR_DEF.xlsx"))
 #headers for sr_table
 
 words_to_omit_from_search <- c("with", "and", "a", "to")
 #to be used for label processing
 
 SR_abrev_words <- c("BONELESS" = "BNLESS",
+                    "DARK" = "DK",
                     "RAW" = "RW",
                     "SLICED" = "SLC",
                     "FROSTED" = "FRSTD",#Must come before ROASTED
@@ -59,13 +60,19 @@ SR_abrev_words <- c("BONELESS" = "BNLESS",
                     "CHUCK" = "CHK",
                     "SHOULDER" = "SHLDR",
                     "BAKED" = "BKD",
-                    "WITH" = "W/S",
+                    "WITH" = "W/",
                     "WITHOUT" = "WO/",
                     "SPECIAL" = "SPL",
                     # "APPLE " = "APPL ",
                     "CEREAL" = "CRL",
-                    "WHOLE" = "WHL"
-                    
+                    "WHOLE" = "WHL",
+                    "SAUCE," = "SAU,",
+                    "SAUCE " = "SAU ",
+                    "TOMATO" = "TMTO",
+                    "GARLIC" = "GRLIC",
+                    "ITALIAN," = "ITAL,",
+                    "ITALIAN " = "ITAL ",
+                    "FROZEN" = "FRZ"
 )
 
 #### Add labels to "sr_table" from definitions table ####
@@ -80,6 +87,8 @@ sr_cols <- lapply(old_cols, function(x){
 sr_cols <- c(colnames(sr_table)[1:2], unlist(sr_cols))
 
 colnames(sr_table) <- sr_cols
+
+openxlsx::write.xlsx(sr_table, file = file.path(data_dir, "SR", "final_sr_table.xlsx"))
 
 #### Find matches between dietary items and sr short descriptions ####
 best_matches <- data.frame(#"esha_dscr" = vector(mode = "character", length = nrow(dietary_data)),
@@ -109,33 +118,47 @@ Repeat for ESHA food description.
 "
 for (itm2 in 1:nrow(dietary_data)) {
   esha_item <- toupper( dietary_data$item[itm2])
-  itm_no_punct <- gsub("[.,() ]", " ", esha_item)
-  esha_words <- unique(unlist(strsplit(itm_no_punct, " ")))
+  itm_no_punct <- gsub("[();:.]", "", esha_item)
+  esha_words <- unique(unlist(strsplit(itm_no_punct, c("[, ]+"))))
+  # print(paste(itm_no_punct))
+  # print(paste(esha_words, collapse = "::"))
   dietary_scores <- vector(mode = "integer", length = nrow(sr_table))
   names(dietary_scores) <- sr_table$Shrt_Desc
   # best_possible_score <- sum(unlist(lapply(esha_words, function(x) nchar(x)^2)))
   for (itm1 in 1:length(dietary_scores)) {
-    sr_desc <- names(dietary_scores)[itm1]
-    sr_desc_no_punct <- gsub("[.,()\\&;:]","", sr_desc)
+    sr_desc <- toupper(names(dietary_scores)[itm1])
+    sr_desc_no_punct <- gsub("[();:., ]"," ", sr_desc)
     # print(sr_desc_no_punct)
     #some words are abvreviated by SR, adding abbreviations of important words
     for (abrv in 1:length(SR_abrev_words)){
       abrv_word <- SR_abrev_words[abrv]
       sr_desc_no_punct <- gsub(abrv_word, names(abrv_word)[1], sr_desc_no_punct)
-      # print(names(abrv_word))
-      # print(abrv_word)
     }
-    # "([.-])|[[:punct:]]"
+    # print("SR")
     # print(sr_desc_no_punct)
+    sr_words <- unique(unlist(strsplit(sr_desc_no_punct, ",")))
+    # "([.-])|[[:punct:]]"
     score <- 0
     for (w in 1:length(esha_words)){
       word <- esha_words[w]
-      if ( grepl(word, sr_desc_no_punct, fixed = TRUE)){
-        if (grepl(paste0("^", word), sr_desc_no_punct) && w == 1){
-          score <- score + nchar(word)^4
+      prev_match_1st_index <- 0
+      prev_match_last_index <- 0
+      # print(paste(word, sr_desc_no_punct, sep = "::"))
+      grep_query <- grep(word, sr_desc_no_punct,
+                          fixed = TRUE,
+                         value = FALSE)
+      # 
+      # print(grep_query)
+      if (length(grep_query) > 0){
+        print("grep_query")
+        print(grep_query)
+        print(paste(word, collapse = "//"))
+        print(paste(sr_words, collapse = "::"))
+        if (grepl(paste0("^", word), sr_desc_no_punct) && w == 1){#sr and esha start with same word
+          score <- score + nchar(word)^2
         }else{
           if (grepl(paste0("^", word), sr_desc_no_punct)){
-            score <- score + nchar(word)^4
+            score <- score + nchar(word)^2
           }else{
             score <- score + nchar(word)^2
           }# End 2nd else
@@ -157,4 +180,4 @@ for (itm2 in 1:nrow(dietary_data)) {
                               dietary_scores[3])
 }# End for itm2
 
-write.csv(best_matches, file = file.path("nutrition_data", "best_matches", "adv_square_nchar.csv"))
+write.csv(best_matches, file = file.path("nutrition_data", "best_matches", "connected words_nchar2.csv"))
