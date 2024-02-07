@@ -139,34 +139,39 @@ for (itm2 in 1:nrow(dietary_data)) {
     sr_words <- unique(unlist(strsplit(sr_desc_no_punct, ",")))
     # "([.-])|[[:punct:]]"
     score <- 0
+    correct_nchar <- 0
     for (w in 1:length(esha_words)){
       word <- esha_words[w]
       prev_match_1st_index <- 0
       prev_match_last_index <- 0
       # print(paste(word, sr_desc_no_punct, sep = "::"))
-      grep_query <- grep(word, sr_desc_no_punct,
+      grep_query <- grep(word, sr_words,
                           fixed = TRUE,
                          value = FALSE)
       # 
       # print(grep_query)
       if (length(grep_query) > 0){
-        print("grep_query")
-        print(grep_query)
-        print(paste(word, collapse = "//"))
-        print(paste(sr_words, collapse = "::"))
+        # print("grep_query")
+        # print(grep_query)
+        # print(paste(word, collapse = "//"))
+        # print(paste(sr_words, collapse = "::"))
         if (grepl(paste0("^", word), sr_desc_no_punct) && w == 1){#sr and esha start with same word
           score <- score + nchar(word)^2
+          correct_nchar <- correct_nchar + nchar(word)
         }else{
           if (grepl(paste0("^", word), sr_desc_no_punct)){
             score <- score + nchar(word)^2
+            correct_nchar <- correct_nchar + nchar(word)
           }else{
             score <- score + nchar(word)^2
+            correct_nchar <- correct_nchar + nchar(word)
           }# End 2nd else
         }# End 1st else
       }# End if grep
     }# End for word
-    sr_nchar_dif <- abs( nchar(sr_desc_no_punct) - nchar(itm_no_punct) ) + 1
-    dietary_scores[itm1] <- score/sr_nchar_dif
+    sr_nchar_dif <- abs(nchar(sr_desc_no_punct) - nchar(itm_no_punct))
+    dietary_scores[itm1] <- score - sr_nchar_dif*1.6
+    # print(paste(score, sr_nchar_dif, correct_nchar, abs((sr_nchar_dif - correct_nchar)+1), score/abs((sr_nchar_dif - correct_nchar)+1)))
     # names(dietary_scores)[itm1] <- sr_desc_no_punct
   }# End for itm1
   dietary_scores <- sort(dietary_scores, decreasing = TRUE)
