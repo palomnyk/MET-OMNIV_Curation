@@ -70,9 +70,11 @@ SR_abrev_words <- c("BONELESS" = "BNLESS",
                     "SAUCE " = "SAU ",
                     "TOMATO" = "TMTO",
                     "GARLIC" = "GRLIC",
-                    "ITALIAN," = "ITAL,",
-                    "ITALIAN " = "ITAL ",
-                    "FROZEN" = "FRZ"
+                    "ITALIAN," = " ITAL,",
+                    "ITALIAN " = " ITAL ",
+                    "FROZEN" = "FRZ",
+                    "LOW SODIUM" = "Lo NA",
+                    "CHOPPED" = "CHOPD"
 )
 
 #### Add labels to "sr_table" from definitions table ####
@@ -118,7 +120,7 @@ Repeat for ESHA food description.
 "
 for (itm2 in 1:nrow(dietary_data)) {
   esha_item <- toupper( dietary_data$item[itm2])
-  itm_no_punct <- gsub("[();:.]", "", esha_item)
+  itm_no_punct <- gsub("[-();:.]", "", esha_item)
   esha_words <- unique(unlist(strsplit(itm_no_punct, c("[, ]+"))))
   # print(paste(itm_no_punct))
   # print(paste(esha_words, collapse = "::"))
@@ -127,16 +129,15 @@ for (itm2 in 1:nrow(dietary_data)) {
   # best_possible_score <- sum(unlist(lapply(esha_words, function(x) nchar(x)^2)))
   for (itm1 in 1:length(dietary_scores)) {
     sr_desc <- toupper(names(dietary_scores)[itm1])
-    sr_desc_no_punct <- gsub("[();:., ]"," ", sr_desc)
+    sr_desc_no_punct <- gsub("[-();:., ]"," ", sr_desc)
     # print(sr_desc_no_punct)
     #some words are abvreviated by SR, adding abbreviations of important words
     for (abrv in 1:length(SR_abrev_words)){
       abrv_word <- SR_abrev_words[abrv]
       sr_desc_no_punct <- gsub(abrv_word, names(abrv_word)[1], sr_desc_no_punct)
     }
-    # print("SR")
-    # print(sr_desc_no_punct)
-    sr_words <- unique(unlist(strsplit(sr_desc_no_punct, ",")))
+    sr_words <- unique(unlist(strsplit(sr_desc_no_punct, " ")))
+    sr_words <- sr_words[sr_words != ""]
     # "([.-])|[[:punct:]]"
     score <- 0
     correct_nchar <- 0
@@ -144,23 +145,25 @@ for (itm2 in 1:nrow(dietary_data)) {
       word <- esha_words[w]
       prev_match_1st_index <- 0
       prev_match_last_index <- 0
+      # print(paste("Searhing", word))
       # print(paste(word, sr_desc_no_punct, sep = "::"))
-      grep_query <- grep(word, sr_words,
-                          fixed = TRUE,
-                         value = FALSE)
-      # 
+      # grep_query <- grep(word, sr_words,
+      #                     fixed = TRUE,
+      #                    value = FALSE)
+      grep_query <- match(word, sr_words)
+      # print(paste(sr_words, collapse = "**"))
       # print(grep_query)
-      if (length(grep_query) > 0){
-        # print("grep_query")
-        # print(grep_query)
-        # print(paste(word, collapse = "//"))
-        # print(paste(sr_words, collapse = "::"))
+      if ( !is.na(grep_query)){
+        print("grep_query")
+        print(grep_query)
+        print(paste(word, collapse = "//"))
+        print(paste(sr_words, collapse = "::"))
         if (grepl(paste0("^", word), sr_desc_no_punct) && w == 1){#sr and esha start with same word
-          score <- score + nchar(word)^2
+          score <- score + nchar(word)^2.2
           correct_nchar <- correct_nchar + nchar(word)
         }else{
           if (grepl(paste0("^", word), sr_desc_no_punct)){
-            score <- score + nchar(word)^2
+            score <- score + nchar(word)^2.1
             correct_nchar <- correct_nchar + nchar(word)
           }else{
             score <- score + nchar(word)^2
@@ -170,7 +173,12 @@ for (itm2 in 1:nrow(dietary_data)) {
       }# End if grep
     }# End for word
     sr_nchar_dif <- abs(nchar(sr_desc_no_punct) - nchar(itm_no_punct))
-    dietary_scores[itm1] <- score - sr_nchar_dif*1.6
+    # dietary_scores[itm1] <- score - (sr_nchar_dif/correct_nchar)^2
+    # dietary_scores[itm1] <- score - sr_nchar_dif^2
+    # dietary_scores[itm1] <- score - sr_nchar_dif
+    ave_len <- mean(nchar(sr_desc_no_punct), nchar(itm_no_punct))
+    dietary_scores[itm1] <- score - (ave_len - correct_nchar)
+    
     # print(paste(score, sr_nchar_dif, correct_nchar, abs((sr_nchar_dif - correct_nchar)+1), score/abs((sr_nchar_dif - correct_nchar)+1)))
     # names(dietary_scores)[itm1] <- sr_desc_no_punct
   }# End for itm1
@@ -186,3 +194,16 @@ for (itm2 in 1:nrow(dietary_data)) {
 }# End for itm2
 
 write.csv(best_matches, file = file.path("nutrition_data", "best_matches", "connected words_nchar2.csv"))
+
+test <- c("a", "ba", "bc")
+query1 <- "a"
+query2 <- "ba"
+query3 <- "b"
+match(query1, test)
+# [1] 1
+match(query2, test)
+# [1] 2
+match(query3, test)
+# [1] NA
+
+
