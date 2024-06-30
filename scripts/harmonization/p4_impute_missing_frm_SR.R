@@ -38,6 +38,10 @@ sr_table <- read.csv(file = file.path(data_dir, "SR", "SR_food.csv"))
 words_to_omit_from_search <- c("with", "and", "a", "to")
 #to be used for label processing
 
+special_words <- c("COD", "EGG", "DOG")
+words_to_covert <- c("HOT DOG" = "HOTDOG",
+                     )
+
 #### Find matches between dietary items and sr short descriptions ####
 best_matches <- data.frame(#"esha_dscr" = vector(mode = "character", length = nrow(dietary_data)),
                            "sr_dscr_1" = vector(mode = "character", length = 0),
@@ -65,7 +69,7 @@ Sort scores and take top three.
 Repeat for ESHA food description.
 "
 for (itm2 in 1:nrow(dietary_data)) {
-  esha_item <- toupper( dietary_data$item[itm2])
+  esha_item <- toupper(dietary_data$item[itm2])
   itm_no_punct <- gsub("[-();:.]", "", esha_item)
   esha_words <- unique(unlist(strsplit(itm_no_punct, c("[, ]+"))))
   # print(paste(itm_no_punct))
@@ -76,12 +80,7 @@ for (itm2 in 1:nrow(dietary_data)) {
   for (itm1 in 1:length(dietary_scores)) {
     sr_desc <- toupper(names(dietary_scores)[itm1])
     sr_desc_no_punct <- gsub("[-();:., ]"," ", sr_desc)
-    print(sr_desc_no_punct)
-    #some words are abvreviated by SR, adding abbreviations of important words
-    # for (abrv in 1:length(SR_abrev_words)){
-    #   abrv_word <- SR_abrev_words[abrv]
-    #   sr_desc_no_punct <- gsub(abrv_word, names(abrv_word)[1], sr_desc_no_punct)
-    # }
+    
     sr_words <- unique(unlist(strsplit(sr_desc_no_punct, " ")))
     sr_words <- sr_words[sr_words != ""]
     # "([.-])|[[:punct:]]"
@@ -91,7 +90,7 @@ for (itm2 in 1:nrow(dietary_data)) {
       word <- esha_words[w]
       prev_match_1st_index <- 0
       prev_match_last_index <- 0
-      # print(paste("Searhing", word))
+      # print(paste("Searching", word))
       # print(paste(word, sr_desc_no_punct, sep = "::"))
       # grep_query <- grep(word, sr_words,
       #                     fixed = TRUE,
@@ -105,14 +104,14 @@ for (itm2 in 1:nrow(dietary_data)) {
         print(paste(word, collapse = "//"))
         print(paste(sr_words, collapse = "::"))
         if (grepl(paste0("^", word), sr_desc_no_punct) && w == 1){#sr and esha start with same word
-          score <- score + nchar(word)^2.2
+          score <- score + nchar(word)^1.5
           correct_nchar <- correct_nchar + nchar(word)
         }else{
           if (grepl(paste0("^", word), sr_desc_no_punct)){
-            score <- score + nchar(word)^2.1
+            score <- score + nchar(word)^1.5
             correct_nchar <- correct_nchar + nchar(word)
           }else{
-            score <- score + nchar(word)^2
+            score <- score + nchar(word)^1
             correct_nchar <- correct_nchar + nchar(word)
           }# End 2nd else
         }# End 1st else

@@ -16,18 +16,20 @@ library("data.table")
 print("Libraries are loaded.")
 
 #Read in data
-data_dir <- file.path("nutrition_data")
-excel_files <- c("MAP Study Complete ESHA Analysis Spreadsheet.xlsx", 
+data_dir <- file.path("data", "diet")
+excel_files <- c("MAP Study Complete ESHA Analysis Spreadsheet.xlsx",
                  "MED Diet Complete ESHA Analysis Spreadsheet.xlsx")
-
+excel_folders <- c("map", "med")
 #### Check if all files have the same column headers ####
 last_names <- "empty"# for holding headers of previous excel sheet during check
 for (ef in 1:length(excel_files)){
   my_file <- excel_files[ef]
-  my_sheets <- readxl::excel_sheets(file.path(data_dir, my_file))
+  my_fold <- excel_folders[ef]
+  ex_path <- file.path(data_dir, my_fold, my_file)
+  my_sheets <- readxl::excel_sheets(ex_path)
   for (sht in 1:length(my_sheets)){
     my_sheet <- my_sheets[sht]
-    my_excel <- readxl::read_excel(file.path(data_dir, my_file), sheet = my_sheet, 
+    my_excel <- readxl::read_excel(ex_path, sheet = my_sheet, 
                                    trim_ws = F)
     my_names <- as.vector(my_excel[2,])
     if (typeof(last_names) == "character"){
@@ -53,6 +55,8 @@ rows_added <- 1
 #### Cycle through excel files and sheets ####
 for (ef in 1:length(excel_files)){
   my_file <- excel_files[ef]
+  my_folder <- excel_folders[ef]
+  my_file <- file.path(my_folder, my_file)
   my_sheets <- readxl::excel_sheets(file.path(data_dir, my_file))
   for (sht in 1:length(my_sheets)){
     my_sheet <- my_sheets[sht]
@@ -61,9 +65,9 @@ for (ef in 1:length(excel_files)){
     my_names <- as.vector(my_excel[2,])
     df <- my_excel[3:nrow(my_excel),]
     # df <- data.frame(my_excel[3:nrow(my_excel),], header = FALSE, check.names = FALSE)
-    print(dim(df))
+    # print(dim(df))
     names(df) <- my_names
-    print(dim(df))
+    # print(dim(df))
     #### Parsing for day, meal, study intervention, and food item ####
     #the order of the if statements is important because those that start with 
     #12 spaces also have 4 spaces, so we must start with the 12 spaces.
@@ -147,17 +151,17 @@ out_df <- data.frame(apply(out_df, MARGIN = 2, FUN = trimws))
 
 # write.table(out_df, file = file.path(data_dir, "combined_esha_studies.tsv"), 
 #           sep = "\t", row.names = F)
-data.table::fwrite(out_df, file = file.path(data_dir, "combined_esha_studies.tsv"), 
+data.table::fwrite(out_df, file = file.path(data_dir, "nutrition_data", "combined_esha_studies.tsv"), 
                              sep = "\t", row.names = F)
 
 #create xlsx version
 if (!requireNamespace("openxlsx", quietly = TRUE))  BiocManager::install("openxlsx")
 library("openxlsx")
-openxlsx::write.xlsx(out_df, file = file.path(data_dir, "combined_esha_studies.xlsx"),
+openxlsx::write.xlsx(out_df, file = file.path(data_dir, "nutrition_data", "combined_esha_studies.xlsx"),
                  sheetName="Sheet1")
 
 #Reading in and out to strip leading and trailing whitespace
-out_df1 <- data.table::fread(file = file.path(data_dir, "combined_esha_studies.tsv"))
+out_df1 <- data.table::fread(file = file.path(data_dir, "nutrition_data", "combined_esha_studies.tsv"))
 
 #some data munging for Lauren
 missing_important_cols <- c("SugAdd..g.", "SatFat..g.", "MonoFat..g.", "PolyFat..g.",
@@ -174,7 +178,7 @@ for (mic in missing_important_cols){
 missing_important <- unique(missing_important)
 
 na_sugAdd <- out_df[missing_important,]
-data.table::fwrite(na_sugAdd, file = file.path(data_dir, "combined_esha_missing_important.tsv"), 
+data.table::fwrite(na_sugAdd, file = file.path(data_dir, "nutrition_data", "combined_esha_missing_important.tsv"), 
                    sep = "\t", row.names = F)
 
-
+print("End R script!")
