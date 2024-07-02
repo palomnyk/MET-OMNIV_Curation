@@ -56,3 +56,6 @@ rsconnect/
 # Nextflow
 .nextflow*
 /work/*
+
+# Secrets
+Secrets.csv
