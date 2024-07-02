@@ -15,7 +15,7 @@ library("data.table")
 print("Libraries are loaded.")
 
 #### Reading in data and establish constants ####
-data_dir <- file.path("nutrition_data")
+data_dir <- file.path("data", "diet", "nutrition_data")
 my_excel <- file.path(data_dir, "HEI Pivot table_modified.xlsx")#modified table 
 # has several columns removed that were extra in 2 of the sheets
 my_sheets <- readxl::excel_sheets(my_excel)

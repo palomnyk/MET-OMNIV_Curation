@@ -22,7 +22,7 @@ def query(payload):
 # --------------------------------------------------------------------------
 print("Establishing directory layout.", flush = True)
 # --------------------------------------------------------------------------
-output_dir = os.path.join(".", "nutrition_data")
+output_dir = os.path.join(".", "data", "diet", "nutrition_data")
 if not os.path.exists(output_dir):
 	os.makedirs(os.path.join(".",output_dir, "graphics"))
 	os.makedirs(os.path.join(".",output_dir, "tables"))
