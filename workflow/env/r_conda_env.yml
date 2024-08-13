@@ -1,0 +1,35 @@
+#adapted from https://github.com/binder-project/example-conda-environment
+#To run:
+#  conda env create --file python_conda_env.yml
+# To activate this environment:
+#  conda activate python_ml_conda
+# To deactivate an active environment, use
+#  conda deactivate    
+name: python_ml_conda
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.11 #3.11 is the latest python for conda on 1/19/2024
+  - snakemake
+  - numpy
+  - matplotlib
+  - scikit-learn
+  - scipy
+  - statsmodels
+  - pip
+  - r-base=4.3
+  - r-ggplot2
+  - r-BiocManager
+  - r-nhanesA
+  - r-readxl
+  - r-fastDummies
+
+#To install conda on wsl:
+#  Download linux conda from https://www.anaconda.com/download#downloads
+#    bash lib/util/Anaconda3-2023.09-0-Linux-x86_64.sh
+#To install pycaret:
+#  conda install -c conda-forge pycaret
+#To remove this env:
+#  conda remove -n python_ml_conda --all
