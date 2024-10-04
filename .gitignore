@@ -51,10 +51,11 @@ rsconnect/
 # Protected info
 data/*
 
-
+# Snakemake records
+.snakemake/
 
 # Stuff that I didn't use but I'm nto ready to delete
-/ophaned_code/
+/orphaned_code/
 
 # Secrets
 Secrets.csv
