@@ -38,7 +38,7 @@ print("Establishing other constants.")
 API_URL = "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2"
 secrets = pd.read_csv("Secrets.csv", index_col=0)
 print(secrets)
-api_token = secrets.loc["hf_token", "secret"] #"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"
+api_token = secrets.loc["hf_token", "secret"]
 
 dietary_data = pd.read_excel(os.path.join(data_dir, "HEI_with_proportions_long.xlsx"))
 #dietary_data contains the HEI and meat labels for each food in esha_studies_leo
