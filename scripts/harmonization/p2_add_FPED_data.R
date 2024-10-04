@@ -20,7 +20,7 @@ my_excel <- file.path(data_dir, "HEI Pivot table_modified.xlsx")#modified table
 # has several columns removed that were extra in 2 of the sheets
 my_sheets <- readxl::excel_sheets(my_excel)
 df <- data.table::fread(file = file.path(data_dir, "combined_esha_studies.tsv"),
-                        check.names = F)
+                        check.names = FALSE)
 req_columns <- c("Category","","1 oz equiv. (g)", "1 tsp equiv. (g)")
 conversion_cols <- c("1 cup equiv. (g)","1 oz equiv. (g)", "1 tsp equiv. (g)")
 
@@ -30,8 +30,8 @@ for (sht in 1:length(my_sheets)){
   my_sheet <- my_sheets[sht]
   if (!startsWith(my_sheet, "PIVOT")){
     print(my_sheet)
-    pivot <- readxl::read_excel(my_excel, sheet = my_sheet)
-    if (typeof(big_sheet) != "list") {big_sheet <- pivot}
+    pivot <- readxl::read_excel(my_excel, sheet = my_sheet, check.names = FALSE)
+    if (typeof(big_sheet) != "list") big_sheet <- pivot
     else{
       print(length(names(big_sheet)))
       print(length(names(pivot)))
@@ -44,9 +44,6 @@ for (sht in 1:length(my_sheets)){
 }
 
 #### Extract data from HEI table####
-# new_info <- data.frame(matrix(nrow = nrow(df), ncol = length(req_columns)))
-# colnames(new_info) <- req_columns
-
 conv_item <- c()
 conv_cat <- c()
 conv_equ <- c()
@@ -61,7 +58,6 @@ for (rw in 1:nrow(big_sheet)){
       my_quant <- unlist((big_sheet[rw, "Quantity (g)"]))
       #pick the value that is not NA
       my_convers <- which(!is.na(unlist(big_sheet[rw, conversion_cols])))
-      
       my_unit <- names(my_convers)[1]
       conv_cat <- c(conv_cat, my_cat)
       conv_item <- c(conv_item, my_item)
@@ -111,7 +107,4 @@ missing_items <- unique(missing_HEI$Item.Name)
 data.table::fwrite(list(missing_items), file = file.path(data_dir, "HEI_missing_items.tsv"),
                    sep = "\t", row.names = F)
 
-
-
-
-
+print("Completed R script!")

@@ -288,3 +288,4 @@ data.table::fwrite(esha_studies, file = file.path(data_dir, "esha_combined_meats
                    sep = "\t", row.names = F)
 openxlsx::write.xlsx(esha_studies, file = file.path(data_dir, "esha_combined_meats_HEI_vals28Sep2023.xlsx"))
 
+print("Reached end of R script!")
