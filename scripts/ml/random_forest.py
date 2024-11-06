@@ -13,14 +13,10 @@
 print("Loading external libraries.",flush = True)
 # --------------------------------------------------------------------------
 from cProfile import label
-import math
 import os, sys
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
-from pandas.api.types import is_string_dtype
-from pandas.api.types import is_bool_dtype
-from pandas.api.types import is_categorical_dtype
 from sklearn.metrics import accuracy_score, roc_auc_score, r2_score
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import ConfusionMatrixDisplay
@@ -28,21 +24,11 @@ import matplotlib.pyplot as plt
 from matplotlib import rcParams
 rcParams.update({'figure.autolayout': True})
 import matplotlib.backends.backend_pdf
-import matplotlib.colors as mcolors
 import matplotlib
 # matplotlib.use('TKAgg')
 from sklearn import model_selection
-from sklearn.linear_model import LogisticRegression
-from sklearn.linear_model import LinearRegression
-from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import SVC
-from scipy import stats
 import argparse
 import random
 import pathlib
@@ -80,6 +66,9 @@ parser.add_argument("-t", "--title", default=False,
 parser.add_argument("-v", "--id_var", default="Respondent sequence number",
                   help="String, column name of row variables",
                   metavar="id_var", dest="id_var")
+parser.add_argument("-s", "--respons_df_start", default=0, type=int,
+                  help="integer, use if wanting to skip first _____ column. use if response_col isn't selected",
+                  metavar="respons_df_start", dest="respons_df_start")
 
 options, unknown = parser.parse_known_args()
 
@@ -116,13 +105,13 @@ response_df = pd.read_csv(os.path.join(".",options.resp_fn), \
 
 #set labels for output files and select column to use in response var
 if options.response_col == False:
-	response_cols = response_df.columns
+	response_cols = response_df.columns[options.respons_df_start:]
 	resp_col_label = ""
 else:
 	response_cols = [options.response_col]
-	resp_col_label = f"1col{options.response_col}?"
+	resp_col_label = f"1col{options.response_col}!"
 response_df = response_df.sort_values(by = options.id_var)
-# print(options.id_vuar)
+# print(options.id_var)
 pred_df = pd.read_csv(os.path.join(".",options.pred_table), \
 		sep=",", header=0, index_col=options.id_var).fillna(0)
 # print(pred_df)
@@ -159,7 +148,7 @@ with open(result_fpath, "w+") as fl:
 		predictions = []
 		kfold = model_selection.KFold(n_splits=num_cv_folds, random_state=seed, shuffle=True)
 		for train, test in kfold.split(intersect_safe_ids):
-			print(f"train: {len(train)}, test: {len(test)}")
+			print(f"{resp_var}: train: {len(train)}, test: {len(test)}")
 			train = [intersect_safe_ids[x] for x in train]
 			test = [intersect_safe_ids[x] for x in test]
 			pred_train = pred_df.loc[pred_df.index.isin(train),:]#selects whole dataframe
@@ -205,7 +194,7 @@ with open(result_fpath, "w+") as fl:
 			print(msg, flush=True)
 			fl.write(msg)
 
-		print("debug feature_importance")
+		print("debug feature_importance", flush=True)
 		# print(feature_importance)
 		full_accuracy.extend(my_accuracy)
 		# rebuild feature importance df and select only rows from our response variable
@@ -218,19 +207,29 @@ with open(result_fpath, "w+") as fl:
 		feature_mean = pd.DataFrame(feature_df.mean(axis=0)).sort_values(0, ascending=False)
 		feature_std = feature_df.std(axis=0)
 		feature_mean.insert(1, "std", feature_std)
+		plt.barh(y=feature_mean.index[0:bar_shown], width=feature_mean.iloc[0:bar_shown,0], xerr=feature_mean.iloc[0:bar_shown,1])
+		plt.xlabel(f"Top {bar_shown} Relative Importances")
+		plt.xticks(rotation="vertical")
+		plt.title(f"{model_name} score: {round(np.mean(my_accuracy), 3)}")
+		plt.suptitle(f"Feature importance: {resp_var}")
+		pdf.savefig(bbox_inches='tight')
+		plt.close()
+		print("Created feature importance figure", flush=True)
+		if not is_numeric_dtype(resp_train) or resp_train.dtype.name == "boolean":
+			print("making confusion matrix", flush=True)
+			cnf_matrix = confusion_matrix(responses, predictions)
+			# print(str(cnf_matrix))
+			disp = ConfusionMatrixDisplay(confusion_matrix=cnf_matrix).plot()
+			plt.title(f"{options.title}, {resp_var}")
+			pdf.savefig()
+			plt.close()
 		try:
-			# shap_values = shap.TreeExplainer(clf).shap_values(pred_df)
-			# print(shap_values)
-			# shap.summary_plot(shap_values, pred_df, plot_type='dot', max_display=bar_shown, show = False)
-			# # plt.title(f"{resp_var}")
-			# plt.suptitle(f"Final cross validation\nSHAP Summary, {resp_var}")
-			# pdf.savefig()
-			# plt.close()
-
+			print("trying beeswarm plot", flush=True)
 			explainer = shap.Explainer(clf, pred_df)
+			print("Creating shap_alues", flush=True)
 			shap_values = explainer(pred_df)
-			print("shape_values.shape")
-			print(shap_values.shape)
+			print("shape_values.shape", flush=True)
+			print(shap_values.shape, flush=True)
 			if model_name == "RF_Classifier":
 				print(shap_values)
 				# max_display=bar_shown, order=shap_values[:,:,1].abs.max(0)
@@ -239,45 +238,42 @@ with open(result_fpath, "w+") as fl:
 				pdf.savefig(bbox_inches='tight')
 				plt.close()
 			else:
-				shap.plots.beeswarm(shap_values, show = False)
+				shap.plots.beeswarm(shap_values, show = False, order=shap_values.abs.max(0))
 				plt.suptitle(f"Final cross validation\nSHAP beeswarm, {resp_var}")
 				pdf.savefig(bbox_inches='tight')
 				plt.close()
-			# top_5 = 
-			# for dep in 
-			# shap.plots.scatter(shap_values[:, "Age"], color=shap_values[:, "Capital Gain"])
 		except Exception as e:
-			print(f"Exception: shap summary {resp_var}")
-			print(e)
+			print(f"Exception: shap summary {resp_var}", flush=True)
+			print(e, flush=True)
 		try:
-			shap_values = shap.TreeExplainer(clf).shap_values(pred_df)
-			shap.decision_plot(shap.TreeExplainer(clf).expected_value, shap_values, pred_train)
-			plt.suptitle(f"Final cross validation\nSHAP decision, {resp_var}")
-			pdf.savefig()
-			plt.close()
+			print("Trying dependency plot", flush=True)
+			top_features = feature_mean.index[0:3].tolist()
+			# shap.dependence_plot("wt", shap_values, pred_df)
+			for dep in top_features:
+				print(dep, flush=True)
+				shap_values = shap.TreeExplainer(clf).shap_values(pred_df)
+				shap.dependence_plot(dep, shap_values, pred_df, show = False,)
+				plt.suptitle(f"Final cross validation\nSHAP dependency, {resp_var}")
+				pdf.savefig(bbox_inches='tight')
+				plt.close()
 		except Exception as e:
-			print(f"Exception: shap decision {resp_var}")
-			print(e)
-
-		plt.barh(y=feature_mean.index[0:bar_shown], width=feature_mean.iloc[0:bar_shown,0], xerr=feature_mean.iloc[0:bar_shown,1])
-		plt.xlabel(f"Top {bar_shown} Relative Importances")
-		plt.xticks(rotation="vertical")
-		plt.title(f"{model_name} score: {round(np.mean(my_accuracy), 3)}")
-		plt.suptitle(f"Feature importance: {resp_var}")
-		pdf.savefig(bbox_inches='tight')
-		plt.close()
-		if not is_numeric_dtype(resp_train) or resp_train.dtype.name == "boolean":
-			print("making confusion matrix")
-			cnf_matrix = confusion_matrix(responses, predictions)
-			# print(str(cnf_matrix))
-			disp = ConfusionMatrixDisplay(confusion_matrix=cnf_matrix).plot()
-			plt.title(f"{options.title}, {resp_var}")
-			pdf.savefig()
-			plt.close()
-	print(f"Saving feature importances")
+			print(f"Exception: shap dependency {resp_var}", flush=True)
+			print(e, flush=True)
+		# try:
+		# 	print("TreeExplainer", flush=True)
+		# 	shap_values = shap.TreeExplainer(clf).shap_values(pred_df)
+		# 	shap.decision_plot(shap.TreeExplainer(clf).expected_value, shap_values, pred_train, show=False)
+		# 	plt.suptitle(f"Final cross validation\nSHAP decision, {resp_var}")
+		# 	pdf.savefig()
+		# 	plt.close()
+		# except Exception as e:
+		# 	print(f"Exception: shap decision {resp_var}", flush=True)
+		# 	print(e, flush=True)
+			
+	print(f"Completed SHAP figures", flush=True)
 	feature_df = pd.DataFrame(feature_importance)
-	print(feature_df)
-	print(len(model_type))
+	print(feature_df, flush=True)
+	print(len(model_type), flush=True)
 	# df["response_var"] = feature_resp_var
 	feature_df.insert(loc = 0,column = "response_var", value = feature_resp_var, allow_duplicates=False)
 	feature_df.insert(loc = 1,column =  "model_type",value = model_type, allow_duplicates=False)
