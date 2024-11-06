@@ -1,0 +1,97 @@
+# Author: Aaron Yerke (aaronyerke@gmail.com)
+# Main snakemake file for running and re-running scripts
+# print("In snakefile.")
+configfile: "workflow/config/config.yaml"
+
+import os
+import pandas as pd
+
+resp_colmns = ["beef_level", "TIMEPOINT"]
+
+nutri_dir = os.path.join("data", "diet", "nutrition_data")
+rule completed:
+    input: os.path.join("data", "diet", "nutrition_data", "combined_esha_studies.tsv")
+
+checkpoint correct_SR_ESHA_matches:
+    input:  "data/diet/nutrition_data/SR/hf_SR_best_matches_com LEO.xlsx",
+            "data/diet/nutrition_data/best_matches/hf_SR_best_matches.xlsx"
+    shell:
+        """
+        Rscript scripts\harmonization\p5_correct_SR_ESHA_matches.R
+        """
+
+rule imput_SRA_match:
+    input: "data/diet/nutrition_data/HEI_with_proportions_long.xlsx",
+           "data/diet/nutrition_data/SR/SR_food.csv"
+    output:
+        "data/diet/nutrition_data/best_matches/hf_SR_best_matches.xlsx"
+    shell:
+        """
+        Rscript scripts\harmonization\p4_imput_SRA_match_REST.py
+        """
+
+rule automatic_label_proteins:
+    input: expand("data/diet/nutrition_data/{file}",\
+           file=["HEI_conversion_table_LEO wide.xlsx",\
+                 "esha_combined_meats_HEI_vals_LEO_noRed.xlsx"])
+    output:
+        expand("data/diet/nutrition_data/{file}",\
+           file=["HEI_with_proportions.tsv","HEI_with_proportions_long.xlsx"])
+    shell:
+        """
+        Rscript scripts\harmonization\p3_automatic_label_proteins.R
+        """
+
+rule add_FPED_to_combined_ESHA:
+    input: os.path.join("data", "diet", "nutrition_data", "HEI Pivot table_modified.xlsx"), 
+           os.path.join("data", "diet", "nutrition_data", "combined_esha_studies.xlsx"),
+    output:
+        expand("data/diet/nutrition_data/{file}",\
+           file=["HEI_conversion_table.tsv","combined_esha_studies_HEI.tsv","HEI_missing_items.tsv"])
+    shell:
+        """
+        Rscript scripts/harmonization/p2_add_FPED_data.R
+        """
+
+rule combine_ESHA:
+    input: os.path.join("data", "diet","map","MAP Study Complete ESHA Analysis Spreadsheet.xlsx"),
+           os.path.join("data", "diet","med","MED Diet Complete ESHA Analysis Spreadsheet.xlsx")
+    output: os.path.join("data", "diet", "nutrition_data", "combined_esha_studies.tsv"),
+            os.path.join("data", "diet", "nutrition_data", "combined_esha_studies.xlsx"),
+    shell:
+        """
+        Rscript scripts/harmonization/p1_build_ESHA_csv.R
+        """
+
+
+rule organize_metadata:
+    input: "data/metabolomics/UARS-01-23ML+/UARS-01-23ML+ DATA TABLES (ALL SAMPLES).XLSX"
+    output: "data/mapping/full_metadata.csv",
+            "data/mapping/noMap_metadata.csv",
+    params:
+    shell:
+        """
+        Rscript scripts/data_org/org_metadata.R
+        """
+rule random_forest:
+    input:
+        predictor = "data/metabolomics/log_filt_all_bat_norm_imput.csv",
+        response = "data/mapping/noMap_metadata.csv"
+    output:
+    params:
+        label = "pre_post_treat_NO_MED",
+        title = "Pre vs post treatment"
+    shell:
+        """
+            python scripts/ml/random_forest.py\
+                --pred_path {input.predictor} \
+                --response_col {wildcards.resp_columns} \
+                --output_label {params.label} \
+                --out_folder no_med \
+                --response_fn {input.response} \
+                --delimiter , \
+                --title "params.title" \
+                --id_var "PARENT_SAMPLE_NAME"
+        
+        """
+
