@@ -50,6 +50,7 @@ rsconnect/
 
 # Protected info
 data/*
+output/
 
 # Snakemake records
 .snakemake/
