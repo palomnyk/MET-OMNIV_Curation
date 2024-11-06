@@ -1,17 +1,6 @@
 # Author: Aaron Yerke (aaronyerke@gmail.com)
-# Script for making metabolomics tables. Metabolite tables that are NOT batch
-# normalized to site are loaded. To filter these we (a) remove metabolites where 
-# more than two values are missing, (b) remove features with more than 80% zeros,
-# and (c) exclude metabolites that have a CV>30.0. All three of these steps are 
-# performed using the "filter metabolites function". The names of metabolites
-# that were not removed or ex
-
-# Steps:
-# 1, Import tables for all samples:
-#     a. "Peak Area Data",
-#     b. "Batch-normalized Data" - peak area data are median normlized to fix HPLC run batches,
-#     c. "Batch-norm Imputed Data" - missing values are replaced with existing minimum fo=r each metabolite column,
-# 2, 
+# Making subpathway metabolomics table by summing the metabolites that belong
+# to each sub pathway.
 
 rm(list = ls()) #clear workspace
 
@@ -28,6 +17,7 @@ print("Loaded packages")
 
 #### Load functions ####
 filter_metabolites <- function(df) {
+  #returns columns that pass the filter
   print(paste(colnames(df)[1:5], collapse = ", "))
   #Remove columns that all but 2 NA
   df <- df[,!sapply(df, function(x) length(which(is.na(x))) >= nrow(df)-2)]
@@ -48,6 +38,9 @@ filter_metabolites <- function(df) {
 #### Establish directory layout and other constants ####
 metabo_f <- file.path("data", "metabolomics", "UARS-01-23ML+",
                       "UARS-01-23ML+ DATA TABLES (ALL SAMPLES).xlsx")
+mtbmcs_file <- openxlsx::loadWorkbook(metabo_f)
+mtbmcs_sheets <- names(mtbmcs_file)
+metad_intrest <- c("controls", "TREATMENT")
 
 #### Loading in data ####
 mtbmcs_peak <-openxlsx::read.xlsx(metabo_f,
@@ -76,15 +69,34 @@ my_cols <- filter_metabolites(mtbmcs_bn)
 
 filtered_mtbcs <- mtbmcs_bnI[,my_cols]
 
-write.csv(filtered_mtbcs, file.path("data", "metabolomics", "filt_all_bat_norm_imput-chem.csv"),
+#### Create empty sub_pathway names and empty df ####
+subpath_names <- chem_link$SUB_PATHWAY[match(my_cols,chem_link$CHEMICAL_NAME)]
+subpath_names[is.na(subpath_names)] <- "Unknown"
+
+uniq_subpath <- unique(subpath_names)
+subpath_df <- data.frame(matrix(nrow=nrow(filtered_mtbcs), ncol = length(uniq_subpath)))
+row.names(subpath_df) <- row.names(filtered_mtbcs)
+names(subpath_df) <- uniq_subpath
+
+subpath_groups_in_mfilt_mtbcs <- lapply(uniq_subpath, grep, subpath_names, fixed = TRUE)
+for (i in seq_along(uniq_subpath)){
+  usp <- uniq_subpath[i]
+  if (length(subpath_groups_in_mfilt_mtbcs[[i]]) > 1){
+    subpath_df[,usp] <- rowSums(filtered_mtbcs[,subpath_groups_in_mfilt_mtbcs[[i]]])
+  }
+  else{
+    subpath_df[,usp] <- filtered_mtbcs[,subpath_groups_in_mfilt_mtbcs[[i]]]
+  }
+}
+
+write.csv(subpath_df, file.path("data", "metabolomics", "filt_all_bat_norm_imput-sub_pathway.csv"),
           row.names = T)
-
 #log2 table
-filtered_mtbcs <- log2(filtered_mtbcs)
+subpath_df <- log2(subpath_df)
 
-filtered_mtbcs$PARENT_SAMPLE_NAME <- row.names(filtered_mtbcs)
+subpath_df$PARENT_SAMPLE_NAME <- row.names(subpath_df)
 
-write.csv(filtered_mtbcs, file.path("data", "metabolomics", "log-filt_all_bat_norm_imput-chem.csv"),
+write.csv(subpath_df, file.path("data", "metabolomics", "log-filt_all_bat_norm_imput-sub_pathway.csv"),
           row.names = FALSE)
 
 print("End R script.")
