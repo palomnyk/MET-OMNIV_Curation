@@ -15,8 +15,6 @@
   # Chicken
   # [1] "11|**|MB2112: V5 SUB.ID: 011 IL-6 T=(-15)|**|MB/IIT|**|B"
 
-# USDA Studies
-
 rm(list = ls()) #clear workspace
 
 print(paste("Working in", getwd()))
@@ -48,6 +46,7 @@ all_xl <- c("UARS-01-23ML+ DATA TABLES (ALL SAMPLES).xlsx",
             "UARS-01-23ML+ DATA TABLES (DATA ADJUSTED BY BASELINE SAMPLES FROM EACH SITE).xlsx",
             "UARS-01-23ML+ DATA TABLES (EDTA PLASMA SAMPLES).xlsx")
 
+# Beef level related
 high_beef <- c("Med 2.5", "Med 5.5", "AAD", "A", "MED")
 low_beef <- c("Med 0.5", "B")
 no_beef <- c("VEG")
@@ -153,13 +152,13 @@ write.csv(meta_df, file = file.path("data", "mapping", "full_metadata.csv"),
 
 meta_df <- meta_df[meta_df$beef_level != "unknown",]
 
-write.csv(meta_df, file = file.path("data", "mapping", "noMed_metadata.csv"),
+write.csv(meta_df, file = file.path("data", "mapping", "noMap_metadata.csv"),
           row.names = FALSE)
 
 # Remove LCMS techincal data for testing in random forest
-meta_df <- meta_df[,c("PARENT_SAMPLE_NAME", "SITE","SUBJECT_ID", "TIMEPOINT","TREATMENT","VOL_EXTRACTED","controls","beef_level","beef_level_oz")]
+meta_df <- meta_df[,c("PARENT_SAMPLE_NAME", "SITE", "TIMEPOINT","TREATMENT","controls","beef_level","beef_level_oz")]
 
-write.csv(meta_df, file = file.path("data", "mapping", "rf_noMed_metadata.csv"),
+write.csv(meta_df, file = file.path("data", "mapping", "rf_noMap_metadata.csv"),
           row.names = FALSE)
 
 print("End R script.")
