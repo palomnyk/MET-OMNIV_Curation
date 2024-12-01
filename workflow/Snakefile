@@ -1,97 +1,295 @@
 # Author: Aaron Yerke (aaronyerke@gmail.com)
 # Main snakemake file for running and re-running scripts
-# print("In snakefile.")
+# TODO Debug rule that joins demo and metabolomics
+
 configfile: "workflow/config/config.yaml"
 
 import os
 import pandas as pd
 
 resp_colmns = ["beef_level", "TIMEPOINT"]
+metabolomics_levels = ["chem", "sub_pathway","super_pathway"]
+metabolomics_transforms = ["","log-"]
+rf_columns = ["PARENT_SAMPLE_NAME", "SITE", "TIMEPOINT","TREATMENT","controls","beef_level","beef_level_oz"]
 
 nutri_dir = os.path.join("data", "diet", "nutrition_data")
+
 rule completed:
-    input: os.path.join("data", "diet", "nutrition_data", "combined_esha_studies.tsv")
+	input:
+		os.path.join("data", "diet", "nutrition_data", "combined_esha_studies.tsv"),
+		expand("output/no_map/tables/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}_scores.csv", 
+			metblmcs_lev=metabolomics_levels),
+		# expand("output/no_map/tables/1col{resp_col}!demo-log-filt_all_bat_norm_imput-{metblmcs_lev}_scores.csv", 
+		#	 resp_col=rf_columns, metblmcs_lev=metabolomics_levels),
+		# expand("data/metabolomics/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv", 
+		#	 metblmcs_lev=metabolomics_levels)
+		# "data/mapping/noMap_demo.csv"
+
 
 checkpoint correct_SR_ESHA_matches:
-    input:  "data/diet/nutrition_data/SR/hf_SR_best_matches_com LEO.xlsx",
-            "data/diet/nutrition_data/best_matches/hf_SR_best_matches.xlsx"
-    shell:
-        """
-        Rscript scripts\harmonization\p5_correct_SR_ESHA_matches.R
-        """
+	input:
+		"data/diet/nutrition_data/SR/hf_SR_best_matches_com LEO.xlsx",
+		"data/diet/nutrition_data/best_matches/hf_SR_best_matches.xlsx"
+	shell:
+		"""
+		Rscript scripts/harmonization/p5_correct_SR_ESHA_matches.R
+		"""
 
 rule imput_SRA_match:
-    input: "data/diet/nutrition_data/HEI_with_proportions_long.xlsx",
-           "data/diet/nutrition_data/SR/SR_food.csv"
-    output:
-        "data/diet/nutrition_data/best_matches/hf_SR_best_matches.xlsx"
-    shell:
-        """
-        Rscript scripts\harmonization\p4_imput_SRA_match_REST.py
-        """
+	input:
+		"data/diet/nutrition_data/HEI_with_proportions_long.xlsx",
+		"data/diet/nutrition_data/SR/SR_food.csv"
+	output:
+		"data/diet/nutrition_data/best_matches/hf_SR_best_matches.xlsx"
+	shell:
+		"""
+		Rscript scripts\harmonization\p4_imput_SRA_match_REST.py
+		"""
 
 rule automatic_label_proteins:
-    input: expand("data/diet/nutrition_data/{file}",\
-           file=["HEI_conversion_table_LEO wide.xlsx",\
-                 "esha_combined_meats_HEI_vals_LEO_noRed.xlsx"])
-    output:
-        expand("data/diet/nutrition_data/{file}",\
-           file=["HEI_with_proportions.tsv","HEI_with_proportions_long.xlsx"])
-    shell:
-        """
-        Rscript scripts\harmonization\p3_automatic_label_proteins.R
-        """
+	input: expand("data/diet/nutrition_data/{file}",\
+		   file=["HEI_conversion_table_LEO wide.xlsx",\
+				 "esha_combined_meats_HEI_vals_LEO_noRed.xlsx"])
+	output:
+		expand("data/diet/nutrition_data/{file}",\
+		   file=["HEI_with_proportions.tsv","HEI_with_proportions_long.xlsx"])
+	shell:
+		"""
+		Rscript scripts/harmonization/p3_automatic_label_proteins.R
+		"""
 
 rule add_FPED_to_combined_ESHA:
-    input: os.path.join("data", "diet", "nutrition_data", "HEI Pivot table_modified.xlsx"), 
-           os.path.join("data", "diet", "nutrition_data", "combined_esha_studies.xlsx"),
-    output:
-        expand("data/diet/nutrition_data/{file}",\
-           file=["HEI_conversion_table.tsv","combined_esha_studies_HEI.tsv","HEI_missing_items.tsv"])
-    shell:
-        """
-        Rscript scripts/harmonization/p2_add_FPED_data.R
-        """
+	input:
+		os.path.join("data", "diet", "nutrition_data", "HEI Pivot table_modified.xlsx"), 
+		os.path.join("data", "diet", "nutrition_data", "combined_esha_studies.xlsx"),
+	output:
+		expand("data/diet/nutrition_data/{file}",\
+		   file=["HEI_conversion_table.tsv","combined_esha_studies_HEI.tsv","HEI_missing_items.tsv"])
+	shell:
+		"""
+		Rscript scripts/harmonization/p2_add_FPED_data.R
+		"""
 
 rule combine_ESHA:
-    input: os.path.join("data", "diet","map","MAP Study Complete ESHA Analysis Spreadsheet.xlsx"),
-           os.path.join("data", "diet","med","MED Diet Complete ESHA Analysis Spreadsheet.xlsx")
-    output: os.path.join("data", "diet", "nutrition_data", "combined_esha_studies.tsv"),
-            os.path.join("data", "diet", "nutrition_data", "combined_esha_studies.xlsx"),
-    shell:
-        """
-        Rscript scripts/harmonization/p1_build_ESHA_csv.R
-        """
+	input: os.path.join("data", "diet","map","MAP Study Complete ESHA Analysis Spreadsheet.xlsx"),
+		   os.path.join("data", "diet","med","MED Diet Complete ESHA Analysis Spreadsheet.xlsx")
+	output: os.path.join("data", "diet", "nutrition_data", "combined_esha_studies.tsv"),
+			os.path.join("data", "diet", "nutrition_data", "combined_esha_studies.xlsx"),
+	shell:
+		"""
+		Rscript scripts/harmonization/p1_build_ESHA_csv.R
+		"""
 
+rule organize_response_data:
+	input: "data/metabolomics/UARS-01-23ML+/UARS-01-23ML+ DATA TABLES (ALL SAMPLES).XLSX"
+	output: "data/mapping/full_metadata.csv",
+			"data/mapping/noMap_metadata.csv",
+			"data/mapping/rf_noMap_metadata.csv"
+	params:
+	shell:
+		"""
+		Rscript scripts/data_org/org_metadata.R
+		"""
 
-rule organize_metadata:
-    input: "data/metabolomics/UARS-01-23ML+/UARS-01-23ML+ DATA TABLES (ALL SAMPLES).XLSX"
-    output: "data/mapping/full_metadata.csv",
-            "data/mapping/noMap_metadata.csv",
-    params:
-    shell:
-        """
-        Rscript scripts/data_org/org_metadata.R
-        """
+rule organize_metabolomics:
+	input:
+		"data/metabolomics/UARS-01-23ML+/UARS-01-23ML+ DATA TABLES (DATA ADJUSTED BY BASELINE SAMPLES FROM EACH SITE).xlsx",
+	output: "data/metabolomics/filt_all_bat_norm_imput-{metblmcs_lev}.csv",
+			"data/metabolomics/log-filt_all_bat_norm_imput-{metblmcs_lev}.csv"
+	shell:
+		"""
+		Rscript scripts/data_org/org_mtbmcs-{wildcards.metblmcs_lev}.R
+		"""
+
+rule organize_demographics:
+	input: 
+		"data/metabolomics/UARS-01-23ML+/UARS-01-23ML+ DATA TABLES (ALL SAMPLES).XLSX",
+		"data/mapping/PSU demo.xlsx",
+		"data/mapping/USDA PSU Med Beef Data.xlsx",
+		"data/diet/mb/2112 V3    .csv", 
+		"data/diet/mb/2112 V2 .csv", 
+		"data/mapping/mb/MB-2112_Screen and Rand.xlsx",
+		"data/mapping/purdue/AY_sample_codebook 9.12.2024 Campbell data.xlsx",
+	output: "data/mapping/full_demo.csv",
+			"data/mapping/noMap_demo.csv"
+	shell:
+		"""
+		Rscript scripts/data_org/org_demo_help.R
+		"""
+
+rule combine_metadata_demo:
+	conda:"env/python_conda_env.yml"
+	input:
+		diet_org = "data/mapping/noMap_metadata.csv",
+		helper = "data/mapping/noMap_demo.csv"
+	output:
+		"data/mapping/noMap_metadata_demo.csv"
+	resources:
+		runtime=60, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
+		mem="16gb"
+	shell:
+		"""
+		Rscript scripts/data_org/combine_2_csv.R\
+			--first_path {input.diet_org}\
+			--secnd_path {input.helper}\
+			--out_path {output}\
+			--id_var PARENT_SAMPLE_NAME
+		"""
+
+# rule combine_chem_demo:
+# 	# conda:"env/python_conda_env.yml"
+# 	input:
+# 		diet_org = "data/metabolomics/log-filt_all_bat_norm_imput-chem.csv",
+# 		helper = "data/mapping/noMap_demo.csv"
+# 	output:
+# 		"data/metabolomics/demo-log-filt_all_bat_norm_imput-chem.csv"
+# 	resources:
+# 		runtime=60, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
+# 		mem="16gb"
+# 	shell:
+# 		"""
+# 		Rscript scripts/data_org/combine_2_csv.R\
+# 			--first_path {input.diet_org}\
+# 			--secnd_path {input.helper}\
+# 			--out_path {output}\
+# 			--id_var PARENT_SAMPLE_NAME
+# 		"""
+
+# rule combine_super_demo:
+# 	# conda:"env/python_conda_env.yml"
+# 	input:
+# 		diet_org = "data/metabolomics/log-filt_all_bat_norm_imput-super_pathway.csv",
+# 		helper = "data/mapping/noMap_demo.csv"
+# 	output:
+# 		"data/metabolomics/demo-log-filt_all_bat_norm_imput-super_pathway.csv"
+# 	resources:
+# 		runtime=60, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
+# 		mem="16gb"
+# 	shell:
+# 		"""
+# 		Rscript scripts/data_org/combine_2_csv.R\
+# 			--first_path {input.diet_org}\
+# 			--secnd_path {input.helper}\
+# 			--out_path {output}\
+# 			--id_var PARENT_SAMPLE_NAME
+# 		"""
+
+# rule combine_sub_demo:
+# 	# conda:"env/python_conda_env.yml"
+# 	input:
+# 		diet_org = "data/metabolomics/log-filt_all_bat_norm_imput-sub_pathway.csv",
+# 		helper = "data/mapping/noMap_demo.csv"
+# 	output:
+# 		"data/metabolomics/demo-log-filt_all_bat_norm_imput-sub_pathway.csv"
+# 	resources:
+# 		runtime=60, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
+# 		mem="16gb"
+# 	shell:
+# 		"""
+# 		Rscript scripts/data_org/combine_2_csv.R\
+# 			--first_path {input.diet_org}\
+# 			--secnd_path {input.helper}\
+# 			--out_path {output}\
+# 			--id_var PARENT_SAMPLE_NAME
+# 		"""
+
+# Rscript scripts/data_org/combine_2_csv.R\
+#	 --first_path data/metabolomics/log-filt_all_bat_norm_imput-chem.csv \
+#	 --secnd_path data/mapping/noMap_demo.csv \
+#	 --out_path data/metabolomics/demo-log-filt_all_bat_norm_imput-chem.csv \
+#	 --id_var PARENT_SAMPLE_NAME
+
+# Rscript scripts/data_org/combine_2_csv.R\
+#	 --first_path data/metabolomics/log-filt_all_bat_norm_imput-sub_pathway.csv \
+#	 --secnd_path data/mapping/noMap_demo.csv \
+#	 --out_path data/metabolomics/demo-log-filt_all_bat_norm_imput-sub_pathway.csv \
+#	 --id_var PARENT_SAMPLE_NAME
+
+# Rscript scripts/data_org/combine_2_csv.R\
+#	 --first_path data/metabolomics/log-filt_all_bat_norm_imput-super_pathway.csv \
+#	 --secnd_path data/mapping/noMap_demo.csv \
+#	 --out_path data/metabolomics/demo-log-filt_all_bat_norm_imput-super_pathway.csv \
+#	 --id_var PARENT_SAMPLE_NAME
+
+rule combine_metabol_demo:
+	# conda:"env/python_conda_env.yml"
+	input:
+		diet_org = "data/metabolomics/log-filt_all_bat_norm_imput-{metblmcs_lev}.csv",
+		helper = "data/mapping/noMap_demo.csv"
+	output:
+		"data/metabolomics/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv"
+		# expand("data/metabolomics/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv", 
+		#	 metblmcs_lev=metabolomics_levels)
+	resources:
+		runtime=60, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
+		mem="16gb"
+	shell:
+		"""
+		Rscript scripts/data_org/combine_2_csv.R\
+			--first_path {input.diet_org}\
+			--secnd_path {input.helper}\
+			--out_path {output}\
+			--id_var PARENT_SAMPLE_NAME
+		"""
+
+# rule organize_superpath_metabolomics:
+#	 input: "data/metabolomics/UARS-01-23ML+/UARS-01-23ML+ DATA TABLES (DATA ADJUSTED BY BASELINE SAMPLES FROM EACH SITE).xlsx"
+#	 output: "data/metabolomics/filt_all_bat_norm_imput-super_pathway.csv",
+#			 "data/metabolomics/log-filt_all_bat_norm_imput-super_pathway.csv",
+#	 shell:
+#		 """
+#		 Rscript scripts/data_org/org_mtbmcs_superpath.R
+#		 """
+
+# rule organize_subpath_metabolomics:
+#	 input: "data/metabolomics/UARS-01-23ML+/UARS-01-23ML+ DATA TABLES (DATA ADJUSTED BY BASELINE SAMPLES FROM EACH SITE).xlsx"
+#	 output: "data/metabolomics/filt_all_bat_norm_imput-sub_pathway.csv",
+#			 "data/metabolomics/log-filt_all_bat_norm_imput-sub_pathway.csv",
+#	 shell:
+#		 """
+#		 Rscript scripts/data_org/org_mtbmcs_subpath.R
+#		 """
+
 rule random_forest:
-    input:
-        predictor = "data/metabolomics/log_filt_all_bat_norm_imput.csv",
-        response = "data/mapping/noMap_metadata.csv"
-    output:
-    params:
-        label = "pre_post_treat_NO_MED",
-        title = "Pre vs post treatment"
-    shell:
-        """
-            python scripts/ml/random_forest.py\
-                --pred_path {input.predictor} \
-                --response_col {wildcards.resp_columns} \
-                --output_label {params.label} \
-                --out_folder no_med \
-                --response_fn {input.response} \
-                --delimiter , \
-                --title "params.title" \
-                --id_var "PARENT_SAMPLE_NAME"
-        
-        """
+	input:
+		predictor = "data/metabolomics/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv",
+		response = "data/mapping/rf_noMap_metadata.csv"
+	output:
+		"output/no_map/tables/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}_scores.csv"
+		# "output/no_map/tables/1col{resp_col}!demo-log-filt_all_bat_norm_imput-{metblmcs_lev}_scores.csv"
+	params:
+		label = "demo-log-filt_all_bat_norm_imput-{metblmcs_lev}"
+	resources:
+		runtime=9000, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
+		mem="200gb",
+		partition="medium"
+	shell:
+		"""
+			python scripts/ml/random_forest.py \
+				--pred_path {input.predictor} \
+				--output_label {params.label} \
+				--response_fn {input.response} \
+				--out_folder no_map \
+				--delimiter , \
+				--title "{params.label}" \
+				--id_var "PARENT_SAMPLE_NAME"
+
+		
+		"""
+				# --response_col beef_level
+
+rule plot_demo_data:
+	input: "data/mapping/noMap_metadata_demo.csv"
+	output:
+		"output/no_map/graphics/demo_plots.pdf"
+	params:
+	resources:
+		runtime=60, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
+		mem="16gb"
+	shell:
+		"""
+		   Rscript scripts/ds_descrip/demo_descr.R --data {input[0]} \
+		   --output_fpath {output[0]}
+		"""
+	   
 
