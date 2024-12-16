@@ -143,7 +143,7 @@ my_na <- sort(colSums(is.na(out_df)), decreasing = TRUE)/nrow(out_df)*100
 print(my_na)
 
 #remove white space
-out_df <- data.frame(apply(out_df, MARGIN = 2, FUN = trimws))
+out_df <- data.frame(apply(out_df, MARGIN = 2, FUN = trimws), check.names = FALSE)
 
 #TODO convert numeric columns back to numeric
 # str_df <- sapply(out_df, as.numeric)
