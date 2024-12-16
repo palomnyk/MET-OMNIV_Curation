@@ -20,6 +20,7 @@
 
 # RStudio files
 .Rproj.user/
+*.Rproj
 
 # produced vignettes
 vignettes/*.html
@@ -52,8 +53,9 @@ rsconnect/
 data/*
 output/
 
-# Snakemake records
+# Snakemake records and logs
 .snakemake/
+/slurmLogs
 
 # Stuff that I didn't use but I'm nto ready to delete
 /orphaned_code/
