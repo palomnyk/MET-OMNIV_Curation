@@ -35,6 +35,8 @@ snakemake --dag |dot -Tpdf > workflow/reports/dag.pdf
 
 snakemake --rulegraph |dot -Tpdf > workflow/reports/rulegraph.pdf
 
+snakemake --debug-dag | dot -Tpdf > workflow/reports/debug_dag.pdf
+
 snakemake --forceall --dag |dot -Tpdf > workflow/reports/forceall.pdf
 --forceall 
  snakemake --forceall --dag | dot -Tpdf > dag.pdf
@@ -91,10 +93,9 @@ python scripts/ml/random_forest.py\
 
 python scripts/ml/random_forest.py\
   --pred_path data/metabolomics/log_filt_all_bat_norm_imput.csv \
-  --response_col "beef_level_oz" \
-  --output_label beef_level_oz_NO_MAP \
   --out_folder no_map \
   --response_fn data/mapping/rf_noMed_metadata.csv \
   --delimiter , \
-  --id_var "PARENT_SAMPLE_NAME"
+  --id_var "PARENT_SAMPLE_NAME"\
+  --respons_df_start 1
 
