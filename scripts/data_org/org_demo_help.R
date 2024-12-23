@@ -33,7 +33,7 @@ meta_df <- openxlsx::read.xlsx(metabo_f, sheet = "Sample Meta Data")
 # Demographic data
 psu_med_demo_df <- openxlsx::read.xlsx(file.path("data","mapping","PSU demo.xlsx"))
 usda_med_df <- openxlsx::read.xlsx(file.path("data","mapping","USDA PSU Med Beef Data.xlsx"))
-mb_meta <- read.csv(file.path("data","diet","mb", "2112 V3    .csv"), 
+mb_meta <- read.csv(file.path("data","mapping","mb", "2112_V1   .csv"), 
                     check.names = FALSE)
 mb2_meta <- read.csv(file.path("data","diet","mb", "2112 V2 .csv"), 
                      check.names = FALSE)
@@ -86,8 +86,8 @@ for (i in seq_along(1:nrow(meta_df))){
     birthyear <- mb_meta[my_row, "Year_Birth"]
     visit_date <- as.numeric(strsplit(mb_meta[my_row,"Visit_Date"], "/")[[1]][3])
     age[i] <- visit_date - birthyear
-    bmi[i] <- NA
-    if (mb_meta[my_row, "non_applicable"] == "Male"){
+    bmi[i] <- mb_meta[my_row, "BMI"]
+    if (mb_meta[my_row, "Non_applicable"] == "Male"){
       sex[i] <- "M"}
     else{ sex[i] <- "F"}
   }
@@ -103,16 +103,16 @@ sex[sex == "M"] <- 1
 sex[sex == "F"] <- 0
 
 meta_df$age <- age
-# meta_df$bmi <- bmi
+meta_df$bmi <- bmi
 meta_df$sex <- sex
 
-meta_demo <- meta_df[,c("PARENT_SAMPLE_NAME", "age", "sex")]
+meta_demo <- meta_df[,c("PARENT_SAMPLE_NAME", "age", "bmi", "sex")]
 
 write.csv(meta_demo, file = file.path("data", "mapping", "full_demo.csv"),
           row.names = FALSE)
 meta_df <- meta_df[meta_df$CORRECTED_SITE != "USDA-MAP",]
 
-meta_df <- meta_df[,c("PARENT_SAMPLE_NAME", "age", "sex")]
+meta_df <- meta_df[,c("PARENT_SAMPLE_NAME", "age", "bmi", "sex")]
 
 write.csv(meta_df, file = file.path("data", "mapping", "noMap_demo.csv"),
           row.names = FALSE)
