@@ -208,8 +208,8 @@ with open(result_fpath, "w+") as fl:
 			dump(clf, model_path)
 			feature_df = pd.DataFrame(feature_importance)
 			feature_df.insert(loc = 0,column = "response_var", value = feature_resp_var, allow_duplicates=False)
-			feature_df.insert(loc = 1,column =  "model_type",value = model_type, allow_duplicates=False)
-			feature_df.insert(loc = 2,column =  "accuracy",value = full_accuracy, allow_duplicates=False)
+			feature_df.insert(loc = 1,column = "model_type",value = model_type, allow_duplicates=False)
+			feature_df.insert(loc = 2,column = "accuracy",value = full_accuracy, allow_duplicates=False)
 			feature_df.to_csv(feat_imp_fpath, index = False)
 			pred_train.to_csv(f"{feat_imp_fpath}_pred.csv", index = True)
 			# resp_test.to_csv(f"{feat_imp_fpath}_resp.csv", index = False)
@@ -239,7 +239,6 @@ with open(result_fpath, "w+") as fl:
 		plt.close()
 
 		if ave_score > score_threshold_SHAP:
-			matplotlib.rcParams.update(matplotlib.rcParamsDefault)#restore to default
 			#Plot 5 random trees
 			fig, axes = plt.subplots(nrows = 1,ncols = 5,figsize = (10,2), dpi=900)
 			for index in range(0, 5):
@@ -271,58 +270,43 @@ with open(result_fpath, "w+") as fl:
 			print(shap_values.shape, flush=True)
 			top_features = feature_mean.index[0:4].tolist()
 			if model_name == "RF_Classifier":
-				print(f"trying beeswarm plot {model_name} ", flush=True)
+				shap_use = shap_values[:,:,1]
+				wf_use = shap_values[0,:,0]
+				dep_use = explainer.shap_values(pred_train)[:,:,1]
+				print(f"trying dependency plot {model_name} ", flush=True)
 				# shap.plots.beeswarm(shap_values[:,:,1], max_display=shap_shown, show = False)
-				shap.plots.beeswarm(shap_values[:,:,0], max_display=shap_shown, show = False)
-				plt.suptitle(f"Final cross val, {resp_var}, {model_name} score: {round(ave_score, 3)}")
-				pdf.savefig(bbox_inches='tight')
-				plt.close()
-
-				shap.plots.waterfall(shap_values[0,:,0], max_display=shap_shown, show=False)
-				#works like this: shap.plots.waterfall(explanation[id_to_explain,:,output_to_explain])
-				pdf.savefig(bbox_inches='tight')
-				plt.close()
-				
-				shap_values = shap.TreeExplainer(clf).shap_values(pred_train)
-				fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(10, 6))
-				axes = axes.ravel() #flattens a n dimentional object to 1 d				
-				for i, dep in enumerate(top_features):
-					print(f"{i} {dep}, {model_name}", flush=True)
-					shap.dependence_plot(dep, explainer.shap_values(pred_train)[:,:,1], pred_train, show = False,)
-					plt.suptitle(f"Final cross validation\nSHAP dependency, {resp_var}")
-				pdf.savefig(bbox_inches='tight')
-				plt.close()
 			else:
-				print(f"trying beeswarm plot {model_name} ", flush=True)
-				shap.plots.beeswarm(shap_values, show = False, max_display=shap_shown, order=shap_values.abs.max(0))
-				plt.suptitle(f"Final cross val, {resp_var}, {model_name} score: {round(ave_score, 3)}")
-				pdf.savefig(bbox_inches='tight')
-				plt.close()
+				shap_use = shap_values
+				wf_use = shap_values[0]
+				dep_use = explainer.shap_values(pred_train)
 
-				shap.plots.waterfall(shap_values[0], max_display=shap_shown, show=False)
-				pdf.savefig(bbox_inches='tight')
-				plt.close()
+			print(f"trying beeswarm plot {model_name} ", flush=True)
+			shap.plots.beeswarm(shap_use, max_display=shap_shown, show = False)
+			plt.suptitle(f"Final cross val, {resp_var}, {model_name} score: {round(ave_score, 3)}")
+			pdf.savefig(bbox_inches='tight')
+			plt.close()
 
-				shap_values = shap.TreeExplainer(clf).shap_values(pred_train)
-				# adjust nrows, ncols to fit all your columns
-				fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(10, 6))
-				axes = axes.ravel() #flattens a n dimentional object to 1 d				
-				for i, dep in enumerate(top_features):
-					print(f"{i} {dep}, {model_name}", flush=True)
-					shap.dependence_plot(dep, explainer.shap_values(pred_train), pred_train, show = False, ax=axes[i])
-					plt.suptitle(f"Final cross validation\nSHAP dependency, {resp_var}")
-					# dep_pdf.savefig(bbox_inches='tight')
-				pdf.savefig(bbox_inches='tight')
-				plt.close()
+			shap.plots.waterfall(wf_use, max_display=shap_shown, show=False)
+			#works like this: shap.plots.waterfall(explanation[id_to_explain,:,output_to_explain])
+			pdf.savefig(bbox_inches='tight')
+			plt.close()
 
+			fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(10, 6))
+			axes = axes.ravel() #flattens a n dimentional object to 1 d				
+			for i, dep in enumerate(top_features):
+				print(f"{i} {dep}, {model_name}", flush=True)
+				shap.dependence_plot(dep, dep_use, pred_train, show = False, ax=axes[i])
+				plt.suptitle(f"Final cross validation\nSHAP dependency, {resp_var}")
+			pdf.savefig(bbox_inches='tight')
+			plt.close()
+			# matplotlib.rcParams.update(matplotlib.rcParamsDefault)#restore to default
 			try:
 				print("TreeExplainer", flush=True)
 				# tree_pdf_fpath = os.path.join(output_dir, "graphics", f"{output_label}_{resp_var}", f"{output_label}_{resp_var}_SHAPtree.pdf")
 				# tree_pdf = matplotlib.backends.backend_pdf.PdfPages(tree_pdf_fpath)
-				tree_explainer = shap.TreeExplainer(clf)
-				shap_values = tree_explainer.shap_values(pred_train)
+				shap_values = explainer.shap_values(pred_train)
 				print("shap_values.shape", flush=True)
-				shap.decision_plot(tree_explainer.expected_value, shap_values, pred_train, show=False)
+				shap.decision_plot(explainer.expected_value, dep_use, pred_train, show=False)
 				plt.suptitle(f"Final cross validation\nSHAP decision, {resp_var}")
 				pdf.savefig()
 				plt.close()
