@@ -1,5 +1,5 @@
 # Author: Aaron Yerke (aaronyerke@gmail.com)
-# Script for organizing metadata and labeling meet eaten from samples
+# Script for organizing metadata and labeling meat eaten from samples
 
 # For MB:
   # "screen" in the MB documentation matches to "SAMPLE_ID" in metabolomic metadata
@@ -47,9 +47,9 @@ all_xl <- c("UARS-01-23ML+ DATA TABLES (ALL SAMPLES).xlsx",
             "UARS-01-23ML+ DATA TABLES (EDTA PLASMA SAMPLES).xlsx")
 
 # Beef level related
-high_beef <- c("Med 2.5", "Med 5.5", "AAD", "A", "MED")
-low_beef <- c("Med 0.5", "B")
-no_beef <- c("VEG")
+high_beef <- c("Med 2.5", "Med 5.5", "AAD", "Beef diet", "MED")
+low_beef <- c("Med 0.5")
+no_beef <- c("VEG", "Chicken diet")
 unknown_beef <- c("Blue","Red","Green", "Yellow", "baseline", "BL", "Control")
 
 #### Check if all metadata files are the same ####
@@ -72,6 +72,10 @@ meta_df[meta_df == "post "] <- "post"
 
 #### Create "control" columns ####
 meta_df$TREATMENT[meta_df$TREATMENT %in% control_treatments] <- "Control"
+
+##### Improve readability #####
+meta_df$TREATMENT[meta_df$TREATMENT == "B"] <- "Chicken diet"
+meta_df$TREATMENT[meta_df$TREATMENT == "A"] <- "Beef diet"
 
 #to make three beef level categories
 beef_col <- meta_df$TREATMENT
@@ -108,8 +112,8 @@ beef_col[which(beef_col == "Med 5.5")] <- 5.5
 beef_col[which(beef_col == "Med 2.5")] <- 2.5
 beef_col[which(beef_col == "Med 0.5")] <- 0.5
 beef_col[which(beef_col == "AAD")] <- 5.5
-beef_col[which(beef_col == "A")] <- 6.5
-beef_col[which(beef_col == "B")] <- 0.5
+beef_col[which(beef_col == "Beef diet")] <- 6.5
+beef_col[which(beef_col == "Chicken diet")] <- 0.0
 beef_col[which(beef_col == "MED")] <- 3
 
 meta_df$beef_level_oz <- beef_col
@@ -156,7 +160,7 @@ write.csv(meta_df, file = file.path("data", "mapping", "noMap_metadata.csv"),
           row.names = FALSE)
 
 # Remove LCMS techincal data for testing in random forest
-meta_df <- meta_df[,c("PARENT_SAMPLE_NAME", "SITE", "TIMEPOINT","TREATMENT","controls","beef_level","beef_level_oz")]
+meta_df <- meta_df[,c("PARENT_SAMPLE_NAME", "SITE", "TIMEPOINT","TREATMENT","beef_level","beef_level_oz")]
 
 write.csv(meta_df, file = file.path("data", "mapping", "rf_noMap_metadata.csv"),
           row.names = FALSE)
