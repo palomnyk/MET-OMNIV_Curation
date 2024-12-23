@@ -30,7 +30,7 @@ for (sht in 1:length(my_sheets)){
   my_sheet <- my_sheets[sht]
   if (!startsWith(my_sheet, "PIVOT")){
     print(my_sheet)
-    pivot <- readxl::read_excel(my_excel, sheet = my_sheet, check.names = FALSE)
+    pivot <- readxl::read_excel(my_excel, sheet = my_sheet)
     if (typeof(big_sheet) != "list") big_sheet <- pivot
     else{
       print(length(names(big_sheet)))
@@ -79,7 +79,7 @@ colnames(new_info) <- conv_tab_names
 names(new_info)[1] <- "HEI_volumne"
 
 for (rw in 1:nrow(df)){
-  my_item <- unlist(df[rw,"Item.Name"])
+  my_item <- unlist(df[rw,"Item Name"])
   if (my_item %in% conversion_table$item){
     my_quantity <- unlist(df[rw, "Quantity"])
     my_convers_row <- conversion_table[which(conversion_table$item == my_item),]
