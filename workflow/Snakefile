@@ -17,14 +17,14 @@ nutri_dir = os.path.join("data", "diet", "nutrition_data")
 rule completed:
 	input:
 		os.path.join("data", "diet", "nutrition_data", "combined_esha_studies.tsv"),
-		expand("output/no_map/tables/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}_scores.csv", 
+		expand("output/no_map_chick_is_not_beef/tables/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}_scores.csv", 
 			metblmcs_lev=metabolomics_levels),
+		"output/no_map/graphics/demo_plots.pdf",
+		"output/no_map/graphics/exp_org_Sankey.html",
 		# expand("output/no_map/tables/1col{resp_col}!demo-log-filt_all_bat_norm_imput-{metblmcs_lev}_scores.csv", 
 		#	 resp_col=rf_columns, metblmcs_lev=metabolomics_levels),
-		# expand("data/metabolomics/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv", 
-		#	 metblmcs_lev=metabolomics_levels)
-		# "data/mapping/noMap_demo.csv"
-
+		expand("output/no_map_chick_is_not_beef/graphics/metabolites_Sankey-{metblmcs_lev}.html", 
+			 metblmcs_lev=metabolomics_levels)
 
 checkpoint correct_SR_ESHA_matches:
 	input:
@@ -120,8 +120,8 @@ rule organize_demographics:
 rule combine_metadata_demo:
 	conda:"env/python_conda_env.yml"
 	input:
-		diet_org = "data/mapping/noMap_metadata.csv",
-		helper = "data/mapping/noMap_demo.csv"
+		diet_org = "data/mapping/noMap_demo.csv",
+		helper = "data/mapping/noMap_metadata.csv"
 	output:
 		"data/mapping/noMap_metadata_demo.csv"
 	resources:
@@ -135,81 +135,6 @@ rule combine_metadata_demo:
 			--out_path {output}\
 			--id_var PARENT_SAMPLE_NAME
 		"""
-
-# rule combine_chem_demo:
-# 	# conda:"env/python_conda_env.yml"
-# 	input:
-# 		diet_org = "data/metabolomics/log-filt_all_bat_norm_imput-chem.csv",
-# 		helper = "data/mapping/noMap_demo.csv"
-# 	output:
-# 		"data/metabolomics/demo-log-filt_all_bat_norm_imput-chem.csv"
-# 	resources:
-# 		runtime=60, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
-# 		mem="16gb"
-# 	shell:
-# 		"""
-# 		Rscript scripts/data_org/combine_2_csv.R\
-# 			--first_path {input.diet_org}\
-# 			--secnd_path {input.helper}\
-# 			--out_path {output}\
-# 			--id_var PARENT_SAMPLE_NAME
-# 		"""
-
-# rule combine_super_demo:
-# 	# conda:"env/python_conda_env.yml"
-# 	input:
-# 		diet_org = "data/metabolomics/log-filt_all_bat_norm_imput-super_pathway.csv",
-# 		helper = "data/mapping/noMap_demo.csv"
-# 	output:
-# 		"data/metabolomics/demo-log-filt_all_bat_norm_imput-super_pathway.csv"
-# 	resources:
-# 		runtime=60, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
-# 		mem="16gb"
-# 	shell:
-# 		"""
-# 		Rscript scripts/data_org/combine_2_csv.R\
-# 			--first_path {input.diet_org}\
-# 			--secnd_path {input.helper}\
-# 			--out_path {output}\
-# 			--id_var PARENT_SAMPLE_NAME
-# 		"""
-
-# rule combine_sub_demo:
-# 	# conda:"env/python_conda_env.yml"
-# 	input:
-# 		diet_org = "data/metabolomics/log-filt_all_bat_norm_imput-sub_pathway.csv",
-# 		helper = "data/mapping/noMap_demo.csv"
-# 	output:
-# 		"data/metabolomics/demo-log-filt_all_bat_norm_imput-sub_pathway.csv"
-# 	resources:
-# 		runtime=60, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
-# 		mem="16gb"
-# 	shell:
-# 		"""
-# 		Rscript scripts/data_org/combine_2_csv.R\
-# 			--first_path {input.diet_org}\
-# 			--secnd_path {input.helper}\
-# 			--out_path {output}\
-# 			--id_var PARENT_SAMPLE_NAME
-# 		"""
-
-# Rscript scripts/data_org/combine_2_csv.R\
-#	 --first_path data/metabolomics/log-filt_all_bat_norm_imput-chem.csv \
-#	 --secnd_path data/mapping/noMap_demo.csv \
-#	 --out_path data/metabolomics/demo-log-filt_all_bat_norm_imput-chem.csv \
-#	 --id_var PARENT_SAMPLE_NAME
-
-# Rscript scripts/data_org/combine_2_csv.R\
-#	 --first_path data/metabolomics/log-filt_all_bat_norm_imput-sub_pathway.csv \
-#	 --secnd_path data/mapping/noMap_demo.csv \
-#	 --out_path data/metabolomics/demo-log-filt_all_bat_norm_imput-sub_pathway.csv \
-#	 --id_var PARENT_SAMPLE_NAME
-
-# Rscript scripts/data_org/combine_2_csv.R\
-#	 --first_path data/metabolomics/log-filt_all_bat_norm_imput-super_pathway.csv \
-#	 --secnd_path data/mapping/noMap_demo.csv \
-#	 --out_path data/metabolomics/demo-log-filt_all_bat_norm_imput-super_pathway.csv \
-#	 --id_var PARENT_SAMPLE_NAME
 
 rule combine_metabol_demo:
 	# conda:"env/python_conda_env.yml"
@@ -232,30 +157,12 @@ rule combine_metabol_demo:
 			--id_var PARENT_SAMPLE_NAME
 		"""
 
-# rule organize_superpath_metabolomics:
-#	 input: "data/metabolomics/UARS-01-23ML+/UARS-01-23ML+ DATA TABLES (DATA ADJUSTED BY BASELINE SAMPLES FROM EACH SITE).xlsx"
-#	 output: "data/metabolomics/filt_all_bat_norm_imput-super_pathway.csv",
-#			 "data/metabolomics/log-filt_all_bat_norm_imput-super_pathway.csv",
-#	 shell:
-#		 """
-#		 Rscript scripts/data_org/org_mtbmcs_superpath.R
-#		 """
-
-# rule organize_subpath_metabolomics:
-#	 input: "data/metabolomics/UARS-01-23ML+/UARS-01-23ML+ DATA TABLES (DATA ADJUSTED BY BASELINE SAMPLES FROM EACH SITE).xlsx"
-#	 output: "data/metabolomics/filt_all_bat_norm_imput-sub_pathway.csv",
-#			 "data/metabolomics/log-filt_all_bat_norm_imput-sub_pathway.csv",
-#	 shell:
-#		 """
-#		 Rscript scripts/data_org/org_mtbmcs_subpath.R
-#		 """
-
 rule random_forest:
 	input:
 		predictor = "data/metabolomics/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv",
 		response = "data/mapping/rf_noMap_metadata.csv"
 	output:
-		"output/no_map/tables/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}_scores.csv"
+		"output/no_map_chick_is_not_beef/tables/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}_scores.csv"
 		# "output/no_map/tables/1col{resp_col}!demo-log-filt_all_bat_norm_imput-{metblmcs_lev}_scores.csv"
 	params:
 		label = "demo-log-filt_all_bat_norm_imput-{metblmcs_lev}"
@@ -269,7 +176,7 @@ rule random_forest:
 				--pred_path {input.predictor} \
 				--output_label {params.label} \
 				--response_fn {input.response} \
-				--out_folder no_map \
+				--out_folder no_map_chick_is_not_beef \
 				--delimiter , \
 				--title "{params.label}" \
 				--id_var "PARENT_SAMPLE_NAME"
@@ -291,5 +198,32 @@ rule plot_demo_data:
 		   Rscript scripts/ds_descrip/demo_descr.R --data {input[0]} \
 		   --output_fpath {output[0]}
 		"""
-	   
 
+rule exp_org_Sankey:
+	input: "data/mapping/noMap_metadata_demo.csv"
+	output:
+		"output/no_map/graphics/exp_org_Sankey.html"
+	params:
+	resources:
+		runtime=60, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
+		mem="16gb"
+	shell:
+		"""
+		   Rscript scripts/ds_descrip/exp_org_Sankey.R
+		"""
+
+rule comb_output_Sankey:
+	conda:"env/python_conda_env.yml"
+	input:
+		"output/no_map_chick_is_not_beef/tables/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}_scores.csv"
+	output:
+		"output/no_map_chick_is_not_beef/graphics/metabolites_Sankey-{metblmcs_lev}.html"
+	shell:
+		"""
+			Rscript scripts/ds_descrip/comb_output_Sankey.R\
+				--featimp_path {input[0]}\
+				--output_dir no_map_chick_is_not_beef\
+				--out_name metabolites_Sankey-{wildcards.metblmcs_lev}.html
+
+		
+		"""
