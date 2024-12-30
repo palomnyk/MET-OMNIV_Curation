@@ -129,6 +129,7 @@ id_list = response_df.loc[:,options.id_var]
 
 #output files
 output_label = f"{resp_col_label}{options.output_label}".replace("/", "／")
+model_storage = pathlib.Path("data","models")
 result_fpath = os.path.join(output_dir, "tables", f"{output_label}_scores.csv")
 pdf_fpath = os.path.join(output_dir, "graphics", f"{output_label}_feat_import.pdf")
 feat_imp_fpath = os.path.join(output_dir, "tables", f"feat_imp_{output_label}.csv")
@@ -149,8 +150,9 @@ with open(result_fpath, "w+") as fl:
 	full_accuracy = []
 	for resp_var in response_cols:
 		pred_path_name = pathlib.PurePath(options.pred_table).name
-		model_fname = f"sklearnRF-{num_cv_folds}-{n_trees}-{pred_path_name}-{resp_var}.mdl"
-		model_path = pathlib.Path("data","models",model_fname)
+		clean_resp_var = resp_var.replace("/", ".")
+		model_fname = f"sklearnRF-{num_cv_folds}-{n_trees}-{pred_path_name}-{clean_resp_var}.mdl"
+		model_path = pathlib.Path(model_storage, model_fname)
 		resp_safe_ids = response_df.loc[response_df[resp_var ].notna(), options.id_var]
 		intersect_safe_ids = list(set(resp_safe_ids) & set(pred_df.index))
 		print(f"num safe ids {len(resp_safe_ids)}")
