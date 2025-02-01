@@ -9,6 +9,7 @@ import pandas as pd
 
 resp_colmns = ["beef_level", "TIMEPOINT"]
 metabolomics_levels = ["chem", "sub_pathway","super_pathway"]
+project_diet_prefix = ["", "mb-"]
 metabolomics_transforms = ["","log-"]
 rf_columns = ["PARENT_SAMPLE_NAME", "SITE", "TIMEPOINT","TREATMENT","controls","beef_level","beef_level_oz"]
 
@@ -23,9 +24,23 @@ rule completed:
 		"output/no_map/graphics/exp_org_Sankey.html",
 		# expand("output/no_map/tables/1col{resp_col}!demo-log-filt_all_bat_norm_imput-{metblmcs_lev}_scores.csv", 
 		#	 resp_col=rf_columns, metblmcs_lev=metabolomics_levels),
-		expand("output/no_map_chick_is_not_beef/graphics/metabolites_Sankey-{metblmcs_lev}.html", 
-			 metblmcs_lev=metabolomics_levels)
+		# expand("output/no_map_chick_is_not_beef/graphics/metabolites_Sankey-{metblmcs_lev}.html", 
+		# 	 metblmcs_lev=metabolomics_levels),
+		expand("data/diet/nutrition_data/mb-{file}",\
+		   file=["HEI_with_proportions_long.tsv","HEI_with_proportions_long.xlsx", "HEI_with_proportions_long.tsv"]),
+		expand("output/no_map_auto_protein/tables/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein_scores.csv",
+		metblmcs_lev=metabolomics_levels)
 
+
+rule combine_MB_dietary_to_single_table:
+	conda:"env/python_conda_env.yml"
+	input: "data/diet/mb/2112 Results.xlsx"
+	output: "data/diet/nutrition_data/mb_2112_esha.tsv"
+	shell:
+		"""
+		module load r
+		Rscript scripts/harmonization/org_MB_dietary.R
+		"""	
 checkpoint correct_SR_ESHA_matches:
 	input:
 		"data/diet/nutrition_data/SR/hf_SR_best_matches_com LEO.xlsx",
@@ -46,31 +61,63 @@ rule imput_SRA_match:
 		Rscript scripts\harmonization\p4_imput_SRA_match_REST.py
 		"""
 
-rule automatic_label_proteins:
+rule automatic_label_proteins_USDA:
 	input: expand("data/diet/nutrition_data/{file}",\
 		   file=["HEI_conversion_table_LEO wide.xlsx",\
 				 "esha_combined_meats_HEI_vals_LEO_noRed.xlsx"])
 	output:
 		expand("data/diet/nutrition_data/{file}",\
-		   file=["HEI_with_proportions.tsv","HEI_with_proportions_long.xlsx"])
+		   file=["HEI_with_proportions_long.tsv","HEI_with_proportions_long.xlsx"])
 	shell:
 		"""
 		Rscript scripts/harmonization/p3_automatic_label_proteins.R
 		"""
 
-rule add_FPED_to_combined_ESHA:
+rule automatic_label_proteins_mb:
+	input:
+		HEI_conv = "data/diet/nutrition_data/mb-HEI_conversion_table_wide.tsv",
+		diet = "data/diet/nutrition_data/mb-combined_esha_studies_HEI.tsv"
+	output:
+		expand("data/diet/nutrition_data/mb-{file}",\
+		   file=["HEI_with_proportions_long.tsv","HEI_with_proportions_long.xlsx", "esha_combined_meats_HEI_vals.tsv"])
+	shell:
+		"""
+		module load r
+		Rscript scripts/harmonization/p3_auto_label_proteins_mb.R\
+			--HEI_conv_wid {input.HEI_conv:q}\
+			--out_prefix mb-
+		"""
+
+rule add_FPED_to_combined_ESHA_USDA:
 	input:
 		os.path.join("data", "diet", "nutrition_data", "HEI Pivot table_modified.xlsx"), 
 		os.path.join("data", "diet", "nutrition_data", "combined_esha_studies.xlsx"),
 	output:
 		expand("data/diet/nutrition_data/{file}",\
-		   file=["HEI_conversion_table.tsv","combined_esha_studies_HEI.tsv","HEI_missing_items.tsv"])
+		   file=["HEI_conversion_table_wide.tsv", "HEI_conversion_table.tsv",
+		   "combined_esha_studies_HEI.tsv","HEI_missing_items.tsv"])
 	shell:
 		"""
 		Rscript scripts/harmonization/p2_add_FPED_data.R
 		"""
 
-rule combine_ESHA:
+rule add_FPED_to_ESHA_MB:
+	input:
+		HEI_conv = "data/diet/nutrition_data/HEI Pivot table_modified.xlsx",
+		diet = os.path.join("data", "diet", "nutrition_data", "mb_2112_esha.tsv"),
+	output:
+		expand("data/diet/nutrition_data/mb-{file}",\
+		   file=["HEI_conversion_table_wide.tsv",
+		   		"HEI_conversion_table_long.tsv","combined_esha_studies_HEI.tsv","HEI_missing_items.tsv"])
+	shell:
+		"""
+		Rscript scripts/harmonization/p2_add_FPED_data.R\
+			--HEI_conv {input.HEI_conv:q}\
+			--input {input.diet:q}\
+			--out_prefix mb-
+		"""
+
+rule combine_USDA_ESHA:
 	input: os.path.join("data", "diet","map","MAP Study Complete ESHA Analysis Spreadsheet.xlsx"),
 		   os.path.join("data", "diet","med","MED Diet Complete ESHA Analysis Spreadsheet.xlsx")
 	output: os.path.join("data", "diet", "nutrition_data", "combined_esha_studies.tsv"),
@@ -88,7 +135,7 @@ rule organize_response_data:
 	params:
 	shell:
 		"""
-		Rscript scripts/data_org/org_metadata.R
+		Rscript scripts/data_org/org_metadata_beef_only.R
 		"""
 
 rule organize_metabolomics:
@@ -168,7 +215,7 @@ rule random_forest:
 		label = "demo-log-filt_all_bat_norm_imput-{metblmcs_lev}"
 	resources:
 		runtime=9000, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
-		mem="200gb",
+		mem="100gb",
 		partition="medium"
 	shell:
 		"""
@@ -180,8 +227,31 @@ rule random_forest:
 				--delimiter , \
 				--title "{params.label}" \
 				--id_var "PARENT_SAMPLE_NAME"
+		"""
 
-		
+rule random_forest_auto_protein:
+	input:
+		predictor = "data/metabolomics/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv",
+		response = "data/mapping/rf_noMap_auto_protn_metadata.csv"
+	output:
+		"output/no_map_auto_protein/tables/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein_scores.csv"
+		# "output/no_map/tables/1col{resp_col}!demo-log-filt_all_bat_norm_imput-{metblmcs_lev}_scores.csv"
+	params:
+		label = "demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein"
+	resources:
+		runtime=9000, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
+		mem="100gb",
+		partition="medium"
+	shell:
+		"""
+			python scripts/ml/random_forest.py \
+				--pred_path {input.predictor} \
+				--output_label {params.label} \
+				--response_fn {input.response} \
+				--out_folder no_map_auto_protein \
+				--delimiter , \
+				--title "{params.label}" \
+				--id_var "PARENT_SAMPLE_NAME"
 		"""
 				# --response_col beef_level
 
@@ -199,7 +269,7 @@ rule plot_demo_data:
 		   --output_fpath {output[0]}
 		"""
 
-rule exp_org_Sankey:
+rule exp_org_Sankey:#Sankey shows experimental organization
 	input: "data/mapping/noMap_metadata_demo.csv"
 	output:
 		"output/no_map/graphics/exp_org_Sankey.html"
@@ -212,7 +282,7 @@ rule exp_org_Sankey:
 		   Rscript scripts/ds_descrip/exp_org_Sankey.R
 		"""
 
-rule comb_output_Sankey:
+rule comb_output_Sankey:#Compares top hits of feature importance for RF run
 	conda:"env/python_conda_env.yml"
 	input:
 		"output/no_map_chick_is_not_beef/tables/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}_scores.csv"
@@ -227,3 +297,29 @@ rule comb_output_Sankey:
 
 		
 		"""
+
+rule organize_auto_protein_response_data:
+	input: "data/metabolomics/UARS-01-23ML+/UARS-01-23ML+ DATA TABLES (ALL SAMPLES).XLSX"
+	output: "data/mapping/full_auto_protn_metadata.csv",
+			"data/mapping/noMap_auto_protn_metadata.csv",
+			"data/mapping/rf_noMap_auto_protn_metadata.csv"
+	params:
+	shell:
+		"""
+		Rscript scripts/data_org/org_metadata_auto_protn.R
+		"""
+
+rule comb_output_Sankey:#Compares top hits of feature importance for RF run
+	conda:"env/python_conda_env.yml"
+	input:
+		"output/no_map_chick_is_not_beef/tables/feat_imp_demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv
+	output:
+		"output/no_map_chick_is_not_beef/graphics/metabolites_Sankey-{metblmcs_lev}.html"
+	shell:
+		"""
+			Rscript scripts/ds_descrip/comb_output_Sankey.R\
+				--featimp_path {input[0]}\
+				--output_dir no_map_chick_is_not_beef\
+				--out_name metabolites_Sankey-{wildcards.metblmcs_lev}.html
+
+				
