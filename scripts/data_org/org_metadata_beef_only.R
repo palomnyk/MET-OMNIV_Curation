@@ -122,7 +122,7 @@ meta_df$beef_level_oz <- beef_col
 turkey <- vector(mode = "numeric", length = nrow(meta_df))
 chicken <- vector(mode = "numeric", length = nrow(meta_df))
 beef <- vector(mode = "numeric", length = nrow(meta_df))
-lamb <- vector(mode = "numeric", length = nrow(meta_df))
+# lamb <- vector(mode = "numeric", length = nrow(meta_df))
 pork <- vector(mode = "numeric", length = nrow(meta_df))
 
 mb_base_dir <- file.path("data","diet","mb")
