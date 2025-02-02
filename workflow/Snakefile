@@ -29,6 +29,10 @@ rule completed:
 		expand("data/diet/nutrition_data/mb-{file}",\
 		   file=["HEI_with_proportions_long.tsv","HEI_with_proportions_long.xlsx", "HEI_with_proportions_long.tsv"]),
 		expand("output/no_map_auto_protein/tables/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein_scores.csv",
+		metblmcs_lev=metabolomics_levels),
+		expand("output/no_map_auto_chick_is_not_beef/tables/shap_feat_imp_demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein.csv",
+		metblmcs_lev=metabolomics_levels),
+		expand("output/no_map_chick_is_not_beef/tables/shap_feat_imp_demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv",
 		metblmcs_lev=metabolomics_levels)
 
 
@@ -209,7 +213,8 @@ rule random_forest:
 		predictor = "data/metabolomics/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv",
 		response = "data/mapping/rf_noMap_metadata.csv"
 	output:
-		"output/no_map_chick_is_not_beef/tables/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}_scores.csv"
+		"output/no_map_chick_is_not_beef/tables/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}_scores.csv",
+		"output/no_map_auto_chick_is_not_beef/tables/shap_feat_imp_demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein.csv"
 		# "output/no_map/tables/1col{resp_col}!demo-log-filt_all_bat_norm_imput-{metblmcs_lev}_scores.csv"
 	params:
 		label = "demo-log-filt_all_bat_norm_imput-{metblmcs_lev}"
@@ -234,8 +239,9 @@ rule random_forest_auto_protein:
 		predictor = "data/metabolomics/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv",
 		response = "data/mapping/rf_noMap_auto_protn_metadata.csv"
 	output:
-		"output/no_map_auto_protein/tables/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein_scores.csv"
+		"output/no_map_auto_protein/tables/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein_scores.csv",
 		# "output/no_map/tables/1col{resp_col}!demo-log-filt_all_bat_norm_imput-{metblmcs_lev}_scores.csv"
+		"output/no_map_auto_protein/tables/shap_feat_imp_demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein.csv"
 	params:
 		label = "demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein"
 	resources:
@@ -309,17 +315,17 @@ rule organize_auto_protein_response_data:
 		Rscript scripts/data_org/org_metadata_auto_protn.R
 		"""
 
-rule comb_output_Sankey:#Compares top hits of feature importance for RF run
-	conda:"env/python_conda_env.yml"
-	input:
-		"output/no_map_chick_is_not_beef/tables/feat_imp_demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv
-	output:
-		"output/no_map_chick_is_not_beef/graphics/metabolites_Sankey-{metblmcs_lev}.html"
-	shell:
-		"""
-			Rscript scripts/ds_descrip/comb_output_Sankey.R\
-				--featimp_path {input[0]}\
-				--output_dir no_map_chick_is_not_beef\
-				--out_name metabolites_Sankey-{wildcards.metblmcs_lev}.html
-
+# rule comb_output_Sankey:#Compares top hits of feature importance for RF run
+# 	conda:"env/python_conda_env.yml"
+# 	input:
+# 		"output/no_map_chick_is_not_beef/tables/feat_imp_demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv"
+# 	output:
+# 		"output/no_map_chick_is_not_beef/graphics/metabolites_Sankey-{metblmcs_lev}.html"
+# 	shell:
+# 		"""
+# 			Rscript scripts/ds_descrip/comb_output_Sankey.R\
+# 				--featimp_path {input[0]}\
+# 				--output_dir no_map_chick_is_not_beef\
+# 				--out_name metabolites_Sankey-{wildcards.metblmcs_lev}.html
+# 		"""
 				
