@@ -74,6 +74,9 @@ meta_df$TREATMENT[meta_df$TREATMENT %in% control_treatments] <- "Control"
 ##### Improve readability #####
 meta_df$TREATMENT[meta_df$TREATMENT == "B"] <- "Chicken diet"
 meta_df$TREATMENT[meta_df$TREATMENT == "A"] <- "Beef diet"
+drops <- c("SITE")
+meta_df[ , !(names(meta_df) %in% drops)]
+colnames(meta_df)[colnames(meta_df) == "CORRECTED_SITE"] = "SITE"
 
 #### Create df for meat sums, starting with mb ####
 agg_columns <- c("beef", "chicken", "pork", "turkey", "processed", "meat")
@@ -123,7 +126,7 @@ names(meat_rows) <- names(meat_totals)
 mb_ids <- c()
 for (i in seq_along(1:nrow(meta_df))){
   id <- meta_df$CLIENT_SAMPLE_ID[i]
-  site <- meta_df$CORRECTED_SITE[i]
+  site <- meta_df$SITE[i]
   treat <- meta_df$TREATMENT[i]
   print(i)
   print(paste(id, site))
@@ -173,14 +176,18 @@ for (i in seq_along(1:nrow(meta_df))){
 }
 
 meta_df <- cbind(meta_df, meat_rows)
+new_rows <- data.frame(matrix(ncol = ncol(meat_totals),
+                              nrow = nrow(meta_df)))
+new_rows <- data.frame(lapply(new_rows, as.character))
+names(new_rows) <- names(meat_totals)
 
-meat_rows[meat_rows >= 70] <- "high"
-meat_rows[meat_rows == 0] <- "no"
-meat_rows[meat_rows < 70] <- "low"
+new_rows[meat_rows >= 70] <- "high"
+new_rows[meat_rows <= 0] <- "no"
+new_rows[meat_rows < 70 & meat_rows > 0] <- "low"
 
-colnames(meat_rows) <- paste(colnames(meat_rows), "_levels", sep = "_")
+colnames(new_rows) <- paste(colnames(meat_rows), "levels", sep = "_")
 
-meta_df <- cbind(meta_df, meat_rows)
+meta_df <- cbind(meta_df, new_rows)
 
 #### Save output ####
 write.csv(meat_totals, file = file.path(nut_dir, "auto_protn_meat_totals_by_treatment.csv"))
@@ -194,7 +201,7 @@ write.csv(meta_df, file = file.path("data", "mapping", "noMap_auto_protn_metadat
           row.names = FALSE)
 
 # Remove LCMS technical data for testing in random forest
-meta_df <- meta_df[c("PARENT_SAMPLE_NAME","TIMEPOINT","TREATMENT", agg_columns, names(meat_rows))]
+meta_df <- meta_df[c("PARENT_SAMPLE_NAME", "SITE","TIMEPOINT","TREATMENT", agg_columns, names(new_rows))]
 # meta_df <- meta_df[c("PARENT_SAMPLE_NAME", agg_columns)]
 write.csv(meta_df, file = file.path("data", "mapping", "rf_noMap_auto_protn_metadata.csv"),
           row.names = FALSE)
