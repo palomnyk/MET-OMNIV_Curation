@@ -37,8 +37,8 @@ print(paste("Working in", getwd()))
 
 #### Loading dependencies ####
 if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
-if (!requireNamespace("openxlsx", quietly = TRUE))  BiocManager::install("openxlsx")
-library("openxlsx")
+if (!requireNamespace("readxl", quietly = TRUE))  BiocManager::install("readxl")
+library("readxl")
 
 print("Loaded packages")
 
@@ -56,7 +56,7 @@ meal_keywords <- c("Breakfast", "Morning Snack", "Lunch", "Dinner", "Afternoon S
 #data from USDA has these columns: "Study", "Intervention", "Day", "Meal", "Recipe", "Item.Name"
 nutr_columns <- 2:64
 nutr_column_names <- nutr_column_names <- diet_df[2,nutr_columns]
-out_names <- c("Study", "Intervention", "Day", "Meal", "Recipe", "Item name", nutr_column_names)
+out_names <- c("Study", "Intervention", "Day", "Meal", "Recipe", "Item Name", nutr_column_names)
 out_df <- data.frame(matrix(1:length(out_names), ncol = length(out_names)))
 names(out_df) <- out_names
 rows_added <- 1
@@ -64,7 +64,7 @@ rows_added <- 1
 
 for (wb in xl_wb){
   # print(wb)
-  diet_df <- openxlsx::read.xlsx(mb_diet, sheet = wb, startRow = 0)
+  diet_df <- readxl::read_xlsx(mb_diet, sheet = wb, skip = 2, col_names = TRUE)
   day_count <- 1
   current_meal <- NA
   nutr_column_names <- diet_df[2,nutr_columns]
@@ -79,12 +79,16 @@ for (wb in xl_wb){
         }
       }
     }else{
-      next_day_pattern <- paste0("Spreadsheet: Day - MB-2112_", wb, " - Day", day_count + 1)
+      next_day_pattern <- paste0("Spreadsheet: Day - MB-2112_", wb)
       # Spreadsheet: Day - MB-2112_SC_001 - Day 2
-      if (item == next_day_pattern) {day_count <- day_count + 1} else{
-      if (!is.na(diet_df[i,2])){
-        print(item)
-        # "Study", "Intervention", "Day", "Meal", "Recipe", "Item name", nutr_column_names
+      if (grepl(pattern = next_day_pattern, x = item)) {
+        print("BIG ELSE")
+        day_count <- day_count + 1
+      } else{
+        
+      if (!is.na(diet_df[i,2]) & item != "Item Name"){
+        # print(item, day_count)
+        # "Study", "Intervention", "Day", "Meal", "Recipe", "Item Name", nutr_column_names
         nut_data <- diet_df[i, nutr_columns]
         my_row <- c("MB-2112", wb, day_count, current_meal, NA, item, nut_data)
         out_df[rows_added,] <- my_row
@@ -100,6 +104,4 @@ write.table(out_df,
           sep="\t")
 
 print("End org_MB_dietary.R")
-
-
 
