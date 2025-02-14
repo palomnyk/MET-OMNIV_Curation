@@ -7,8 +7,8 @@ cluster-generic-submit-cmd:
     --cpus-per-task={threads}
     --mem={resources.mem_mb}
     --job-name=smk-{rule}-{wildcards}
-    --output=slurmLogs/{rule}/{wildcards}-%x.%j.log
-    --error=slurmLogs/{rule}/{wildcards}-%x.%j.log
+    --output=slurmLogs/{rule}/%j.{wildcards}.log
+    --error=slurmLogs/{rule}/%j.{wildcards}.log
     --mail-user=aaron.yerke@usda.gov
     --mail-type=BEGIN,END,FAIL
     --parsable
@@ -23,7 +23,7 @@ default-resources:
 restart-times: 0
 max-jobs-per-second: 10
 max-status-checks-per-second: 1
-local-cores: 1
+local-cores: 3
 latency-wait: 60
 jobs: 500
 keep-going: True
