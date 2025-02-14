@@ -30,10 +30,13 @@ rule completed:
 		   file=["HEI_with_proportions_long.tsv","HEI_with_proportions_long.xlsx", "HEI_with_proportions_long.tsv"]),
 		expand("output/no_map_auto_protein/tables/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein_scores.csv",
 		metblmcs_lev=metabolomics_levels),
-		expand("output/no_map_auto_chick_is_not_beef/tables/shap_feat_imp_demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein.csv",
+		expand("output/no_map_auto_protein/tables/shap_feat_imp_demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein.csv",
 		metblmcs_lev=metabolomics_levels),
 		expand("output/no_map_chick_is_not_beef/tables/shap_feat_imp_demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv",
-		metblmcs_lev=metabolomics_levels)
+		metblmcs_lev=metabolomics_levels),
+		#midpoint for exp sankey autoproten
+		"data/mapping/noMap_metadata_auto-pro_demo.csv"
+
 
 
 rule combine_MB_dietary_to_single_table:
@@ -187,6 +190,25 @@ rule combine_metadata_demo:
 			--id_var PARENT_SAMPLE_NAME
 		"""
 
+rule combine_auto_pro_demo:
+	conda:"env/python_conda_env.yml"
+	input:
+		diet_org = "data/mapping/noMap_demo.csv",
+		helper = "data/mapping/noMap_auto_protn_metadata.csv"
+	output:
+		"data/mapping/noMap_metadata_auto-pro_demo.csv"
+	resources:
+		runtime=60, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
+		mem="16gb"
+	shell:
+		"""
+		Rscript scripts/data_org/combine_2_csv.R\
+			--first_path {input.diet_org}\
+			--secnd_path {input.helper}\
+			--out_path {output}\
+			--id_var PARENT_SAMPLE_NAME
+		"""
+
 rule combine_metabol_demo:
 	# conda:"env/python_conda_env.yml"
 	input:
@@ -219,9 +241,9 @@ rule random_forest:
 	params:
 		label = "demo-log-filt_all_bat_norm_imput-{metblmcs_lev}"
 	resources:
-		runtime=9000, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
+		runtime=2880, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
 		mem="100gb",
-		partition="medium"
+		partition="short"
 	shell:
 		"""
 			python scripts/ml/random_forest.py \
@@ -245,9 +267,9 @@ rule random_forest_auto_protein:
 	params:
 		label = "demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein"
 	resources:
-		runtime=9000, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
+		runtime=2880, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
 		mem="100gb",
-		partition="medium"
+		partition="short"
 	shell:
 		"""
 			python scripts/ml/random_forest.py \
