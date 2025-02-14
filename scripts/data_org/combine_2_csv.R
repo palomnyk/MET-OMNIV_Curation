@@ -21,16 +21,18 @@ source(file.path("scripts","data_org", "data_org_func.R"))
 #### Parse command line arguments ####
 option_list <- list(
   optparse::make_option(c("-f", "--first_path"), type="character",
-                        default = "Data/diet/d1_nutri_food_2015.csv",
+                        # default = "Data/diet/d1_nutri_food_2015.csv",
+                        default = "data/mapping/noMap_auto_protn_metadata.csv",
                         help="path of first csv"),
   optparse::make_option(c("-s", "--secnd_path"), type="character",
-                        default = "Data/demo/helper_features_2009-2020.csv",
+                        # default = "Data/demo/helper_features_2009-2020.csv",
+                        default = "data/mapping/noMap_demo.csv",
                         help="Path of second csv."),
   optparse::make_option(c("-o", "--out_path"), type="character",
-                        default = "helper_d1_nutri_food_2015.csv",
+                        default = "data/mapping/noMap_metadata_auto-pro_demo.csv",
                         help="Path of output csv."),
   optparse::make_option(c("-i", "--id_var"), type="character",
-                        default="Respondent sequence number",
+                        default="PARENT_SAMPLE_NAME",
                         help="Path of second csv.")
 );
 opt_parser <- optparse::OptionParser(option_list=option_list);
@@ -60,3 +62,4 @@ final_table <- final_table[,!names(final_table) %in% c("Row.names")]
 write.csv(final_table, file = opt$out_path, row.names = FALSE)
 
 print("Reached end of R script!")
+
