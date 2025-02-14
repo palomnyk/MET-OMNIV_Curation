@@ -81,6 +81,8 @@ meta_df$TREATMENT[meta_df$TREATMENT == "A"] <- "Beef"
 drops <- c("SITE")
 meta_df <- meta_df[ , !(names(meta_df) %in% drops)]
 colnames(meta_df)[colnames(meta_df) == "CORRECTED_SITE"] = "SITE"
+#Add USUAL diet to MB treatment
+meta_df$TREATMENT[meta_df$SITE == "MB/IIT" & meta_df$TIMEPOINT == "baseline"] <- "Usual"
 
 #### Create df for meat sums, starting with mb ####
 agg_columns <- c("beef", "chicken", "pork", "turkey", "processed", "meat")
@@ -160,7 +162,6 @@ for (i in seq_along(1:nrow(meta_df))){
   if (site == "MB/IIT"){
     mb_id <- mb_map[mb_map$Randomization == id, "Screen"]
     mb_ids <- c(mb_ids, mb_id)
-    mb_treat <- 
     mb_pro_id <- paste0("SC_", formatC(mb_id, width=3, flag="0"), "_", treat)
     if (mb_pro_id %in% row.names(mb_meat_totals)){
       meat_rows[i,] <- mb_meat_totals[mb_pro_id,]
@@ -195,11 +196,6 @@ colnames(new_rows) <- paste(colnames(meat_rows), "levels", sep = "_")
 
 meta_df <- cbind(meta_df, new_rows)
 
-meta_df <- meta_df[meta_df$SITE == "MB/IIT",]
-meta_df <- meta_df[c("CLIENT_IDENTIFIER","CLIENT_SAMPLE_ID","CLIENT_SAMPLE_NUMBER",
-                     "SITE","TIMEPOINT","TREATMENT")]
-write.csv(meta_df, file = file.path("data", "mapping", "rf_only_MBIIT_auto_protn_metadata.csv"),
-          row.names = FALSE)
 #### Save output ####
 write.csv(meat_totals, file = file.path(nut_dir, "auto_protn_meat_totals_by_treatment.csv"))
 
@@ -207,6 +203,7 @@ write.csv(meta_df, file = file.path("data", "mapping", "auto_protn_metadata.csv"
           row.names = FALSE)
 
 meta_df <- meta_df[! is.na(meta_df$beef),]
+
 
 write.csv(meta_df, file = file.path("data", "mapping", "noMap_auto_protn_metadata.csv"),
           row.names = FALSE)
@@ -218,6 +215,12 @@ meta_df <- meta_df[c("PARENT_SAMPLE_NAME", "SITE","TIMEPOINT","TREATMENT", agg_c
 # meta_df <- meta_df[c("PARENT_SAMPLE_NAME", agg_columns)]
 write.csv(meta_df, file = file.path("data", "mapping", "rf_noMap_auto_protn_metadata.csv"),
           row.names = FALSE)
+
+# meta_df <- meta_df[meta_df$SITE == "MB/IIT",]
+# meta_df <- meta_df[c("CLIENT_IDENTIFIER","CLIENT_SAMPLE_ID","CLIENT_SAMPLE_NUMBER",
+#                      "SITE","TIMEPOINT","TREATMENT")]
+# write.csv(meta_df, file = file.path("data", "mapping", "rf_only_MBIIT_auto_protn_metadata.csv"),
+#           row.names = FALSE)
 
 print("End R script.")
 
