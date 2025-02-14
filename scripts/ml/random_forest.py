@@ -8,6 +8,19 @@
 # 	1: https://shap.readthedocs.io/en/latest/example_notebooks/tabular_examples/tree_based_models/NHANES%20I%20Survival%20Model.html
 # 		-Uses NHANES data for example
 # 	2: https://www.kaggle.com/code/wti200/analysing-interactions-with-shap/notebook
+
+# Note on shap value shape:
+# Shape of XGB SHAP values: (143, 30)
+# Shape of RF SHAP values: (2, 143, 30)
+# Interpretaion:
+# XGBoost (143,30) dimensions:
+# 143: number of samples in test
+# 30: number of features
+# RF (2,143,30) dimensions:
+# 2: number of output classes
+# 143: number of samples
+# 30: number of features
+
 # TODO:
 # Add options to select shap plots
 # Look into:
@@ -130,9 +143,11 @@ id_list = response_df.loc[:,options.id_var]
 #output files
 output_label = f"{resp_col_label}{options.output_label}".replace("/", "／")
 model_storage = pathlib.Path("data","models")
+shap_storage = pathlib.Path("data","models")
 result_fpath = os.path.join(output_dir, "tables", f"{output_label}_scores.csv")
 pdf_fpath = os.path.join(output_dir, "graphics", f"{output_label}_feat_import.pdf")
 feat_imp_fpath = os.path.join(output_dir, "tables", f"feat_imp_{output_label}.csv")
+shap_imp_fpath = os.path.join(output_dir, "tables", f"shap_feat_imp_{output_label}.csv")
 
 seed = 7
 
@@ -144,10 +159,14 @@ with open(result_fpath, "w+") as fl:
 	fl.write(",".join(col_names))
 	fl.write("\n")
 	print(f"There are {len(response_cols)} response columns")
-	feature_importance = {}#dict to hold all feat import; keys = features, values = [importance scores] 
+	feature_importance = {}#dict to hold all feat import; keys = features, values = [importance scores]
 	feature_resp_var = []#response vars in same order of lists holding the importance scores of feature_importances
 	model_type = []#model in same order of lists holding the importance scores of feature_importances
+	shap_importance = {}#dict to hold all feat import; keys = features, values = [importance scores]
+	shap_resp_var = []#response vars in same order of lists holding the importance scores of feature_importances
+	shap_model_type = []#model in same order of lists holding the importance scores of feature_importances
 	full_accuracy = []
+	shap_accuracy = []
 	for resp_var in response_cols:
 		pred_path_name = pathlib.PurePath(options.pred_table).name
 		clean_resp_var = resp_var.replace("/", ".")
@@ -263,45 +282,74 @@ with open(result_fpath, "w+") as fl:
 				plt.title(f"{options.title}, {resp_var}")
 				pdf.savefig()
 				plt.close()
-			# try:
 			# explainer = shap.Explainer(clf, pred_train, algorithm="tree", seed=7)
+			shap_fname = f"shap_sklearnRF-{num_cv_folds}-{n_trees}-{pred_path_name}-{clean_resp_var}.mdl"
+			shap_path = pathlib.Path(model_storage, shap_fname)
 			explainer = shap.TreeExplainer(clf)
-			print("Creating shap_alues", flush=True)
+			# if shap_path.is_file():
+			# 	print("using saved shap_values")
+			# 	# rebuild feature importance df and select only rows from our response variable
+			# 	shap_values = load(shap_path)
+			# else:
+			# print(f"{model_path} does not exist.")
+			print("Creating shap_values", flush=True)
 			shap_values = explainer(pred_train, check_additivity=False)#[feature_mean.index[0:bar_shown]]
-			print("shape_values.shape", flush=True)
+			print("shap_values.shape", flush=True)
 			print(shap_values.shape, flush=True)
+
 			top_features = feature_mean.index[0:4].tolist()
 			if model_name == "RF_Classifier":
+				imp_use = shap_values.values[:,1]
 				shap_use = shap_values[:,:,1]
-				wf_use = shap_values[0,:,0]
+				# print(clf.classes_)
+				wf_use = shap_values[0,0]
 				dep_use = explainer.shap_values(pred_train)[:,:,1]
-				print(f"trying dependency plot {model_name} ", flush=True)
 				# shap.plots.beeswarm(shap_values[:,:,1], max_display=shap_shown, show = False)
 			else:
 				shap_use = shap_values
 				wf_use = shap_values[0]
 				dep_use = explainer.shap_values(pred_train)
+				# record shap feature importance
+				vals = np.abs(shap_values.values).mean(0)
+				print("vals")
+				print(vals)
+				print(pred_train.columns)
+				shap_dict = dict(zip(pred_train.columns, vals))
+				print(shap_dict)
+				for key in shap_dict:
+					# Append the value associated with the 'key' to the list for that 'key' in 'result'.
+					if key in shap_importance:
+						shap_importance[key].append(shap_dict[key])
+					else:
+						shap_importance[key] = [shap_dict[key]]
+				shap_resp_var.append(resp_var)
+				shap_model_type.append(model_name)
+				shap_accuracy.append(np.mean(single_resp_accu))
 
-			print(f"trying beeswarm plot {model_name} ", flush=True)
-			shap.plots.beeswarm(shap_use, max_display=shap_shown, show = False)
-			plt.suptitle(f"Final cross val, {resp_var}, {model_name} score: {round(ave_score, 3)}")
-			pdf.savefig(bbox_inches='tight')
-			plt.close()
+			try:
+				print(f"trying beeswarm plot {model_name} ", flush=True)
+				shap.plots.beeswarm(shap_use, max_display=shap_shown, show = False)
+				plt.suptitle(f"Final cross val, {resp_var}, {model_name} score: {round(ave_score, 3)}")
+				pdf.savefig(bbox_inches='tight')
+				plt.close()
 
-			shap.plots.waterfall(wf_use, max_display=shap_shown, show=False)
-			#works like this: shap.plots.waterfall(explanation[id_to_explain,:,output_to_explain])
-			pdf.savefig(bbox_inches='tight')
-			plt.close()
+				shap.plots.waterfall(wf_use, max_display=shap_shown, show=False)
+				#works like this: shap.plots.waterfall(explanation[id_to_explain,:,output_to_explain])
+				pdf.savefig(bbox_inches='tight')
+				plt.close()
 
-			fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(10, 6))
-			axes = axes.ravel() #flattens a n dimentional object to 1 d				
-			for i, dep in enumerate(top_features):
-				print(f"{i} {dep}, {model_name}", flush=True)
-				shap.dependence_plot(dep, dep_use, pred_train, show = False, ax=axes[i])
-				plt.suptitle(f"Final cross validation\nSHAP dependency, {resp_var}")
-			pdf.savefig(bbox_inches='tight')
-			plt.close()
-			# matplotlib.rcParams.update(matplotlib.rcParamsDefault)#restore to default
+				fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(10, 6))
+				axes = axes.ravel() #flattens a n dimentional object to 1 d				
+				for i, dep in enumerate(top_features):
+					print(f"{i} {dep}, {model_name}", flush=True)
+					shap.dependence_plot(dep, dep_use, pred_train, show = False, ax=axes[i])
+					plt.suptitle(f"Final cross validation\nSHAP dependency, {resp_var}")
+				pdf.savefig(bbox_inches='tight')
+				plt.close()
+				# matplotlib.rcParams.update(matplotlib.rcParamsDefault)#restore to default
+			except Exception as e:
+				print(f"Exception: shap beeswarm {model_name} {resp_var}", flush=True)
+				print(e, flush=True)	
 			try:
 				print("TreeExplainer", flush=True)
 				# tree_pdf_fpath = os.path.join(output_dir, "graphics", f"{output_label}_{resp_var}", f"{output_label}_{resp_var}_SHAPtree.pdf")
@@ -316,6 +364,14 @@ with open(result_fpath, "w+") as fl:
 				print(f"Exception: shap decision {resp_var}", flush=True)
 				print(e, flush=True)			
 			print(f"Completed SHAP figures", flush=True)
+	print("Saving SHAP feature importance", flush=True)
+	shap_save = pd.DataFrame(shap_importance)
+	print(shap_save)
+	print(shap_model_type)
+	shap_save.insert(loc = 0,column = "response_var", value = shap_resp_var, allow_duplicates=False)
+	shap_save.insert(loc = 1,column = "model_type",value = shap_model_type, allow_duplicates=False)
+	shap_save.insert(loc = 2,column = "accuracy",value = shap_accuracy, allow_duplicates=False)
+	shap_save.to_csv(shap_imp_fpath, index = False)
 
 print("Saving pdf", flush = True)
 pdf.close()
