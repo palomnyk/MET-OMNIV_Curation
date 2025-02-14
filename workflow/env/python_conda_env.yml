@@ -27,6 +27,7 @@ dependencies:
   - r-nhanesA
   - r-readxl
   - r-fastDummies
+  - r-networkd3
 
 #To install conda on wsl:
 #  Download linux conda from https://www.anaconda.com/download#downloads
