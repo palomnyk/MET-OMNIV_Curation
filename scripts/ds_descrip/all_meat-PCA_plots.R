@@ -38,7 +38,7 @@ print(opt)
 #### Establish directory layout and other constants ####
 metabo_f <- file.path("data", "metabolomics", "UARS-01-23ML+",
             "UARS-01-23ML+ DATA TABLES (DATA ADJUSTED BY BASELINE SAMPLES FROM EACH SITE).xlsx")
-output_dir <- opt$output_dir
+output_dir <- file.path("output", opt$output_dir)
 dir.create(file.path(output_dir, "graphics"))
 dir.create(file.path(output_dir, "tables"))
 
@@ -57,12 +57,12 @@ names(mtbmcs_df) <- chem_link$CHEMICAL_NAME[match(names(mtbmcs_df), chem_link$CH
 mtbmcs_df <- mtbmcs_df[row.names(meta_df),]
 stopifnot(identical(row.names(mtbmcs_df), row.names(meta_df)))
 
-keep_rows <- row.names(meta_df)[which(meta_df$beef != "unknown")]
-
-#remove rows with NA
-meta_df <- meta_df[keep_rows,]
-mtbmcs_df <- mtbmcs_df[keep_rows,]
-meta_df <-  type.convert(meta_df, as.is = TRUE)#Reset column types automatically (for factors)
+# keep_rows <- row.names(meta_df)[which(meta_df$beef != "unknown")]
+# 
+# #remove rows with NA
+# meta_df <- meta_df[keep_rows,]
+# mtbmcs_df <- mtbmcs_df[keep_rows,]
+# meta_df <-  type.convert(meta_df, as.is = TRUE)#Reset column types automatically (for factors)
 
 #### PCA ####
 metad_intrest <- colnames(meta_df)
@@ -127,9 +127,10 @@ for(m in 1:length(metad_intrest)){
   md <- metad_intrest[m]
   meta_fact <- factor(meta_df[,md])
   print(levels(meta_fact))
-  anova_pval_1 <- summary(aov(myPCA$PC1~meta_fact))[[1]][["Pr(>F)"]][[1]]#do anova and extract pvalue
+  # anova_pval_1 <- summary(aov(myPCA$PC1~meta_fact))[[1]][["Pr(>F)"]][[1]]#do anova and extract pvalue
+  anova_pval_1 <- kruskal.test(myPCA$PC1~meta_fact)$p.value
   pc1_pvals <- c(pc1_pvals, anova_pval_1)
-  anova_pval_2 <- summary(aov(myPCA$PC2~meta_fact))[[1]][["Pr(>F)"]][[1]]#do anova and extract pvalue
+  anova_pval_2 <- kruskal.test(myPCA$PC2~meta_fact)$p.value
   pc2_pvals <- c(pc1_pvals, anova_pval_2)
 }
 pc1_adj_pv <- p.adjust(pc1_pvals, method = "BH")
