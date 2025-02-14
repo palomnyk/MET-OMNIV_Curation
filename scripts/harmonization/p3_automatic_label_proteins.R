@@ -1,6 +1,8 @@
 #Author: Aaron Yerke (aaronyerke@gmail.com)
 #Script for labeling the protein sources based off of rudimentary text mining
 #And adding HEI values
+#HEI_conversion_table_LEO wide.xlsx was hand made by lauren for checking our work.
+#Need to seperate this script into two steps to check out results.
 
 rm(list = ls()) #clear workspace
 
@@ -13,9 +15,32 @@ if (!requireNamespace("readxl", quietly = TRUE))  BiocManager::install("readxl")
 library("readxl")
 if (!requireNamespace("data.table", quietly = TRUE))  BiocManager::install("data.table")
 library("data.table")
+if (!requireNamespace("optparse", quietly = TRUE)) BiocManager::install("optparse")
+library("optparse")
 print("Libraries are loaded.")
 
-#Read in data
+#### Parse command line arguments ####
+option_list <- list(
+  optparse::make_option(c("-p", "--HEI_conv"), type="character",
+                        default = "data/diet/nutrition_data/HEI Pivot table_modified.xlsx",
+                        help="path of HEI conversion table"),
+  optparse::make_option(c("-i", "--input"), type="character",
+                        default = "data/diet/nutrition_data/combined_esha_studies.tsv",
+                        help='Dietary data with the following columns: "Study"             "Intervention"      "Day"               "Meal"             
+ "Recipe"            "Item name"         "Quantity"          "Measure"          
+  "Wgt (g)"           "Cals (kcal)", and other nutritional features'),
+  optparse::make_option(c("-o", "--out_prefix"), type="character",
+                        default = "",
+                        help="Prefix to show which group of data this is, since 
+                        we didn't add to the first dataset, this is empty.")
+);
+opt_parser <- optparse::OptionParser(option_list=option_list);
+opt <- parse_args(opt_parser);
+
+print("Commandline arguments:")
+print(opt)
+
+#### Establish directory layout and other constants ####
 data_dir <- file.path("data", "diet", "nutrition_data")
 labeled_file <- "HEI_conversion_table_LEO wide.xlsx"
 labeled_sheet <- 2
@@ -24,10 +49,15 @@ my_excel <- readxl::read_excel(file.path(data_dir, labeled_file), sheet = labele
 print("Removing dupiclated rows")
 my_excel <- my_excel[!duplicated(my_excel),]
 
+
+df <- data.table::fread(file = file.path(data_dir, "HEI_conversion_table_wide.tsv"),
+                        check.names = FALSE)
+
 #### Dictionaries for classifying food ####
 protein_source_pos <- list(
                            "beef" = c("beef"),
                            "turkey" = c("turkey"),
+                           "lamb" = c("lamb", "mutton", "sheep"),
                            "chicken" = c("chicken","chix"),
                            "pork" = c("pork", " ham ", "bacon", "fatback", "sausage"),
                            "seafood" = c("shrimp", "crab", "fish", "lobster", "salmon", "tuna", "cod")
@@ -40,6 +70,7 @@ protein_source_pos <- list(
                            )#strings to select protein source
 protein_source_cancel <- list("beef" = c("impossible", "beyond", "broth", "base", "stock"),
                               "pork" = c("impossible", "beyond", "base", "stock", "turkey"),
+                              "lamb" = c("broth", "base", "stock"),
                               "chicken" = c("impossible", "beyond", "broth", "base", "stock", "seasoning"),
                               "turkey" = c("impossible", "beyond", "hill", "broth", "base", "stock"),
                               "seafood" = c("goldfish")
@@ -54,6 +85,7 @@ processed_indicators <- c("sausage", "sandwich", "bratworst", "smoked",
 pro_source_prediction <- data.frame("item" = character(length = nrow(my_excel)), 
                                 "beef" = rep(0, nrow(my_excel)),
                                 "pork" = rep(0, nrow(my_excel)),
+                                "lamb" = rep(0, nrow(my_excel)),
                                 "chicken" = rep(0, nrow(my_excel)),
                                 "turkey" = rep(0, nrow(my_excel)),
                                 "seafood" = rep(0, nrow(my_excel)),
@@ -181,7 +213,7 @@ for (m_row in unique(mismatches$row)) {
 #   1     0     0       0      1          0             0          0            1         0            0         0           0
 
 
-data.table::fwrite(my_excel, file = file.path(data_dir, "HEI_with_proportions.tsv"), 
+data.table::fwrite(my_excel, file = file.path(data_dir, "HEI_with_proportions_long.tsv"), 
                    sep = "\t", row.names = F)
 openxlsx::write.xlsx(my_excel, file = file.path(data_dir, "HEI_with_proportions_long.xlsx"))
 
@@ -280,6 +312,9 @@ for (rw in 1:nrow(esha_studies)){
   esha_studies$HEI_total_wholeFruit_cup[rw] <- grms / as.numeric(my_excel$HEI_WholeFruit_Conv[HEI_index])
   esha_studies$HEI_total_wholeGrains_cup[rw] <- grms / as.numeric(my_excel$HEI_WholeGrains_Conv[HEI_index])
 }
+
+processed_meat <- esha_studies$processed * esha_studies$meat
+esha_studies$processed <- processed_meat
 
 # set missing values to NA, as per Lauren's instruction
 esha_studies[is.na(esha_studies)] <- 0
