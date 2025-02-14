@@ -49,6 +49,8 @@ mb_diet <- file.path(base_dir, "mb", "2112 Results.xlsx")
 #### Loading in data ####
 xl_wb <- getSheetNames(mb_diet)
 diet_df <- openxlsx::read.xlsx(mb_diet)
+mb_map <- readxl::read_xlsx(file.path("data","mapping","mb", "MB-2112_Screen and Rand.xlsx"),
+                            col_names = TRUE)
 print(names(xl_wb))
 
 meal_keywords <- c("Breakfast", "Morning Snack", "Lunch", "Dinner", "Afternoon Snack")
@@ -64,11 +66,11 @@ rows_added <- 1
 
 for (wb in xl_wb){
   # print(wb)
+  screen <- as.integer(unlist(strsplit(wb, "_"))[2])
   diet_df <- readxl::read_xlsx(mb_diet, sheet = wb, skip = 2, col_names = TRUE)
   day_count <- 1
   current_meal <- NA
   nutr_column_names <- diet_df[2,nutr_columns]
-  intervention <- paste0("MB-2112_", wb)
   for (i in 1:nrow(diet_df)){
     item <- diet_df[i,1]
     if (any(item %in% meal_keywords)){
@@ -82,15 +84,26 @@ for (wb in xl_wb){
       next_day_pattern <- paste0("Spreadsheet: Day - MB-2112_", wb)
       # Spreadsheet: Day - MB-2112_SC_001 - Day 2
       if (grepl(pattern = next_day_pattern, x = item)) {
-        print("BIG ELSE")
         day_count <- day_count + 1
       } else{
         
       if (!is.na(diet_df[i,2]) & item != "Item Name"){
         # print(item, day_count)
         # "Study", "Intervention", "Day", "Meal", "Recipe", "Item Name", nutr_column_names
+        #### Parse leg of study ####
         nut_data <- diet_df[i, nutr_columns]
-        my_row <- c("MB-2112", wb, day_count, current_meal, NA, item, nut_data)
+        if (day_count <= 3) {
+          leg <- "Usual"
+        }
+        if (day_count < 3 & day_count < 7){
+          leg <- mb_map[mb_map$Screen == screen, "Study Product First"]
+        }
+        if (day_count > 6){
+          leg <- mb_map[mb_map$Screen == screen, "Study Product Second"]
+        }
+        
+        intervention <- paste0(wb, "_", leg)
+        my_row <- c("MB-2112", intervention, day_count, current_meal, NA, item, nut_data)
         out_df[rows_added,] <- my_row
         rows_added <- rows_added + 1
         }
@@ -101,7 +114,7 @@ for (wb in xl_wb){
 
 write.table(out_df,
           file = file.path(base_dir, "nutrition_data", "mb_2112_esha.tsv"),
-          sep="\t")
+          sep="\t", row.names = FALSE)
 
 print("End org_MB_dietary.R")
 
