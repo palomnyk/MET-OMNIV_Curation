@@ -122,9 +122,9 @@ for (clm in agg_columns){
 usda_meat_totals <- usda_meat_totals/7 #average for each of the seven days
 meat_totals <- rbind(mb_meat_totals, usda_meat_totals)
 
-#### Add Purdue data ####
-meat_totals["MED",] <- c(168,0,0,0,0,0)
-meat_totals["VEG",] <- c(0,0,0,0,0,0)
+# #### Add Purdue data ####
+# meat_totals["MED",] <- c(168,0,0,0,0,0)
+# meat_totals["VEG",] <- c(0,0,0,0,0,0)
 
 #### Create new df with same rows as meta_d and add proteins of each participant####
 meat_rows <- data.frame(matrix(ncol = ncol(meat_totals),
@@ -168,10 +168,10 @@ for (i in seq_along(1:nrow(meta_df))){
       print("labeled mb from esha")
     }else{
       if (treat == "Chicken"){
-        meat_rows[i,] <- c(0,184,0,0,0,0)
+        meat_rows[i,] <- c(0,100,0,0,0,0)
       }else{
         if (treat == "Beef"){
-          meat_rows[i,] <- c(184,0,0,0,0,0)
+          meat_rows[i,] <- c(100,0,0,0,0,0)
         }
       }
     }

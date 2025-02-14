@@ -12,10 +12,7 @@ print(paste("Working in", getwd()))
 #### Loading dependencies ####
 if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
 if (!requireNamespace("networkD3", quietly = TRUE))  BiocManager::install("networkD3")
-# Load package
 library("networkD3")
-print("Loaded packages")
-
 if (!requireNamespace("optparse", quietly = TRUE)) BiocManager::install("optparse")
 library("optparse")
 

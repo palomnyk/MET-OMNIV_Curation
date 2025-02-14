@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Author: Aaron Yerke, aaronyerke@gmail.com
-# Script for imputing missing nutrition data from SR data
+# Script for imputing missing nutrition data from SR data using hugggingface.co
 # --------------------------------------------------------------------------
 print("Loading external libraries.",flush = True)
 # --------------------------------------------------------------------------
