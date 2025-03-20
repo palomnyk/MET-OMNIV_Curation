@@ -57,7 +57,7 @@ num_columns <- c("age", "bmi", "sex")
 
 #### Organizing metadata ####
 # Remove rows that don't have corrected site
-my_table <- my_table[!is.na(my_table$CORRECTED_SITE),]
+my_table <- my_table[!is.na(my_table$SITE),]
 my_table <- my_table[!is.na(my_table$sex),]
 
 pdf(file = file.path(opt$output_fpath),
@@ -82,8 +82,8 @@ for (feat in num_columns){
     # my_string <- paste(my_string,"\n",str(table(counts)))
     # cat(str(data.frame(table(counts))), file = cat_out_name, append = T)
   }
-  for (site in unique(my_table$CORRECTED_SITE)){
-    df <- my_table[my_table$CORRECTED_SITE == site,]
+  for (site in unique(my_table$SITE)){
+    df <- my_table[my_table$SITE == site,]
     counts <- df[,feat]
     no_na <- sum(!is.na(counts))
     supstring <- paste("n:", no_na)
