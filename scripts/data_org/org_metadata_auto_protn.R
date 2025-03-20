@@ -30,39 +30,19 @@ meat_threshold_names <- c("no", "low", "high")
 #### Loading in data ####
 meta_df <- openxlsx::read.xlsx(metabo_f,
                                sheet = "Sample Meta Data")
-mb_auto_protn_df <- read.csv(file = file.path(nut_dir ,"mb-esha_combined_meats_HEI_vals.tsv"),
+mb_auto_protn_df <- read.csv(file = file.path(nut_dir ,"mb-esha_meats_FPED_vals.tsv"),
                              sep = "\t", check.names = FALSE)
-mb_map <- openxlsx::read.xlsx(file.path("data","mapping","mb", "MB-2112_Screen and Rand.xlsx"))
+mb_map <- as.data.frame(readxl::read_excel(file.path("data","mapping","mb", "MB-2112_Screen and Rand.xlsx")),
+                        check.names=FALSE)
 # usda_auto_protn_df <- read.csv(file = file.path(nut_dir ,"esha_combined_meats_HEI_vals.tsv"),
 #                                sep = "\t", check.names = FALSE)
 usda_auto_protn_df <- read.csv(file = file.path(nut_dir, "esha_combined_meats_HEI_vals28Sep2023.tsv"),
                                sep = "\t", check.names = FALSE)
 control_treatments <- c("Med 100","Purple", "Orange","Med 200","USUAL", "C")
 correct_sites <- c("PSU-MED","MB/IIT","Purdue","USDA-MAP","USDA-MED")
-xl_wb <- openxlsx::loadWorkbook(metabo_f) #excel workbook
-print(names(xl_wb))
-all_xl <- c("UARS-01-23ML+ DATA TABLES (ALL SAMPLES).xlsx",
-            "UARS-01-23ML+ DATA TABLES (CITRATE PLASMA SAMPLES).xlsx",
-            "UARS-01-23ML+ DATA TABLES (DATA ADJUSTED BY BASELINE SAMPLES FROM EACH SITE).xlsx",
-            "UARS-01-23ML+ DATA TABLES (EDTA PLASMA SAMPLES).xlsx")
 
-# Beef level related
-high_beef <- c("Med 2.5", "Med 5.5", "AAD", "Beef diet", "MED")
-low_beef <- c("Med 0.5")
-no_beef <- c("VEG", "Chicken diet")
-unknown_beef <- c("Blue","Red","Green", "Yellow", "baseline", "BL", "C")
+unknown_beef <- c("Blue","Red","Green", "Yellow", "baseline", "BL")
 
-#### Check if all metadata files are the same ####
-for (xl in all_xl){
-  test_df <- openxlsx::read.xlsx(file.path(base_dir, xl),
-                                 sheet = "Sample Meta Data",
-                                 rowNames = TRUE)
-  if (identical(test_df, meta_df)){
-    print(paste(xl, "is identical to", metabo_f))
-  }else{
-    print(paste(xl, "NOT identical", metabo_f))
-  }
-}
 #### Fix some inconsistencies ####
 meta_df$controls <- meta_df$TREATMENT %in% control_treatments
 meta_df[meta_df == "MED 0.5"] <- "Med 0.5"
@@ -73,22 +53,54 @@ meta_df[meta_df == "post "] <- "post"
 #### Create "control" columns ####
 # meta_df$TREATMENT[meta_df$TREATMENT %in% control_treatments] <- "tech_control"
 meta_df <- meta_df[!(meta_df$TREATMENT %in% control_treatments),]
+meta_df <- meta_df[!(meta_df$TREATMENT %in% unknown_beef),]
 
 ##### Improve readability #####
-meta_df$TREATMENT[meta_df$TREATMENT == "B"] <- "Chicken"
-meta_df$TREATMENT[meta_df$TREATMENT == "A"] <- "Beef"
-# meta_df$TREATMENT[meta_df$TREATMENT == "C"] <- "Control"
 drops <- c("SITE")
 meta_df <- meta_df[ , !(names(meta_df) %in% drops)]
 colnames(meta_df)[colnames(meta_df) == "CORRECTED_SITE"] = "SITE"
-#Add USUAL diet to MB treatment
+
+meta_df$TREATMENT[meta_df$TREATMENT == "B"] <- "Chicken"
+meta_df$TREATMENT[meta_df$TREATMENT == "A"] <- "Beef"
+
+#### Add column to show which baseline is first for each MB participant ####
+mb_rand_labels <- meta_df[meta_df$SITE == "MB/IIT", "CLIENT_SAMPLE_ID"]
+mb_parents <- meta_df[meta_df$SITE == "MB/IIT", "PARENT_SAMPLE_NAME"]
+documented_usuals <- c()#parents of the baseline before the mb_map$`Study Product First`
+for (parent in meta_df$PARENT_SAMPLE_NAME){
+  if (parent %in% mb_parents){
+    mb_rand_label <- meta_df[meta_df$PARENT_SAMPLE_NAME == parent, "CLIENT_SAMPLE_ID"]
+    timepoint <- meta_df[meta_df$PARENT_SAMPLE_NAME == parent, "TIMEPOINT"]
+    treatment <- meta_df[meta_df$PARENT_SAMPLE_NAME == parent, "TREATMENT"]
+    
+    first_treat <- mb_map[mb_map$Randomization == mb_rand_label, "Study Product First"]
+    if (timepoint == "baseline" & treatment == first_treat){
+      documented_usuals <- c(documented_usuals, "TRUE")
+    }else{
+      if(timepoint == "post"){
+        documented_usuals <- c(documented_usuals, "POST")
+      }else{
+        documented_usuals <- c(documented_usuals, "FALSE")
+      }
+    }
+  }else{
+    documented_usuals <- c(documented_usuals, "NOT_MB")
+  }
+}
+meta_df$documented_usual <- documented_usuals
+
+# Add USUAL diet to MB treatment
 meta_df$TREATMENT[meta_df$SITE == "MB/IIT" & meta_df$TIMEPOINT == "baseline"] <- "Usual"
+# Remove usual diets that not documented
+meta_df <- meta_df[!meta_df$documented_usual == "FALSE",]
 
 #### Create df for meat sums, starting with mb ####
 agg_columns <- c("beef", "chicken", "pork", "turkey", "processed", "meat")
 mb_meat_totals <- data.frame(matrix(ncol = 0,
                                     nrow = length(unique(mb_auto_protn_df$Intervention))))
 # names(meat_totals) <- agg_columns
+
+#### Aggregate each mb intervention ####
 row.names(mb_meat_totals) <- unique(mb_auto_protn_df$Intervention)
 for (clm in agg_columns){
   meat_sum <- aggregate(mb_auto_protn_df[,clm], by=list(mb_auto_protn_df$Intervention), sum)
@@ -102,10 +114,10 @@ for (clm in agg_columns){
   }
 }
 
-#each amount was for 9 days, so they were averaged by dividing by 9
+#each amount was for 3 days, so they were averaged by dividing by 3
 mb_meat_totals <- mb_meat_totals/3
 
-#next add USDA to meat totals
+#### USDA meat totals ####
 usda_meat_totals <- data.frame(matrix(ncol = 0,
                                       nrow = length(unique(usda_auto_protn_df$Intervention))))
 for (clm in agg_columns){
@@ -119,18 +131,16 @@ for (clm in agg_columns){
     usda_meat_totals <- cbind(usda_meat_totals,meat_sum)
   }
 }
+
 usda_meat_totals <- usda_meat_totals/7 #average for each of the seven days
 meat_totals <- rbind(mb_meat_totals, usda_meat_totals)
-
-# #### Add Purdue data ####
-# meat_totals["MED",] <- c(168,0,0,0,0,0)
-# meat_totals["VEG",] <- c(0,0,0,0,0,0)
 
 #### Create new df with same rows as meta_d and add proteins of each participant####
 meat_rows <- data.frame(matrix(ncol = ncol(meat_totals),
                                nrow = nrow(meta_df)))
 names(meat_rows) <- names(meat_totals)
 mb_ids <- c()
+mb_missing_ids <- c()
 for (i in seq_along(1:nrow(meta_df))){
   id <- meta_df$CLIENT_SAMPLE_ID[i]
   site <- meta_df$SITE[i]
@@ -154,6 +164,7 @@ for (i in seq_along(1:nrow(meta_df))){
     }
     if (treat == "Control"){
       meat_rows[i,] <- c(NA,NA,NA,NA,NA,NA)
+      stop("Found treatement of Control in USDA columns, it shouldn't be there")
     }
   }
   if (site == "USDA-MAP" ){
@@ -167,11 +178,12 @@ for (i in seq_along(1:nrow(meta_df))){
       meat_rows[i,] <- mb_meat_totals[mb_pro_id,]
       print("labeled mb from esha")
     }else{
+      mb_missing_ids <- c(mb_missing_ids, mb_id)
       if (treat == "Chicken"){
-        meat_rows[i,] <- c(0,100,0,0,0,0)
+        meat_rows[i,] <- c(0,184,0,0,0,0)
       }else{
         if (treat == "Beef"){
-          meat_rows[i,] <- c(100,0,0,0,0,0)
+          meat_rows[i,] <- c(184,0,0,0,0,0)
         }
       }
     }
@@ -183,6 +195,8 @@ for (i in seq_along(1:nrow(meta_df))){
 }
 
 meta_df <- cbind(meta_df, meat_rows)
+
+#### Arbitrary "meat levels" for classifiers ####
 new_rows <- data.frame(matrix(ncol = ncol(meat_totals),
                               nrow = nrow(meta_df)))
 new_rows <- data.frame(lapply(new_rows, as.character))
@@ -196,31 +210,44 @@ colnames(new_rows) <- paste(colnames(meat_rows), "levels", sep = "_")
 
 meta_df <- cbind(meta_df, new_rows)
 
+# meta_df <- meta_df[meta_df$TREATMENT != "Usual",]
+# meta_df <- meta_df[meta_df$SITE == "Purdue",]
+
 #### Save output ####
 write.csv(meat_totals, file = file.path(nut_dir, "auto_protn_meat_totals_by_treatment.csv"))
+for (site in unique(meta_df$SITE)){
+  clean_site <- gsub("/", "_", site)
+  clean_site <- gsub("-", "_", clean_site)
+  sub_df <- meta_df[meta_df$SITE == site,]
+  
+  fname <- paste0(clean_site, "-", "auto_protn_metadata.csv")
+  write.csv(sub_df, file = file.path("data", "mapping", fname),
+            row.names = FALSE)
+  
+  # Remove LCMS technical data for testing in random forest
+  # meta_df <- meta_df[c("PARENT_SAMPLE_NAME", "SITE","TIMEPOINT","TREATMENT", agg_columns, names(new_rows))]
+  sub_df <- sub_df[c("PARENT_SAMPLE_NAME", agg_columns)]
+  fname <- paste0(clean_site, "-", "rf_auto_protn_metadata.csv")
+  write.csv(sub_df, file = file.path("data", "mapping", fname),
+            row.names = FALSE)
+  
+}
 
-write.csv(meta_df, file = file.path("data", "mapping", "auto_protn_metadata.csv"),
+
+write.csv(meat_totals, file = file.path(nut_dir, "auto_protn_meat_totals_by_treatment.csv"))
+
+write.csv(meta_df, file = file.path("data", "mapping", "all_sites-auto_protn_metadata.csv"),
           row.names = FALSE)
 
 meta_df <- meta_df[! is.na(meta_df$beef),]
-
-
-write.csv(meta_df, file = file.path("data", "mapping", "noMap_auto_protn_metadata.csv"),
+write.csv(meta_df, file = file.path("data", "mapping", "noMap-auto_protn_metadata.csv"),
           row.names = FALSE)
 
 # Remove LCMS technical data for testing in random forest
 # meta_df <- meta_df[c("PARENT_SAMPLE_NAME", "SITE","TIMEPOINT","TREATMENT", agg_columns, names(new_rows))]
-meta_df <- meta_df[c("PARENT_SAMPLE_NAME", "SITE","TIMEPOINT","TREATMENT", agg_columns)]
 
-# meta_df <- meta_df[c("PARENT_SAMPLE_NAME", agg_columns)]
-write.csv(meta_df, file = file.path("data", "mapping", "rf_noMap_auto_protn_metadata.csv"),
+meta_df <- meta_df[c("PARENT_SAMPLE_NAME", "SITE","TIMEPOINT","TREATMENT", agg_columns)]
+write.csv(meta_df, file = file.path("data", "mapping", "noMap-rf_auto_protn_metadata.csv"),
           row.names = FALSE)
 
-# meta_df <- meta_df[meta_df$SITE == "MB/IIT",]
-# meta_df <- meta_df[c("CLIENT_IDENTIFIER","CLIENT_SAMPLE_ID","CLIENT_SAMPLE_NUMBER",
-#                      "SITE","TIMEPOINT","TREATMENT")]
-# write.csv(meta_df, file = file.path("data", "mapping", "rf_only_MBIIT_auto_protn_metadata.csv"),
-#           row.names = FALSE)
-
 print("End R script.")
-
