@@ -1,7 +1,7 @@
 # Author: Aaron Yerke (aaronyerke@gmail.com)
 # Script for organizing auto labeled protein categories
 # Notes:
-#   Drop "SITE" column and change "CORRECTED_SITE" to "SITE"
+# Drop "SITE" column and change "CORRECTED_SITE" to "SITE"
 
 rm(list = ls()) #clear workspace
 
@@ -72,7 +72,7 @@ for (parent in meta_df$PARENT_SAMPLE_NAME){
     mb_rand_label <- meta_df[meta_df$PARENT_SAMPLE_NAME == parent, "CLIENT_SAMPLE_ID"]
     timepoint <- meta_df[meta_df$PARENT_SAMPLE_NAME == parent, "TIMEPOINT"]
     treatment <- meta_df[meta_df$PARENT_SAMPLE_NAME == parent, "TREATMENT"]
-    
+
     first_treat <- mb_map[mb_map$Randomization == mb_rand_label, "Study Product First"]
     if (timepoint == "baseline" & treatment == first_treat){
       documented_usuals <- c(documented_usuals, "TRUE")
@@ -92,7 +92,7 @@ meta_df$documented_usual <- documented_usuals
 # Add USUAL diet to MB treatment
 meta_df$TREATMENT[meta_df$SITE == "MB/IIT" & meta_df$TIMEPOINT == "baseline"] <- "Usual"
 # Remove usual diets that not documented
-meta_df <- meta_df[!meta_df$documented_usual == "FALSE",]
+# meta_df <- meta_df[!meta_df$documented_usual == "FALSE",]
 
 #### Create df for meat sums, starting with mb ####
 agg_columns <- c("beef", "chicken", "pork", "turkey", "processed", "meat")
@@ -139,13 +139,13 @@ meat_totals <- rbind(mb_meat_totals, usda_meat_totals)
 meat_rows <- data.frame(matrix(ncol = ncol(meat_totals),
                                nrow = nrow(meta_df)))
 names(meat_rows) <- names(meat_totals)
-mb_ids <- c()
-mb_missing_ids <- c()
+
+meta_df$mb_screen <- rep(NA, nrow(meta_df))
+meta_df$mb_intervention <- rep(NA, nrow(meta_df))
 for (i in seq_along(1:nrow(meta_df))){
   id <- meta_df$CLIENT_SAMPLE_ID[i]
   site <- meta_df$SITE[i]
   treat <- meta_df$TREATMENT[i]
-  print(i)
   print(paste(id, site))
   if (site %in% c("USDA-MED", "PSU-MED")){
     # "Med 2.5"      "Med 5.5"      "Med 0.5"      "AAD"          "Control"
@@ -172,13 +172,14 @@ for (i in seq_along(1:nrow(meta_df))){
   }
   if (site == "MB/IIT"){
     mb_id <- mb_map[mb_map$Randomization == id, "Screen"]
-    mb_ids <- c(mb_ids, mb_id)
+    meta_df$mb_screen[i] <- mb_id
     mb_pro_id <- paste0("SC_", formatC(mb_id, width=3, flag="0"), "_", treat)
     if (mb_pro_id %in% row.names(mb_meat_totals)){
       meat_rows[i,] <- mb_meat_totals[mb_pro_id,]
+      meta_df$mb_intervention[i] <- mb_pro_id
       print("labeled mb from esha")
     }else{
-      mb_missing_ids <- c(mb_missing_ids, mb_id)
+      meta_df$mb_intervention[i] <- paste0("missing_", mb_pro_id)
       if (treat == "Chicken"){
         meat_rows[i,] <- c(0,184,0,0,0,0)
       }else{
@@ -214,7 +215,13 @@ meta_df <- cbind(meta_df, new_rows)
 # meta_df <- meta_df[meta_df$SITE == "Purdue",]
 
 #### Save output ####
-write.csv(meat_totals, file = file.path(nut_dir, "auto_protn_meat_totals_by_treatment.csv"))
+meat_rows$PARENT_SAMPLE_NAME <- meta_df$PARENT_SAMPLE_NAME
+write.csv(meat_rows,
+          file = file.path(nut_dir, "meat_total_participant.csv"),
+          row.names = FALSE)
+write.csv(meat_totals,
+          file = file.path(nut_dir, "meat_total_treatment.csv"),
+          row.names = FALSE)
 for (site in unique(meta_df$SITE)){
   clean_site <- gsub("/", "_", site)
   clean_site <- gsub("-", "_", clean_site)
@@ -243,10 +250,17 @@ meta_df <- meta_df[! is.na(meta_df$beef),]
 write.csv(meta_df, file = file.path("data", "mapping", "noMap-auto_protn_metadata.csv"),
           row.names = FALSE)
 
+#### Make non-mb-non-map dataset ####
+sub_df <- meta_df[meta_df$SITE != "MB/IIT",]
+write.csv(sub_df, file = file.path("data", "mapping", "noMB_noMap-auto_protn_metadata.csv"),
+          row.names = FALSE)
+sub_df <- sub_df[c("PARENT_SAMPLE_NAME", "SITE","TREATMENT", agg_columns)]
+write.csv(sub_df, file = file.path("data", "mapping", "noMB_noMap-rf_auto_protn_metadata.csv"),
+          row.names = FALSE)
+
 # Remove LCMS technical data for testing in random forest
 # meta_df <- meta_df[c("PARENT_SAMPLE_NAME", "SITE","TIMEPOINT","TREATMENT", agg_columns, names(new_rows))]
-
-meta_df <- meta_df[c("PARENT_SAMPLE_NAME", "SITE","TIMEPOINT","TREATMENT", agg_columns)]
+meta_df <- meta_df[c("PARENT_SAMPLE_NAME", "SITE","TREATMENT", agg_columns)]
 write.csv(meta_df, file = file.path("data", "mapping", "noMap-rf_auto_protn_metadata.csv"),
           row.names = FALSE)
 
