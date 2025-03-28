@@ -1,9 +1,5 @@
 # Author: Aaron Yerke (aaronyerke@gmail.com)
-# Script for building sankey plots showing how each response feature shares top
-# X metabolomic elements by feature importance
-# Left nodes = respnse feature
-# Right nodes = metabolites
-#
+# Script for building sankey plots that show the experimental design
 
 rm(list = ls()) #clear workspace
 
@@ -14,8 +10,8 @@ if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocMana
 if (!requireNamespace("networkD3", quietly = TRUE))  BiocManager::install("networkD3")
 # Load package
 library("networkD3")
-print("Loaded packages")
-
+# if (!requireNamespace("pandoc", quietly = TRUE)) BiocManager::install("pandoc")
+# library("pandoc")
 if (!requireNamespace("optparse", quietly = TRUE)) BiocManager::install("optparse")
 library("optparse")
 
@@ -28,10 +24,10 @@ source(file.path("scripts","data_org", "data_org_func.R"))
 option_list <- list(
   optparse::make_option(c("-f", "--input"), type="character",
                         # default="data/mapping/noMap_metadata_demo.csv",
-                        default = file.path("data", "mapping", "noMap_auto_protn_metadata.csv"),
+                        default = file.path("data", "mapping", "noMap-auto_protn_metadata.csv"),
                         help="path of first csv"),
   optparse::make_option(c("-s", "--output_dir"), type="character",
-                        default = "no_map", help="dir in /output"),
+                        default = "no_map_auto_protein", help="dir in /output"),
   optparse::make_option(c("-o", "--out_name"), type="character",
                         default = "exp_org_Sankey.html",
                         help="Path of output csv.")
@@ -61,7 +57,7 @@ exp_org_cols <- c("SITE", "TREATMENT")
 #empty variables to fill in
 name_source <- character(0)
 name_target <- character(0)
-counts <- c()
+sample_counts <- c()
 
 # Find top x elements for each exp feature, make links
 for (exp in 1:length(exp_org_cols)-1){
@@ -71,15 +67,27 @@ for (exp in 1:length(exp_org_cols)-1){
   my_col2 <- exp_org_cols[exp+1]
   column_2 <- inp_df[,my_col2]
   for (link_start in unique(column_1)){
+    print(link_start)
     for(link_target in unique(column_2)){
-      count <- sum(inp_df[,my_col] == link_start &
+      sample_count <- sum(inp_df[,my_col] == link_start &
                      inp_df[,my_col2] == link_target)
-      if (count > 0){
-        col_count1 <- sum(column_1 == link_start)
-        col_count2 <- sum(column_2 == link_target)
-        name_source <- c(name_source, paste(c(link_start, col_count1), collapse = ": "))
-        name_target <- c(name_target, paste(c(link_target, col_count2), collapse = ": "))
-        counts <- c(counts, count)
+      if (sample_count > 0){
+        col_sample_counts1 <- sum(column_1 == link_start)
+        col_sample_counts2 <- sum(column_2 == link_target)
+        col_part_count1 <- length(unique(inp_df[inp_df[,my_col] == link_start,
+                                                "CLIENT_SAMPLE_ID"]))
+        col_part_count2 <- length(unique(inp_df[inp_df[,my_col2] == link_target,
+                                                "CLIENT_SAMPLE_ID"]))
+        part_string1 <- paste("# p:", col_part_count1)
+        count_string1 <- paste("# s:", col_sample_counts1)
+        # name_source <- c(name_source, paste(c(link_start, part_string1, count_string1), collapse = " "))
+        
+        part_string2 <- paste("# p:", col_part_count2)
+        count_string2 <- paste("# s:", col_sample_counts2)
+        # name_target <- c(name_target, paste(c(link_target, part_string2, count_string2), collapse = " "))
+        name_source <- c(name_source, paste(c(link_start, col_sample_counts1), collapse = ": "))
+        name_target <- c(name_target, paste(c(link_target, col_sample_counts2), collapse = ": "))
+        sample_counts <- c(sample_counts, sample_count)
       }
     }
   }
@@ -105,7 +113,7 @@ for (exp in 1:length(exp_org_cols)-1){
 #         col_count2 <- sum(column_2 == link_target)
 #         name_source <- c(name_source, paste(c(link_start, col_count1), collapse = ": "))
 #         name_target <- c(name_target, paste(c(my_col2, link_target), collapse = ": "))
-#         counts <- c(counts, count)
+#         sample_counts <- c(sample_counts, count)
 #       }
 #     }
 #   }
@@ -121,13 +129,13 @@ source_index <- source_index - 1
 
 
 links <- data.frame(source = source_index, target = target_index, 
-                    count = counts)
+                    count = sample_counts)
 nodes <- data.frame(nodes = unique_nodes)
 
 #update node names to clarify in plot
 p <- sankeyNetwork(Links = links, Nodes = nodes, Source = "source",
                    Target = "target", Value = "count", NodeID = "nodes",
-                   units = " participants", fontSize = 14, nodeWidth = 30, 
+                   units = " samples", fontSize = 14, nodeWidth = 30, 
                    margin = list(50,100,500,100), sinksRight = TRUE,
                    height = 500, width = 300)
 p
