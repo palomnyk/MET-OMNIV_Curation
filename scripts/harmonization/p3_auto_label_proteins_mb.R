@@ -2,7 +2,7 @@
 #Script for labeling the protein sources based off of rudimentary text mining
 #Runs directly off of the output from "p2_add_FPED_data.R
 #And adding HEI values
-#HEI_conversion_table_LEO wide.xlsx was hand made by lauren for checking our work.
+#HEI_conversion_table_LEO wide.xlsx was hand made by Lauren for checking our work.
 #Need to separate this script into two steps to check out results.
 
 #write script to add MB items to df with same columns as HEI_conversion_table_LEO wide.xlsx and rerun this script with it.
@@ -68,11 +68,11 @@ HEI_wide <- HEI_wide[!duplicated(HEI_wide),]
 
 #### Dictionaries for classifying food ####
 protein_source_pos <- list(
-                           "beef" = c("beef", "steak"),
+                           "beef" = c("beef", "steak", "chili"),
                            "turkey" = c("turkey"),
                            "lamb" = c("lamb", "mutton", "sheep"),
                            "chicken" = c("chicken","chix"),
-                           "pork" = c("pork", "bacon", "fatback", "sausage", "ham ", "ham,", " ham ", "ham"),
+                           "pork" = c("pork", "bacon", "fatback", "sausage", "ham ", "ham,", " ham ", "ham", "pepperoni"),
                            "seafood" = c("shrimp", "crab", "fish", "lobster", "salmon", "tuna", "cod")
                            #Can ignore mprocessed
                            # "mprocessed" = c("steak", "chops", "ground", "baked", 
@@ -427,4 +427,16 @@ data.table::fwrite(esha_studies, file = file.path(data_dir, paste0(opt$out_prefi
                    sep = "\t", row.names = F)
 openxlsx::write.xlsx(esha_studies, file = file.path(data_dir, paste0(opt$out_prefix,"esha_combined_meats_HEI_vals.xlsx")))
 
+#create table to add fped data to
+uniq_cols <- c("beef", "lamb", "pork",
+               "chicken", "turkey", "seafood", "processed", "poultry", "meat")
+unique_esha <- esha_studies[, ..uniq_cols]
+unique_esha[unique_esha > 0] <- 1
+unique_esha <- cbind(esha_studies[,c("Item Name", "HEI_equiv", "HEI_unit")], 
+                     unique_esha)
+unique_esha <- unique_esha[!duplicated(unique_esha), ]
+
+write.csv(unique_esha, file=file.path(data_dir, "mb-unique_esha_fped.csv"))
+
 print("Reached end of R script!")
+
