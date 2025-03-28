@@ -30,7 +30,7 @@ source(file.path("scripts","data_org", "data_org_func.R"))
 option_list <- list(
   optparse::make_option(c("-f", "--input"), type="character",
                         # default="data/mapping/noMap_metadata_demo.csv",
-                        default = file.path("data", "mapping", "noMap_auto_protn_metadata.csv"),
+                        default = file.path("data", "mapping", "noMap-auto_protn_metadata.csv"),
                         help="path of first csv"),
   optparse::make_option(c("-s", "--output_dir"), type="character",
                         default = "no_map", help="dir in /output"),
@@ -48,9 +48,6 @@ print(opt)
 output_dir <- file.path("output", opt$output_dir)
 dir.create(output_dir)
 
-accuracy_threshold <- 0.1
-top_X <- 5
-
 #### Loading in data ####
 inp_df <- read.csv(opt$input, check.names = FALSE,
                    row.names = "PARENT_SAMPLE_NAME")
@@ -60,10 +57,6 @@ meat_cols <- gsub("_levels", "", level_cols)
 exp_org_cols <- c("SITE", "TREATMENT")
 
 #### Org data ####
-
-
-
-
 treats <- unique(inp_df$TREATMENT)
 treat_plots <- lapply(1:length(treats), function(m){
   trmnt <- treats[m]
@@ -80,13 +73,13 @@ treat_plots <- lapply(1:length(treats), function(m){
       theme(axis.title.x=element_blank(),
             axis.text.x=element_blank(),
             axis.ticks.x=element_blank()) +
-      coord_cartesian(ylim = c(0, 750))
+      coord_cartesian(ylim = c(0, 400))
     g
   }else{
     g <- ggplot2::ggplot(long_sub_inp_df, aes(x=variable, y=value)) + 
       geom_boxplot() +
       ggplot2::ylab(paste(trmnt)) +
-      coord_cartesian(ylim = c(0, 750)) +
+      coord_cartesian(ylim = c(0, 400)) +
       theme(axis.title.x=element_blank())
       # ggplot2::ggtitle(label = paste(trmnt)) +
       # ggplot2::scale_x_discrete(guide = guide_axis(angle = 90))
@@ -119,3 +112,5 @@ grid.arrange(arrangeGrob(grobs = treat_plots,
 
 dev.off()
 
+
+print("Reached end of R script!")
