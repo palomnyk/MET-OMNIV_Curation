@@ -81,7 +81,7 @@ for (wb in xl_wb){
         }
       }
     }else{
-      next_day_pattern <- paste0("Spreadsheet: Day - MB-2112_", wb)
+      next_day_pattern <- paste0("Spreadsheet: Day - MB-2112_")
       # Spreadsheet: Day - MB-2112_SC_001 - Day 2
       if (grepl(pattern = next_day_pattern, x = item)) {
         day_count <- day_count + 1
@@ -95,10 +95,10 @@ for (wb in xl_wb){
         if (day_count <= 3) {
           leg <- "Usual"
         }
-        if (day_count < 3 & day_count < 7){
+        if (day_count >= 4 & day_count <= 6){
           leg <- mb_map[mb_map$Screen == screen, "Study Product First"]
         }
-        if (day_count > 6){
+        if (day_count >= 7 ){
           leg <- mb_map[mb_map$Screen == screen, "Study Product Second"]
         }
         
