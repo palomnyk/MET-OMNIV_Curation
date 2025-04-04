@@ -81,7 +81,7 @@ for (wb in xl_wb){
         }
       }
     }else{
-      next_day_pattern <- paste0("Spreadsheet: Day - MB-2112_")
+      next_day_pattern <- paste0("Spreadsheet: Day - MB")
       # Spreadsheet: Day - MB-2112_SC_001 - Day 2
       if (grepl(pattern = next_day_pattern, x = item)) {
         day_count <- day_count + 1
