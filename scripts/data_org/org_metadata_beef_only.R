@@ -2,18 +2,7 @@
 # Script for organizing metadata and labeling meat eaten from samples
 
 # For MB:
-  # "screen" in the MB documentation matches to "SAMPLE_ID" in metabolomic metadata
-  # The food is labeled in the "Study_Product_Dispensed" of the "2112 Vx.csv" where
-  # "x" is the leg of the trial. This is labeled as "A" or "B" in the metabolomic
-  # metadata for 6.5oz of either beef and chicken respectively.
-  # See the output for screen 11 below:
-  # [1] "11|**|MB2112: V2 SUB.ID: 011 IL-6 T=(-15)|**|MB/IIT|**|A"
-  # Beef
-  # [1] "11|**|MB2112: V3 SUB.ID: 011 IL-6 T=(-15)|**|MB/IIT|**|A"
-  # Beef
-  # [1] "11|**|MB2112: V4 SUB.ID: 011 IL-6 Archive|**|MB/IIT|**|B"
-  # Chicken
-  # [1] "11|**|MB2112: V5 SUB.ID: 011 IL-6 T=(-15)|**|MB/IIT|**|B"
+# Chicken is A and Beef is B.
 
 rm(list = ls()) #clear workspace
 
@@ -74,8 +63,8 @@ meta_df[meta_df == "post "] <- "post"
 meta_df$TREATMENT[meta_df$TREATMENT %in% control_treatments] <- "Control"
 
 ##### Improve readability #####
-meta_df$TREATMENT[meta_df$TREATMENT == "B"] <- "Chicken diet"
-meta_df$TREATMENT[meta_df$TREATMENT == "A"] <- "Beef diet"
+meta_df$TREATMENT[meta_df$TREATMENT == "A"] <- "Chicken diet"
+meta_df$TREATMENT[meta_df$TREATMENT == "B"] <- "Beef diet"
 
 #to make three beef level categories
 beef_col <- meta_df$TREATMENT

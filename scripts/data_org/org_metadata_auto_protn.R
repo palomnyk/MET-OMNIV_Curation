@@ -43,12 +43,15 @@ correct_sites <- c("PSU-MED","MB/IIT","Purdue","USDA-MAP","USDA-MED")
 
 unknown_beef <- c("Blue","Red","Green", "Yellow", "baseline", "BL")
 
+# Preserve orginal treatement labels for troubhshooting:
+meta_df$ORIG_TREAT <- meta_df$TREATMENT
+
 #### Fix some inconsistencies ####
 meta_df$controls <- meta_df$TREATMENT %in% control_treatments
-meta_df[meta_df == "MED 0.5"] <- "Med 0.5"
-meta_df[meta_df == "MED 2.5"] <- "Med 2.5"
-meta_df[meta_df == "MED 5.5"] <- "Med 5.5"
-meta_df[meta_df == "post "] <- "post"
+meta_df$TREATMENT[meta_df$TREATMENT == "MED 0.5"] <- "Med 0.5"
+meta_df$TREATMENT[meta_df$TREATMENT == "MED 2.5"] <- "Med 2.5"
+meta_df$TREATMENT[meta_df$TREATMENT == "MED 5.5"] <- "Med 5.5"
+meta_df$TREATMENT[meta_df$TREATMENT == "post "] <- "post"
 
 #### Create "control" columns ####
 # meta_df$TREATMENT[meta_df$TREATMENT %in% control_treatments] <- "tech_control"
@@ -60,8 +63,8 @@ drops <- c("SITE")
 meta_df <- meta_df[ , !(names(meta_df) %in% drops)]
 colnames(meta_df)[colnames(meta_df) == "CORRECTED_SITE"] = "SITE"
 
-meta_df$TREATMENT[meta_df$TREATMENT == "B"] <- "Chicken"
-meta_df$TREATMENT[meta_df$TREATMENT == "A"] <- "Beef"
+meta_df$TREATMENT[meta_df$TREATMENT == "A"] <- "Chicken"
+meta_df$TREATMENT[meta_df$TREATMENT == "B"] <- "Beef"
 
 #### Add column to show which baseline is first for each MB participant ####
 mb_rand_labels <- meta_df[meta_df$SITE == "MB/IIT", "CLIENT_SAMPLE_ID"]
@@ -141,6 +144,7 @@ meat_rows <- data.frame(matrix(ncol = ncol(meat_totals),
 names(meat_rows) <- names(meat_totals)
 
 meta_df$mb_screen <- rep(NA, nrow(meta_df))
+meta_df$mb_rand <- rep(NA, nrow(meta_df))
 meta_df$mb_intervention <- rep(NA, nrow(meta_df))
 for (i in seq_along(1:nrow(meta_df))){
   id <- meta_df$CLIENT_SAMPLE_ID[i]
@@ -172,6 +176,7 @@ for (i in seq_along(1:nrow(meta_df))){
   }
   if (site == "MB/IIT"){
     mb_id <- mb_map[mb_map$Randomization == id, "Screen"]
+    mb_rand <- mb_map[mb_map$Randomization == id, "Randomization"]
     meta_df$mb_screen[i] <- mb_id
     mb_pro_id <- paste0("SC_", formatC(mb_id, width=3, flag="0"), "_", treat)
     if (mb_pro_id %in% row.names(mb_meat_totals)){
@@ -232,14 +237,11 @@ for (site in unique(meta_df$SITE)){
             row.names = FALSE)
   
   # Remove LCMS technical data for testing in random forest
-  # meta_df <- meta_df[c("PARENT_SAMPLE_NAME", "SITE","TIMEPOINT","TREATMENT", agg_columns, names(new_rows))]
-  sub_df <- sub_df[c("PARENT_SAMPLE_NAME", agg_columns)]
+  sub_df <- sub_df[c("PARENT_SAMPLE_NAME", "SITE", "TREATMENT", agg_columns)]
   fname <- paste0(clean_site, "-", "rf_auto_protn_metadata.csv")
   write.csv(sub_df, file = file.path("data", "mapping", fname),
             row.names = FALSE)
-  
 }
-
 
 write.csv(meat_totals, file = file.path(nut_dir, "auto_protn_meat_totals_by_treatment.csv"))
 
@@ -265,3 +267,4 @@ write.csv(meta_df, file = file.path("data", "mapping", "noMap-rf_auto_protn_meta
           row.names = FALSE)
 
 print("End R script.")
+
