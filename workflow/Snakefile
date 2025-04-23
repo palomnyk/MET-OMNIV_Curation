@@ -1,6 +1,8 @@
 # Author: Aaron Yerke (aaronyerke@gmail.com)
 # Main snakemake file for running and re-running scripts
-# TODO Debug rule that joins demo and metabolomics
+# TODO Add defined variables to configfile to clean this up
+
+# How do I force Snakemake to rerun all jobs from the rule I just edited? --forcerun or -R flag
 
 configfile: "workflow/config/config.yaml"
 
@@ -9,13 +11,16 @@ import pandas as pd
 
 resp_colmns = ["beef_level", "TIMEPOINT"]
 metabolomics_levels = ["chem", "sub_pathway","super_pathway"]
-clean_sites = ["noMB_noMap"]#["PSU_MED", "MB_IIT", "Purdue", "USDA_MED", "noMap", "noMB_noMap"]
+clean_sites = ["PSU_MED", "MB_IIT", "Purdue", "USDA_MED", "noMap", "noMB_noMap"]
 orgi_sites = ["PSU-MED", "MB/IIT", "Purdue", "USDA-MED"]
 project_diet_prefix = ["", "mb-"]
-metabolomics_transforms = ["","log-"]
+# metabolomics_transforms = ["","log-"]
 rf_columns = ["PARENT_SAMPLE_NAME", "SITE", "TIMEPOINT","TREATMENT","controls","beef_level","beef_level_oz"]
-
 nutri_dir = os.path.join("data", "diet", "nutrition_data")
+mapping_predictor_groups = ["rf_demographics_meats", "rf_meats"]
+metabo_pred_dietarys = ["log-filt_all_bat_norm_imput", "demo-log-filt_all_bat_norm_imput"]
+metabo_pred_cvds = ["meat-demo-log-filt_all_bat_norm_imput"]
+cvd_prefix = "CVD"
 
 rule completed:
 	input:
@@ -31,7 +36,7 @@ rule completed:
 		# expand("output/no_map_chick_is_not_beef/tables/shap_feat_imp_demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv",
 		# metblmcs_lev=metabolomics_levels),
 # Biomarker Rand Forest
-		expand("output/no_map_auto_protein/tables/{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein_scores.csv",
+		expand("output/no_map_auto_protein/tables/{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein_scores.csv",
 		metblmcs_lev=metabolomics_levels,clean_site=clean_sites),
 		# expand("output/no_map_auto_protein/tables/shap_feat_imp_demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein.csv",
 		# metblmcs_lev=metabolomics_levels),
@@ -39,11 +44,20 @@ rule completed:
 		# "data/mapping/noMap_metadata_auto-pro_demo.csv",
 		# expand("output/no_map_auto_protein/graphics/{clean_site}-metabolites_Sankey-auto_protein-{metblmcs_lev}.html",
 		# metblmcs_lev=metabolomics_levels, clean_site=clean_sites),
-		"output/no_map_auto_protein/graphics/demo_plots.pdf",
-		"output/no_map_auto_protein/graphics/exp_org_Sankey.html",
+		# "output/no_map_auto_protein/graphics/demo_plots.pdf",
+		# "output/no_map_auto_protein/graphics/exp_org_Sankey.html",
 # Random forest for CVD Markers
-		expand("output/no_map_CVD/tables/{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-CVD_scores.csv",
-		metblmcs_lev=metabolomics_levels,clean_site=clean_sites)
+		# expand("output/no_map_CVD/tables/{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-CVD_scores.csv",
+		# metblmcs_lev=metabolomics_levels,clean_site=clean_sites),
+		expand("output/no_map_CVD/tables/{clean_site}-rf_demographics_meats-CVD_scores.csv",
+		clean_site=clean_sites),
+		# "output/no_map_CVD/graphics/CVD_markers_plots.pdf",
+		# expand("output/no_map_CVD/tables/{clean_site}-{metabo_pred_cvd}-{metblmcs_lev}-CVD_scores.csv",
+		# metblmcs_lev=metabolomics_levels,
+		# clean_site=clean_sites,
+		# metabo_pred_cvd=metabo_pred_cvds)
+		# expand(f"output/no_map_CVD/graphics/{cvd_prefix}-{'{metblmcs_lev}'}-site_comparison.pdf",
+		# metblmcs_lev=metabolomics_levels)
 
 
 rule combine_MB_dietary_to_single_table:
@@ -181,9 +195,9 @@ rule combine_metadata_demo:
 	conda:"env/python_conda_env.yml"
 	input:
 		diet_org = "data/mapping/noMap_demo.csv",
-		helper = "data/mapping/noMap-auto_protn_metadata.csv"
+		helper = "data/mapping/noMap-meats.csv"
 	output:
-		"data/mapping/noMap-auto_protn_metadata-demo.csv"
+		"data/mapping/noMap-meats-demo.csv"
 	resources:
 		runtime=60, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
 		mem="16gb"
@@ -200,7 +214,7 @@ rule combine_auto_pro_demo:
 	conda:"env/python_conda_env.yml"
 	input:
 		diet_org = "data/mapping/noMap_demo.csv",
-		helper = "data/mapping/noMap-auto_protn_metadata.csv"
+		helper = "data/mapping/noMap-meats.csv"
 	output:
 		"data/mapping/noMap_metadata_auto-pro_demo.csv"
 	resources:
@@ -236,23 +250,23 @@ rule combine_metabol_demo:
 			--id_var PARENT_SAMPLE_NAME
 		"""
 
-rule random_forest:
+rule random_forest_cvd_metabol:
 	input:
-		predictor = "data/metabolomics/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv",
-		response = "data/mapping/noMap-rf-auto_protn_metadata.csv"
+		predictor = "data/metabolomics/{metabo_pred_cvd}-{metblmcs_lev}.csv",
+		response = "data/mapping/noMap-rf-meats.csv"
 	output:
-		"output/no_map_chick_is_not_beef/tables/feat_imp_demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein.csv",
-		"output/no_map_auto_chick_is_not_beef/tables/shap_feat_imp_demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein.csv"
-		# "output/no_map/tables/1col{resp_col}!demo-log-filt_all_bat_norm_imput-{metblmcs_lev}_scores.csv"
+		"output/no_map_chick_is_not_beef/tables/feat_imp_{metabo_pred_cvd}-{metblmcs_lev}-auto_protein.csv",
+		"output/no_map_auto_chick_is_not_beef/tables/shap_feat_imp_{metabo_pred_cvd}-{metblmcs_lev}-auto_protein.csv"
+		# "output/no_map/tables/1col{resp_col}!{metabo_pred_cvd}-{metblmcs_lev}_scores.csv"
 	params:
-		label = "demo-log-filt_all_bat_norm_imput-{metblmcs_lev}"
+		label = "{metabo_pred_cvd}-{metblmcs_lev}"
 	resources:
 		runtime=2880, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
 		mem="100gb",
 		partition="short"
 	shell:
 		"""
-			python scripts/ml/random_forest.py \
+			python scripts/ml/random_forest_cross_val.py \
 				--pred_path {input.predictor} \
 				--output_label {params.label} \
 				--response_fn {input.response} \
@@ -264,21 +278,21 @@ rule random_forest:
 
 rule random_forest_auto_protein:
 	input:
-		response = "data/mapping/{clean_site}-rf_auto_protn_metadata.csv",
-		predictor = "data/metabolomics/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv"
+		response = "data/mapping/{clean_site}-rf_meats.csv",
+		predictor = "data/metabolomics/meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv"
 	output:
-		"output/no_map_auto_protein/tables/{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein_scores.csv",
-		"output/no_map_auto_protein/tables/shap_feat_imp_{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein.csv",
-		"output/no_map_auto_protein/tables/feat_imp_{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein.csv"
+		"output/no_map_auto_protein/tables/{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein_scores.csv",
+		"output/no_map_auto_protein/tables/shap_feat_imp_{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein.csv",
+		"output/no_map_auto_protein/tables/feat_imp_{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein.csv"
 	params:
-		label = "{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein"
+		label = "{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein"
 	resources:
 		runtime=1000, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
 		mem="100gb",
 		partition="short"
 	shell:
 		"""
-			python scripts/ml/random_forest.py \
+			python scripts/ml/random_forest_cross_val.py \
 				--pred_path {input.predictor} \
 				--output_label {params.label} \
 				--response_fn {input.response} \
@@ -287,7 +301,6 @@ rule random_forest_auto_protein:
 				--title "{params.label}" \
 				--id_var "PARENT_SAMPLE_NAME"
 		"""
-				# --response_col beef_level
 
 rule plot_demo_data:
 	input: "data/mapping/noMap_metadata_auto-pro_demo.csv"
@@ -302,9 +315,22 @@ rule plot_demo_data:
 		   Rscript scripts/ds_descrip/demo_descr.R --data {input[0]} \
 		   --output_fpath {output[0]}
 		"""
+rule plot_cvd_markers:
+	input: "data/CVD/modified/noMap-cvd_markers.csv"
+	output:
+		"output/no_map_CVD/graphics/CVD_markers_plots.pdf"
+	params:
+	resources:
+		runtime=60, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
+		mem="16gb"
+	shell:
+		"""
+		   Rscript scripts/ds_descrip/demo_descr.R --data {input[0]} \
+		   --output_fpath {output[0]}
+		"""
 
 rule exp_org_Sankey:#Sankey shows experimental organization
-	input: "data/mapping/noMap-auto_protn_metadata.csv"
+	input: "data/mapping/noMap-meats.csv"
 	output:
 		"output/no_map_auto_protein/graphics/exp_org_Sankey.html"
 	params:
@@ -329,9 +355,14 @@ rule comb_output_Sankey:#Compares top hits of feature importance for RF run
 				--featimp_path {input[0]}\
 				--output_dir no_map_chick_is_not_beef\
 				--out_name metabolites_Sankey-{wildcards.metblmcs_lev}.html
-
-		
 		"""
+
+Rscript scripts/ds_descrip/comb_output_Sankey.R\
+				--featimp_path output/ml_eval/tables/reorg-Avg_dystolic-shap_feat_imp-rf_demographics_meats--.csv\
+				--output_dir no_map\
+				--out_name Sankey-all_sites_ave_dpb_TESTING.html\
+				--grouping_column SITE
+
 
 rule org_auto_protein_label_response_data:
 	input: 
@@ -340,15 +371,15 @@ rule org_auto_protein_label_response_data:
 		"data/diet/nutrition_data/mb-esha_meats_FPED_vals.tsv",
 		"data/mapping/mb/MB-2112_Screen and Rand.xlsx"
 	output: 
-		expand("data/mapping/{clean_site}-rf_auto_protn_metadata.csv", clean_site=clean_sites),
-		expand("data/mapping/{clean_site}-auto_protn_metadata.csv", clean_site=clean_sites),
-		"data/diet/nutrition_data/meat_total_participant.csv"
+		expand("data/mapping/{clean_site}-rf_meats.csv", clean_site=clean_sites),
+		expand("data/mapping/{clean_site}-meats.csv", clean_site=clean_sites),
+		"data/diet/nutrition_data/meat_total_participant.csv",
+		expand("data/mapping/{clean_site}-rf_demographics_meats.csv", clean_site=clean_sites)
 	params:
 	shell:
 		"""
 		Rscript scripts/data_org/org_metadata_auto_protn.R
 		"""
-
 
 rule comb_output_Sankey_auto_label_protein:#Compares top hits of feature importance for RF run
 	conda:"env/python_conda_env.yml"
@@ -369,7 +400,7 @@ rule comb_output_Sankey_auto_label_protein:#Compares top hits of feature importa
 rule PCA_plot_numeric_meats:#Compares top hits of feature importance for RF run
 	conda:"env/python_conda_env.yml"
 	input:
-		"data/mapping/noMap-auto_protn_metadata.csv"
+		"data/mapping/noMap-meats.csv"
 	output:
 		"output/no_map_chick_is_not_beef/graphics/metabolites_Sankey-{metblmcs_lev}.html"
 	shell:
@@ -378,27 +409,25 @@ rule PCA_plot_numeric_meats:#Compares top hits of feature importance for RF run
 				--featimp_path {input[0]}\
 				--output_dir no_map_chick_is_not_beef\
 				--out_name metabolites_Sankey-{wildcards.metblmcs_lev}.html
-
-		
 		"""
 
-rule random_forest_cvd:
+rule random_forest_metadata_cvd_demo_meat:
 	input:
 		response = "data/CVD/modified/{clean_site}-rf_cvd_markers.csv",
-		predictor = "data/metabolomics/meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv"
+		predictor = "data/mapping/{clean_site}-rf_demographics_meats.csv"
 	output:
-		"output/no_map_CVD/tables/{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-CVD_scores.csv",
-		"output/no_map_CVD/tables/shap_feat_imp_{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-CVD.csv",
-		"output/no_map_CVD/tables/feat_imp_{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-CVD.csv"
+		"output/no_map_CVD/tables/{clean_site}-rf_demographics_meats-CVD_scores.csv",
+		"output/no_map_CVD/tables/shap_feat_imp_{clean_site}-rf_demographics_meats-CVD.csv",
+		"output/no_map_CVD/tables/feat_imp_{clean_site}-rf_demographics_meats-CVD.csv"
 	params:
-		label = "{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-CVD"
+		label = "{clean_site}-rf_demographics_meats-CVD"
 	resources:
 		runtime=1000, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
 		mem="100gb",
 		partition="short"
 	shell:
 		"""
-			python scripts/ml/random_forest.py \
+			python scripts/ml/random_forest_cross_val.py \
 				--pred_path {input.predictor} \
 				--output_label {params.label} \
 				--response_fn {input.response} \
@@ -407,14 +436,13 @@ rule random_forest_cvd:
 				--title "{params.label}" \
 				--id_var "PARENT_SAMPLE_NAME"
 		"""
-				# --response_col beef_level
 
 rule org_cvd_response_data:
 	input: 
-		"data/mapping/noMap-auto_protn_metadata.csv",
+		"data/mapping/noMap-meats.csv",
 	output: 
 		expand("data/CVD/modified/{clean_site}-rf_cvd_markers.csv", clean_site=clean_sites),
-		expand("data/CVD/modified/{clean_site}-cvd_markers.csv", clean_site=clean_sites)
+		# expand("data/CVD/modified/{clean_site}-cvd_markers.csv", clean_site=clean_sites)
 	params:
 	shell:
 		"""
@@ -439,3 +467,81 @@ rule combine_metabol_demo_meat:
 			--out_path {output}\
 			--id_var PARENT_SAMPLE_NAME
 		"""
+
+rule compare_sites_cvd:
+	input:
+		expand("output/no_map_CVD/tables/{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-CVD_scores.csv",
+		metblmcs_lev=metabolomics_levels,clean_site=clean_sites),
+	output:
+		f"output/no_map_CVD/graphics/{cvd_prefix}-{'{metblmcs_lev}'}-site_comparison.pdf"
+	params:
+		prefix = cvd_prefix
+	shell:
+		"""
+		Rscript /project/nhanes_ml/beef_biomarkers/scripts/ds_descrip/compare_site_scores.R\
+			--metblmcs_lev {wildcards.metblmcs_lev}\
+			--in_dir output/no_map_CVD/tables/\
+			--out_subdir output/no_map_CVD/graphics/\
+			--out_prefix {params.prefix}
+		"""
+
+# rule combine_rf_results_by_resp_var_auto_protein:
+# 	input:
+# 		expand("output/no_map_auto_protein/tables/feat_imp_{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein.csv",
+# 		metblmcs_lev=metabolomics_levels,clean_site=clean_sites, metabo_pred_dietary=metabo_pred_dietarys),
+# 	output:
+# 		f"output/no_map_CVD/graphics/{cvd_prefix}-{'{metblmcs_lev}'}-site_comparison.pdf"
+# 	params:
+# 		prefix = cvd_prefix
+# 	shell:
+# 		"""
+# 		Rscript /project/nhanes_ml/beef_biomarkers/scripts/ds_descrip/compare_site_scores.R\
+# 			--metblmcs_lev {wildcards.metblmcs_lev}\
+# 			--in_dir output/no_map_CVD/tables/\
+# 			--out_subdir output/no_map_CVD/graphics/\
+# 			--out_prefix {params.prefix}
+# 		"""
+# rule random_forest_cvd_meat:
+# 	input:
+# 		response = "data/CVD/modified/{clean_site}-rf_cvd_markers.csv",
+# 		predictor = "data/mapping/{clean_site}-rf_meats.csv"
+# 	output:
+# 		"output/no_map_CVD/tables/{clean_site}-meat_only-{metblmcs_lev}-CVD_scores.csv",
+# 		"output/no_map_CVD/tables/shap_feat_imp_{clean_site}-meat_only-{metblmcs_lev}-CVD.csv",
+# 		"output/no_map_CVD/tables/feat_imp_{clean_site}-meat_only-{metblmcs_lev}-CVD.csv"
+# 	params:
+# 		label = "{clean_site}-meat_only-{metblmcs_lev}-CVD"
+# 	resources:
+# 		runtime=1000, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
+# 		mem="100gb",
+# 		partition="short"
+# 	shell:
+# 		"""
+# 			python scripts/ml/random_forest_cross_val.py \
+# 				--pred_path {input.predictor} \
+# 				--output_label {params.label} \
+# 				--response_fn {input.response} \
+# 				--out_folder no_map_CVD \
+# 				--delimiter , \
+# 				--title "{params.label}" \
+# 				--id_var "PARENT_SAMPLE_NAME"
+# 		"""
+
+# rule combine_meats_demo:
+# 	conda:"env/python_conda_env.yml"
+# 	input:
+# 		diet_org = "data/mapping/noMap_demo.csv",
+# 		helper = "data/mapping/noMap-meats.csv"
+# 	output:
+# 		"data/mapping/noMap_metadata_auto-pro_demo.csv"
+# 	resources:
+# 		runtime=60, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
+# 		mem="16gb"
+# 	shell:
+# 		"""
+# 		Rscript scripts/data_org/combine_2_csv.R\
+# 			--first_path {input.diet_org}\
+# 			--secnd_path {input.helper}\
+# 			--out_path {output}\
+# 			--id_var PARENT_SAMPLE_NAME
+# 		"""

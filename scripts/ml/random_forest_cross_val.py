@@ -181,7 +181,7 @@ with open(result_fpath, "w+") as fl:
 			predictions = []
 			kfold = model_selection.KFold(n_splits=num_cv_folds, random_state=seed, shuffle=True)
 			for train, test in kfold.split(intersect_safe_ids):
-				print(f"{resp_var}: train: {len(train)}, test: {len(test)}", flush = True)
+				# print(f"{resp_var}: train: {len(train)}, test: {len(test)}", flush = True)
 				train = [intersect_safe_ids[x] for x in train]
 				test = [intersect_safe_ids[x] for x in test]
 				pred_train = pred_df.loc[pred_df.index.isin(train),:]#selects whole dataframe
@@ -190,7 +190,7 @@ with open(result_fpath, "w+") as fl:
 				# print(pred_train.shape)
 				resp_train = response_df.loc[response_df[options.id_var].isin(train).tolist(), resp_var].convert_dtypes()
 				resp_test = response_df.loc[response_df[options.id_var].isin(test).tolist(), resp_var].convert_dtypes()
-				print(f"len resp_train {len(resp_train)}, {resp_train.dtype}")
+				# print(f"len resp_train {len(resp_train)}, {resp_train.dtype}")
 				if is_numeric_dtype(resp_train) and resp_train.dtype.name != "boolean":
 					print(f"going to RandomForestRegressor(), {resp_var }")
 					clf = RandomForestRegressor(n_estimators=n_trees)
@@ -202,7 +202,7 @@ with open(result_fpath, "w+") as fl:
 				
 				model_type.append(model_name)
 				clf.fit(pred_train, resp_train)
-				print(f"len(feat_vales) {len(clf.feature_importances_)}, len(names) {len(clf.feature_names_in_)}")
+				# print(f"len(feat_vales) {len(clf.feature_importances_)}, len(names) {len(clf.feature_names_in_)}")
 				#add feature importance to global feature_importance
 				k_feat_import = dict(zip(clf.feature_names_in_, clf.feature_importances_))
 				for key in k_feat_import:
@@ -244,6 +244,9 @@ with open(result_fpath, "w+") as fl:
 				print(f"{model_path} does not exist.")
 		feature_df = feature_df.loc[feature_df["response_var"] == resp_var,:]
 		ave_score = np.mean(feature_df["accuracy"])
+		print(f"{resp_var} ave_score = {ave_score}, len ave_score {len(feature_df['accuracy'])}")
+		print(f"feature_df['accuracy'].tolist()")
+		print(feature_df["accuracy"])
 		model_name = list(feature_df["model_type"])[0]
 		feature_df = feature_df.iloc[:,3:]
 		# Order the features by importance
@@ -258,7 +261,8 @@ with open(result_fpath, "w+") as fl:
 		plt.suptitle(f"Feature importance: {resp_var}")
 		pdf.savefig(bbox_inches='tight')
 		plt.close()
-
+		
+		# my_len = len(feature_df["accuracy"])
 		if ave_score > score_threshold_SHAP:
 			#Plot 5 random trees
 			fig, axes = plt.subplots(nrows = 1,ncols = 5,figsize = (10,2), dpi=900)
@@ -377,3 +381,4 @@ print("Saving pdf", flush = True)
 pdf.close()
 
 print(f"Completed {__file__}", flush = True)
+

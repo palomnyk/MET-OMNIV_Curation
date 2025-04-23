@@ -21,10 +21,10 @@ module purge  # clear module environment
 module load miniconda  # load miniconda
 source activate python_ml_conda
 python --version
-python scripts/ml/random_forest.py \
+python scripts/ml/random_forest_cross_val.py \
 	--pred_path data/metabolomics/demo-log-filt_all_bat_norm_imput-super_pathway.csv\
 	--output_label demo-log-filt_all_bat_norm_imput-super_pathway-auto_protein\
-	--response_fn data/mapping/rf_noMap_auto_protn_metadata.csv\
+	--response_fn data/mapping/rf_noMap_meats.csv\
 	--out_folder no_map_auto_protein \
 	--delimiter , \
 	--title "demo-log-filt_all_bat_norm_imput-super_pathway-auto_protein"\

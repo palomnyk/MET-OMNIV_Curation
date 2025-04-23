@@ -1,5 +1,14 @@
-# beef_biomarkers
-This repository was created to document how we organized the dietary data for our beef biomarkers study.
+# Beef biomarkers and cardiovascular marker studies
+This repository was created to document how we organized and analyzed the dietary data for our beef biomarkers and cardiovascular markers studies.
+
+## Overview of workflow
+This repository is meant to be run through [Snakemake](https://snakemake.readthedocs.io/en/stable/index.html "Snakemake"), which is a python retooling of the old UNIX tool called "Make" on the USDA SCINET HPC cluster.
+
+To run the workflow,
+
+
+
+
 ## Harmonizing data
 We will have 3 ESHA dietary datasets and one from NDSA. Currently, 2 ESHA datasets have been processed and we are waiting for 1 ESHA and one NSDA.
 ### harmonization/p1_build_ESHA_csv.R
@@ -26,10 +35,7 @@ We will have 3 ESHA dietary datasets and one from NDSA. Currently, 2 ESHA datase
   - accessed on 24 Feb 2024
 
 
-
 conda env update --file workflow/env/python_conda_env.yml --prune
-
-
 
 snakemake --dag |dot -Tpdf > workflow/reports/dag.pdf
 
@@ -60,7 +66,7 @@ snakemake --filegraph --dag | dot -Tpdf > dag.pdf
   -v id_var, --id_var id_var
                         String, column name of row variables
 
-python scripts/ml/random_forest.py\
+python scripts/ml/random_forest_cross_val.py\
   --pred_path data/metabolomics/log_filt_all_bat_norm_imput.csv \
   --response_col beef_level \
   --output_label beef_lev_NO_MAP \
@@ -70,7 +76,7 @@ python scripts/ml/random_forest.py\
   --title "Beef Level Predictions" \
   --id_var "PARENT_SAMPLE_NAME"
 
-python scripts/ml/random_forest.py\
+python scripts/ml/random_forest_cross_val.py\
   --pred_path data/metabolomics/log_filt_all_bat_norm_imput.csv \
   --response_col beef_level \
   --output_label beef_lev_NO_MAP \
@@ -80,7 +86,7 @@ python scripts/ml/random_forest.py\
   --title "Beef Level Predictions (3 levels)" \
   --id_var "PARENT_SAMPLE_NAME"
 
-python scripts/ml/random_forest.py\
+python scripts/ml/random_forest_cross_val.py\
   --pred_path data/metabolomics/log_filt_all_bat_norm_imput.csv \
   --response_col "TIMEPOINT" \
   --output_label pre_post_treat_NO_MAP \
@@ -91,11 +97,12 @@ python scripts/ml/random_forest.py\
   --id_var "PARENT_SAMPLE_NAME"
 
 
-python scripts/ml/random_forest.py\
+python scripts/ml/random_forest_cross_val.py\
   --pred_path data/metabolomics/log_filt_all_bat_norm_imput.csv \
   --out_folder no_map \
   --response_fn data/mapping/rf_noMed_metadata.csv \
   --delimiter , \
   --id_var "PARENT_SAMPLE_NAME"\
   --respons_df_start 1
+
 
