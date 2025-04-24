@@ -257,7 +257,7 @@ rule random_forest_cvd_metabol:
 		"output/no_map_CVD/tables/shap_feat_imp_{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-CVD.csv",
 		"output/no_map_CVD/tables/{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-CVD_scores.csv"
 	params:
-		label = "meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}_CVD"
+		label = "{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}_CVD"
 	resources:
 		runtime=2880, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
 		mem="100gb",
@@ -544,20 +544,15 @@ rule compare_sites_cvd:
 # 			--id_var PARENT_SAMPLE_NAME
 # 		"""
 
-# python scripts/ml/rand_frst_train_test_specify.py\
-# 	--pred_train data/metabolomics/demo-log-filt_all_bat_norm_imput-chem.csv\
-# 	--pred_test data/metabolomics/demo-log-filt_all_bat_norm_imput-chem.csv\
-#  	--response_train_fn 
-
 
 # python scripts/ml/rand_frst_train_test_specify.py\
 # 	--pred_train data/mapping/PSU_MED-rf_demographics_meats.csv\
 # 	--pred_test data/mapping/USDA_MED-rf_demographics_meats.csv\
-# 	--response_train_fn data/CVD/modified/USDA_MED-rf_cvd_markers.csv\
+# 	--response_train_fn data/CVD/modified/PSU_MED-rf_cvd_markers.csv\
 # 	--response_test_fn data/CVD/modified/USDA_MED-rf_cvd_markers.csv\
-# 	--output_label PSU_vs_USDA_demo_meat_vs_LDL \
+# 	--output_label train-PSU_test-USDA_demo_meat_vs_LDL \
 # 	--response_col LDL \
-# 	--out_folder no_map_CVD \
+# 	--out_folder ml_eval \
 # 	--delimiter , \
 # 	--title title PSU_vs_USDA_demo_meat_vs_LDL \
 # 	--id_var PARENT_SAMPLE_NAME 
