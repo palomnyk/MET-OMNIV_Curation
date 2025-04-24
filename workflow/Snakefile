@@ -36,7 +36,7 @@ rule completed:
 		# expand("output/no_map_chick_is_not_beef/tables/shap_feat_imp_demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv",
 		# metblmcs_lev=metabolomics_levels),
 # Biomarker Rand Forest
-		expand("output/no_map_auto_protein/tables/{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein_scores.csv",
+		expand("output/no_map_auto_protein/tables/{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein_scores.csv",
 		metblmcs_lev=metabolomics_levels,clean_site=clean_sites),
 		# expand("output/no_map_auto_protein/tables/shap_feat_imp_demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein.csv",
 		# metblmcs_lev=metabolomics_levels),
@@ -47,8 +47,8 @@ rule completed:
 		# "output/no_map_auto_protein/graphics/demo_plots.pdf",
 		# "output/no_map_auto_protein/graphics/exp_org_Sankey.html",
 # Random forest for CVD Markers
-		# expand("output/no_map_CVD/tables/{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-CVD_scores.csv",
-		# metblmcs_lev=metabolomics_levels,clean_site=clean_sites),
+		expand("output/no_map_CVD/tables/{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-CVD_scores.csv",
+		metblmcs_lev=metabolomics_levels,clean_site=clean_sites),
 		expand("output/no_map_CVD/tables/{clean_site}-rf_demographics_meats-CVD_scores.csv",
 		clean_site=clean_sites),
 		# "output/no_map_CVD/graphics/CVD_markers_plots.pdf",
@@ -236,8 +236,6 @@ rule combine_metabol_demo:
 		helper = "data/mapping/noMap_demo.csv"
 	output:
 		"data/metabolomics/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv"
-		# expand("data/metabolomics/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv", 
-		#	 metblmcs_lev=metabolomics_levels)
 	resources:
 		runtime=60, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
 		mem="16gb"
@@ -252,14 +250,14 @@ rule combine_metabol_demo:
 
 rule random_forest_cvd_metabol:
 	input:
-		predictor = "data/metabolomics/{metabo_pred_cvd}-{metblmcs_lev}.csv",
-		response = "data/mapping/noMap-rf-meats.csv"
+		predictor = "data/metabolomics/meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv",
+		response = "data/CVD/modified/{clean_site}-rf_cvd_markers.csv"
 	output:
-		"output/no_map_chick_is_not_beef/tables/feat_imp_{metabo_pred_cvd}-{metblmcs_lev}-auto_protein.csv",
-		"output/no_map_auto_chick_is_not_beef/tables/shap_feat_imp_{metabo_pred_cvd}-{metblmcs_lev}-auto_protein.csv"
-		# "output/no_map/tables/1col{resp_col}!{metabo_pred_cvd}-{metblmcs_lev}_scores.csv"
+		"output/no_map_CVD/tables/feat_imp_{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-CVD.csv",
+		"output/no_map_CVD/tables/shap_feat_imp_{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-CVD.csv",
+		"output/no_map_CVD/tables/{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-CVD_scores.csv"
 	params:
-		label = "{metabo_pred_cvd}-{metblmcs_lev}"
+		label = "meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}_CVD"
 	resources:
 		runtime=2880, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
 		mem="100gb",
@@ -270,7 +268,7 @@ rule random_forest_cvd_metabol:
 				--pred_path {input.predictor} \
 				--output_label {params.label} \
 				--response_fn {input.response} \
-				--out_folder no_map_chick_is_not_beef \
+				--out_folder no_map_CVD \
 				--delimiter , \
 				--title "{params.label}" \
 				--id_var "PARENT_SAMPLE_NAME"
@@ -279,13 +277,13 @@ rule random_forest_cvd_metabol:
 rule random_forest_auto_protein:
 	input:
 		response = "data/mapping/{clean_site}-rf_meats.csv",
-		predictor = "data/metabolomics/meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv"
+		predictor = "data/metabolomics/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv"
 	output:
-		"output/no_map_auto_protein/tables/{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein_scores.csv",
-		"output/no_map_auto_protein/tables/shap_feat_imp_{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein.csv",
-		"output/no_map_auto_protein/tables/feat_imp_{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein.csv"
+		"output/no_map_auto_protein/tables/{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein_scores.csv",
+		"output/no_map_auto_protein/tables/shap_feat_imp_{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein.csv",
+		"output/no_map_auto_protein/tables/feat_imp_{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein.csv"
 	params:
-		label = "{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein"
+		label = "{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein"
 	resources:
 		runtime=1000, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
 		mem="100gb",
@@ -357,11 +355,11 @@ rule comb_output_Sankey:#Compares top hits of feature importance for RF run
 				--out_name metabolites_Sankey-{wildcards.metblmcs_lev}.html
 		"""
 
-Rscript scripts/ds_descrip/comb_output_Sankey.R\
-				--featimp_path output/ml_eval/tables/reorg-Avg_dystolic-shap_feat_imp-rf_demographics_meats--.csv\
-				--output_dir no_map\
-				--out_name Sankey-all_sites_ave_dpb_TESTING.html\
-				--grouping_column SITE
+# Rscript scripts/ds_descrip/comb_output_Sankey.R\
+# 				--featimp_path output/ml_eval/tables/reorg-Avg_dystolic-shap_feat_imp-rf_demographics_meats--.csv\
+# 				--output_dir no_map\
+# 				--out_name Sankey-all_sites_ave_dpb_TESTING.html\
+# 				--grouping_column SITE
 
 
 rule org_auto_protein_label_response_data:
@@ -487,7 +485,7 @@ rule compare_sites_cvd:
 
 # rule combine_rf_results_by_resp_var_auto_protein:
 # 	input:
-# 		expand("output/no_map_auto_protein/tables/feat_imp_{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein.csv",
+# 		expand("output/no_map_auto_protein/tables/feat_imp_{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein.csv",
 # 		metblmcs_lev=metabolomics_levels,clean_site=clean_sites, metabo_pred_dietary=metabo_pred_dietarys),
 # 	output:
 # 		f"output/no_map_CVD/graphics/{cvd_prefix}-{'{metblmcs_lev}'}-site_comparison.pdf"
@@ -545,3 +543,22 @@ rule compare_sites_cvd:
 # 			--out_path {output}\
 # 			--id_var PARENT_SAMPLE_NAME
 # 		"""
+
+# python scripts/ml/rand_frst_train_test_specify.py\
+# 	--pred_train data/metabolomics/demo-log-filt_all_bat_norm_imput-chem.csv\
+# 	--pred_test data/metabolomics/demo-log-filt_all_bat_norm_imput-chem.csv\
+#  	--response_train_fn 
+
+
+# python scripts/ml/rand_frst_train_test_specify.py\
+# 	--pred_train data/mapping/PSU_MED-rf_demographics_meats.csv\
+# 	--pred_test data/mapping/USDA_MED-rf_demographics_meats.csv\
+# 	--response_train_fn data/CVD/modified/USDA_MED-rf_cvd_markers.csv\
+# 	--response_test_fn data/CVD/modified/USDA_MED-rf_cvd_markers.csv\
+# 	--output_label PSU_vs_USDA_demo_meat_vs_LDL \
+# 	--response_col LDL \
+# 	--out_folder no_map_CVD \
+# 	--delimiter , \
+# 	--title title PSU_vs_USDA_demo_meat_vs_LDL \
+# 	--id_var PARENT_SAMPLE_NAME 
+
