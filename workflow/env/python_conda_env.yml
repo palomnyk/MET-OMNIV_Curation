@@ -28,6 +28,7 @@ dependencies:
   - r-readxl
   - r-fastDummies
   - r-networkd3
+  - pandoc
 
 #To install conda on wsl:
 #  Download linux conda from https://www.anaconda.com/download#downloads
@@ -39,3 +40,8 @@ dependencies:
 #To update the env after updating the yml
 #  conda deactivate
 #  conda env update --file workflow/env/python_conda_env.yml --prune
+
+# To  save env in history to yaml to share:
+# conda env export --from_history > env_export.yaml
+# And then share the environment list (env_export.yaml) to others, where they can create an identical environment with:
+# conda env create -n env_name -f env_export.yml
