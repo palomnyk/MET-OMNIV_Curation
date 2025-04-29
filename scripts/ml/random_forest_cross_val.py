@@ -89,6 +89,8 @@ parser.add_argument("-s", "--respons_df_start", default=0, type=int,
                   metavar="respons_df_start", dest="respons_df_start")
 parser.add_argument("-m", "--use_saved_model", default=False, type=bool,
                   help="Boolean: use saved model and only make figures, if it exists, or train new model (false).")
+parser.add_argument("-n", "--num_cv_folds", default=10, type=int,
+                  help="number of folds for crossvalidation.")
 
 options, unknown = parser.parse_known_args()
 
@@ -112,7 +114,7 @@ print("Establishing other constants.")
 # --------------------------------------------------------------------------
 output_label = options.output_label
 col_names = ["model", "response_var"]
-num_cv_folds = 10
+num_cv_folds = options.num_cv_folds
 n_trees = 1000
 bar_shown = 25
 shap_shown = 10
@@ -296,7 +298,7 @@ with open(result_fpath, "w+") as fl:
 		# else:
 		# print(f"{model_path} does not exist.")
 		print("Creating shap_values", flush=True)
-		shap_values = explainer(pred_train, check_additivity=False)#[feature_mean.index[0:bar_shown]]
+		shap_values = explainer(pred_train, check_additivity=False)
 		print("shap_values.shape", flush=True)
 		print(shap_values.shape, flush=True)
 
@@ -304,9 +306,8 @@ with open(result_fpath, "w+") as fl:
 		if model_name == "RF_Classifier":
 			imp_use = shap_values.values[:,1]
 			shap_use = shap_values[:,:,1]
-			# print(clf.classes_)
 			wf_use = shap_values[0,0]
-			dep_use = explainer.shap_values(pred_train)[:,:,1]
+			dep_use = explainer.shap_values(pred_train, check_additivity=False)[:,:,1]
 			# shap.plots.beeswarm(shap_values[:,:,1], max_display=shap_shown, show = False)
 		else:
 			shap_use = shap_values
