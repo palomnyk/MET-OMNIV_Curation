@@ -12,6 +12,7 @@ import pandas as pd
 resp_colmns = ["beef_level", "TIMEPOINT"]
 metabolomics_levels = ["chem", "sub_pathway","super_pathway"]
 clean_sites = ["PSU_MED", "MB_IIT", "Purdue", "USDA_MED", "noMap", "noMB_noMap"]
+clean_sites1 = ["PSU_MED", "MB_IIT", "Purdue", "USDA_MED", "noMap", "noMB_noMap"]
 orgi_sites = ["PSU-MED", "MB/IIT", "Purdue", "USDA-MED"]
 project_diet_prefix = ["", "mb-"]
 # metabolomics_transforms = ["","log-"]
@@ -28,13 +29,6 @@ rule completed:
 		# os.path.join("data", "diet", "nutrition_data", "combined_esha_studies.tsv"),
 		# expand("data/diet/nutrition_data/mb-{file}",\
 		#    file=["HEI_with_proportions_long.tsv","HEI_with_proportions_long.xlsx", "HEI_with_proportions_long.tsv"]),
-# no_map_chick_is_not_beef
-		# expand("output/no_map_chick_is_not_beef/tables/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}_scores.csv", 
-		# 	metblmcs_lev=metabolomics_levels),
-		# expand("output/no_map_chick_is_not_beef/graphics/metabolites_Sankey-{metblmcs_lev}.html", 
-		# 	 metblmcs_lev=metabolomics_levels),
-		# expand("output/no_map_chick_is_not_beef/tables/shap_feat_imp_demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv",
-		# metblmcs_lev=metabolomics_levels),
 # Biomarker Rand Forest
 		expand("output/no_map_auto_protein/tables/{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein_scores.csv",
 		metblmcs_lev=metabolomics_levels,clean_site=clean_sites),
@@ -42,8 +36,8 @@ rule completed:
 		# metblmcs_lev=metabolomics_levels),
 		#midpoint for exp sankey autoproten
 		# "data/mapping/noMap_metadata_auto-pro_demo.csv",
-		# expand("output/no_map_auto_protein/graphics/{clean_site}-metabolites_Sankey-auto_protein-{metblmcs_lev}.html",
-		# metblmcs_lev=metabolomics_levels, clean_site=clean_sites),
+		expand("output/no_map_auto_protein/graphics/{clean_site}-metabolites_Sankey-auto_protein-{metblmcs_lev}.html",
+		metblmcs_lev=metabolomics_levels, clean_site=clean_sites),
 		# "output/no_map_auto_protein/graphics/demo_plots.pdf",
 		# "output/no_map_auto_protein/graphics/exp_org_Sankey.html",
 # Random forest for CVD Markers
@@ -51,14 +45,16 @@ rule completed:
 		metblmcs_lev=metabolomics_levels,clean_site=clean_sites),
 		expand("output/no_map_CVD/tables/{clean_site}-rf_demographics_meats-CVD_scores.csv",
 		clean_site=clean_sites),
-		# "output/no_map_CVD/graphics/CVD_markers_plots.pdf",
+		"output/no_map_CVD/graphics/CVD_markers_plots.pdf",
 		# expand("output/no_map_CVD/tables/{clean_site}-{metabo_pred_cvd}-{metblmcs_lev}-CVD_scores.csv",
 		# metblmcs_lev=metabolomics_levels,
 		# clean_site=clean_sites,
 		# metabo_pred_cvd=metabo_pred_cvds)
-		# expand(f"output/no_map_CVD/graphics/{cvd_prefix}-{'{metblmcs_lev}'}-site_comparison.pdf",
-		# metblmcs_lev=metabolomics_levels)
-
+		expand(f"output/no_map_CVD/graphics/{cvd_prefix}-{'{metblmcs_lev}'}-site_comparison.pdf",
+		metblmcs_lev=metabolomics_levels),
+# For evaluating the models
+		expand("output/ml_eval/tables/shap_feat_imp_train-{clean_site}_test-{clean_site1}_demo-log-filt_all_bat_norm_imput_vs_beef-chem-train_test_sep.csv",
+		clean_site=clean_sites, clean_site1=clean_sites1)
 
 rule combine_MB_dietary_to_single_table:
 	conda:"env/python_conda_env.yml"
@@ -147,8 +143,7 @@ rule add_FPED_to_ESHA_MB:
 rule combine_USDA_ESHA:
 	input: os.path.join("data", "diet","map","MAP Study Complete ESHA Analysis Spreadsheet.xlsx"),
 		   os.path.join("data", "diet","med","MED Diet Complete ESHA Analysis Spreadsheet.xlsx")
-	output: os.path.join("data", "diet", "nutrition_data", "combined_esha_studies.tsv"),
-			os.path.join("data", "diet", "nutrition_data", "combined_esha_studies.xlsx"),
+	output: multiext(os.path.join("data", "diet", "nutrition_data", "combined_esha_studies"), ".tsv", ".xlsx")
 	shell:
 		"""
 		Rscript scripts/harmonization/p1_build_ESHA_csv.R
@@ -364,7 +359,6 @@ rule comb_output_Sankey:#Compares top hits of feature importance for RF run
 
 rule org_auto_protein_label_response_data:
 	input: 
-	# "data/metabolomics/UARS-01-23ML+/UARS-01-23ML+ DATA TABLES (ALL SAMPLES).XLSX",
 		"data/diet/nutrition_data/esha_combined_meats_HEI_vals28Sep2023.tsv",
 		"data/diet/nutrition_data/mb-esha_meats_FPED_vals.tsv",
 		"data/mapping/mb/MB-2112_Screen and Rand.xlsx"
@@ -544,16 +538,30 @@ rule compare_sites_cvd:
 # 			--id_var PARENT_SAMPLE_NAME
 # 		"""
 
+rule create_rand_frst_train_test_seperate_sites_chem_beef:
+	input:
+		pred_train = "data/metabolomics/demo-log-filt_all_bat_norm_imput-chem.csv",
+		resp_train = "data/mapping/{clean_site}-rf_auto_protn_metadata.csv",
+		pred_test = "data/metabolomics/demo-log-filt_all_bat_norm_imput-chem.csv",
+		resp_test = "data/mapping/{clean_site1}-rf_auto_protn_metadata.csv",
+	output:
+		"output/ml_eval/tables/shap_feat_imp_train-{clean_site}_test-{clean_site1}_demo-log-filt_all_bat_norm_imput_vs_beef-chem-train_test_sep.csv"
+	params:
+		out_label = "train-{clean_site}_test-{clean_site1}_demo-log-filt_all_bat_norm_imput_vs_beef-chem-train_test_sep"
+	shell:
+		"""
+		python scripts/ml/rand_frst_train_test_specify.py\
+			--pred_train {input.pred_train}\
+			--pred_test {input.pred_test}\
+			--response_train_fn {input.resp_train}\
+			--response_test_fn {input.resp_test}\
+			--output_label {params.out_label} \
+			--response_col beef \
+			--out_folder ml_eval \
+			--delimiter , \
+			--id_var PARENT_SAMPLE_NAME 
+		"""
 
-# python scripts/ml/rand_frst_train_test_specify.py\
-# 	--pred_train data/mapping/PSU_MED-rf_demographics_meats.csv\
-# 	--pred_test data/mapping/USDA_MED-rf_demographics_meats.csv\
-# 	--response_train_fn data/CVD/modified/PSU_MED-rf_cvd_markers.csv\
-# 	--response_test_fn data/CVD/modified/USDA_MED-rf_cvd_markers.csv\
-# 	--output_label train-PSU_test-USDA_demo_meat_vs_LDL \
-# 	--response_col LDL \
-# 	--out_folder ml_eval \
-# 	--delimiter , \
-# 	--title title PSU_vs_USDA_demo_meat_vs_LDL \
-# 	--id_var PARENT_SAMPLE_NAME 
+		
 
+	
