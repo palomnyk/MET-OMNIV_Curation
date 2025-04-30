@@ -30,31 +30,34 @@ rule completed:
 		# expand("data/diet/nutrition_data/mb-{file}",\
 		#    file=["HEI_with_proportions_long.tsv","HEI_with_proportions_long.xlsx", "HEI_with_proportions_long.tsv"]),
 # Biomarker Rand Forest
-		expand("output/no_map_auto_protein/tables/{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein_scores.csv",
-		metblmcs_lev=metabolomics_levels,clean_site=clean_sites),
+		# w expand("output/no_map_auto_protein/tables/{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein_scores.csv",
+		# metblmcs_lev=metabolomics_levels,clean_site=clean_sites),
 		# expand("output/no_map_auto_protein/tables/shap_feat_imp_demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein.csv",
 		# metblmcs_lev=metabolomics_levels),
 		#midpoint for exp sankey autoproten
 		# "data/mapping/noMap_metadata_auto-pro_demo.csv",
-		expand("output/no_map_auto_protein/graphics/{clean_site}-metabolites_Sankey-auto_protein-{metblmcs_lev}.html",
-		metblmcs_lev=metabolomics_levels, clean_site=clean_sites),
+		# w expand("output/no_map_auto_protein/graphics/{clean_site}-metabolites_Sankey-auto_protein-{metblmcs_lev}.html",
+		# metblmcs_lev=metabolomics_levels, clean_site=clean_sites),
 		# "output/no_map_auto_protein/graphics/demo_plots.pdf",
 		# "output/no_map_auto_protein/graphics/exp_org_Sankey.html",
 # Random forest for CVD Markers
-		expand("output/no_map_CVD/tables/{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-CVD_scores.csv",
-		metblmcs_lev=metabolomics_levels,clean_site=clean_sites),
-		expand("output/no_map_CVD/tables/{clean_site}-rf_demographics_meats-CVD_scores.csv",
-		clean_site=clean_sites),
-		"output/no_map_CVD/graphics/CVD_markers_plots.pdf",
+		# w expand("output/no_map_CVD/tables/{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-CVD_scores.csv",
+		# metblmcs_lev=metabolomics_levels,clean_site=clean_sites),
+		# w expand("output/no_map_CVD/tables/{clean_site}-rf_demographics_meats-CVD_scores.csv",
+		# clean_site=clean_sites),
+		# "output/no_map_CVD/graphics/CVD_markers_plots.pdf",
 		# expand("output/no_map_CVD/tables/{clean_site}-{metabo_pred_cvd}-{metblmcs_lev}-CVD_scores.csv",
 		# metblmcs_lev=metabolomics_levels,
 		# clean_site=clean_sites,
 		# metabo_pred_cvd=metabo_pred_cvds)
-		expand(f"output/no_map_CVD/graphics/{cvd_prefix}-{'{metblmcs_lev}'}-site_comparison.pdf",
-		metblmcs_lev=metabolomics_levels),
+		# w expand(f"output/no_map_CVD/graphics/{cvd_prefix}-{'{metblmcs_lev}'}-site_comparison.pdf",
+		# metblmcs_lev=metabolomics_levels),
 # For evaluating the models
-		expand("output/ml_eval/tables/shap_feat_imp_train-{clean_site}_test-{clean_site1}_demo-log-filt_all_bat_norm_imput_vs_beef-chem-train_test_sep.csv",
-		clean_site=clean_sites, clean_site1=clean_sites1)
+		# w expand("output/ml_eval/tables/shap_feat_imp_train-{clean_site}_test-{clean_site1}_demo-log-filt_all_bat_norm_imput_vs_beef-chem-train_test_sep.csv",
+		# clean_site=clean_sites, clean_site1=clean_sites1),
+		expand("output/ml_eval/tables/rnd_shuf-{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein_scores.csv",
+		metblmcs_lev=metabolomics_levels,clean_site=clean_sites),
+
 
 rule combine_MB_dietary_to_single_table:
 	conda:"env/python_conda_env.yml"
@@ -538,6 +541,44 @@ rule compare_sites_cvd:
 # 			--id_var PARENT_SAMPLE_NAME
 # 		"""
 
+rule create_randomize_meats:
+	input:
+		"data/mapping/{clean_site}-rf_meats.csv"
+	output:
+		"data/mapping/shuff_PSN-{clean_site}-rf_meats.csv"
+	shell:
+		"""
+		Rscript scripts/data_org/shuffle_column.R\
+			--in_csv {input[0]}
+			--out_file {output[0]}
+		"""
+
+rule random_forest_rnd_shuf_auto_protein:
+	input:
+		response = "data/mapping/shuff_PSN-{clean_site}-rf_meats.csv",
+		predictor = "data/metabolomics/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv"
+	output:
+		"output/ml_eval/tables/rnd_shuf-{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein_scores.csv",
+		"output/ml_eval/tables/shap_feat_imp_rnd_shuf-{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein.csv",
+		"output/ml_eval/tables/feat_imp_rnd_shuf-{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein.csv"
+	params:
+		label = "rnd_shuf-{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein"
+	resources:
+		runtime=1000, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
+		mem="100gb",
+		partition="short"
+	shell:
+		"""
+			python scripts/ml/random_forest_cross_val.py \
+				--pred_path {input.predictor} \
+				--output_label {params.label} \
+				--response_fn {input.response} \
+				--out_folder ml_eval \
+				--delimiter , \
+				--title "{params.label}" \
+				--id_var "PARENT_SAMPLE_NAME"
+		"""
+\
 rule create_rand_frst_train_test_seperate_sites_chem_beef:
 	input:
 		pred_train = "data/metabolomics/demo-log-filt_all_bat_norm_imput-chem.csv",
