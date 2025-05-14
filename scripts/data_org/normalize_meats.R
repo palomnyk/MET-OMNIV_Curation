@@ -1,4 +1,3 @@
-# Author: Aaron Yerke (aaronyerke@gmail.com)
 # Script for normalizing the meats to the same units.
 # The data came to us in the following forms:
 # •PSU: Grams per 2000 calorie daily requirement
@@ -14,8 +13,8 @@ print(paste("Working in", getwd()))
 
 #### Loading dependencies ####
 if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
-if (!requireNamespace("networkD3", quietly = TRUE))  BiocManager::install("networkD3")
-library("networkD3")
+if (!requireNamespace("combinat", quietly = TRUE))  BiocManager::install("combinat")
+library("combinat")
 if (!requireNamespace("optparse", quietly = TRUE)) BiocManager::install("optparse")
 library("optparse")
 
@@ -81,6 +80,7 @@ demo_data <- read.csv("data/mapping/noMap_demo.csv", check.names = FALSE,
                       row.names = "PARENT_SAMPLE_NAME")
 correct_sites <- c("PSU-MED","MB/IIT","Purdue","USDA-MAP","USDA-MED")
 agg_columns <- c("beef", "chicken", "pork", "turkey", "processed", "meat")
+clean_sites <- c()
 
 #### Add columns to fill in to meta_df ####
 for (ac in agg_columns){
@@ -91,6 +91,8 @@ for (ac in agg_columns){
 ##### Cycle through participants and convert meats to absolute values and g/kg #####
 missing_data <- c()
 missing_ids <- c()
+body_weight <- vector(mode = "numeric", length = nrow(meta_df))
+daily_energy <- vector(mode = "numeric", length = nrow(meta_df))
 
 for (i in seq_along(1:nrow(meta_df))){
   id <- meta_df$CLIENT_SAMPLE_ID[i]
@@ -99,6 +101,8 @@ for (i in seq_along(1:nrow(meta_df))){
   timep <- meta_df$TIMEPOINT[i]
   chron_tp <- meta_df$CHRONOLOGICAL_TIMEPOINT[i]
   print(paste(id, site, timep, chron_tp))
+  my_energy <- NA
+  my_weight <- NA
   if (site %in% c("USDA-MED")){
     chron_tp <- chron_tp - 1
     my_energy <- usda_energy_weight[usda_energy_weight$SUBJCODE == id &
@@ -109,6 +113,7 @@ for (i in seq_along(1:nrow(meta_df))){
     my_bw <- usda_energy_weight[usda_energy_weight$SUBJCODE == id &
                                   usda_energy_weight$Period == chron_tp,
                                 "Weight (kg)"]
+
     my_g_per_kg_bw <- my_grams/as.numeric(my_bw)
     meta_df[i ,paste0(agg_columns,"_g_per_kg_bw")] <- my_g_per_kg_bw
   }
@@ -152,22 +157,45 @@ for (i in seq_along(1:nrow(meta_df))){
       missing_data <- c(missing_data, paste("site:", site,"| id:", id))
       missing_ids <- c(missing_ids, id)
       meta_df[i ,paste0(agg_columns,"_g_per_kg_bw")] <- rep(NA,6)
+      my_bw <- NA
     }
   }
+  body_weight[i] <- my_bw
+  daily_energy[i] <- my_energy
 }
 
 print(paste("Missing ids:", paste(unique(missing_data), collapse = ",")))
 
 row.names(meta_df) <- meta_df$PARENT_SAMPLE_NAME
 
+meta_df$bodyweight <- body_weight
+meta_df$daily_energy <- daily_energy
+
 #### Save output ####
 write.csv(meta_df,
-          file = file.path(nut_dir, "all_sites-meats_normailize_full_df.csv"),
+          file = file.path(nut_dir, "all_sites-meats_normalize_full_df.csv"),
           row.names = FALSE)
 
+##### Data for Dr. Shao #####
+meta_demo <- merge(meta_df, demo_data, all = FALSE, by = 0)
+meta_demo <- within(meta_demo, rm("Row.names"))
+meta_demo <- meta_demo[c("SITE", "CLIENT_IDENTIFIER", "TREATMENT", "beef", "chicken", "pork", "turkey",
+                     "processed","meat", "bodyweight", "daily_energy")]
+# "beef_g", "beef_g_per_kg_bw", "age","bmi", "age","sex"
+# "chicken_g", "chicken_g_per_kg_bw", "pork_g","pork_g_per_kg_bw",
+# "turkey_g","turkey_g_per_kg_bw","processed_g","processed_g_per_kg_bw",
+# "meat_g", "meat_g_per_kg_bw",
+meta_demo <- meta_demo[sample(nrow(meta_demo), 200), ]
+write.csv(meta_demo,
+          file = file.path("output", "ml_eval", "all_sites-meats_unnormalized_demo_random_sample.csv"),
+          row.names = FALSE)
+##### End of: Data for Dr. Shao #####
+
+##### Save single site normalized meats #####
 for (site in unique(meta_df$SITE)){
   clean_site <- gsub("/", "_", site)
   clean_site <- gsub("-", "_", clean_site)
+  
   sub_df <- meta_df[meta_df$SITE == site,]
   
   fname <- paste0(clean_site, "-", "meats_g.csv")
@@ -203,34 +231,46 @@ for (site in unique(meta_df$SITE)){
             row.names = FALSE)
 }
 
+##### Save all sites together normalized meats #####
 meta_df <- meta_df[! is.na(meta_df$beef),]
-# write.csv(meta_df, file = file.path("data", "mapping", "noMap-meats_g.csv"),
+sub_df1 <-meta_df[c("PARENT_SAMPLE_NAME", paste0(agg_columns,"_g_per_kg_bw"))]
+write.csv(sub_df1, file = file.path("data", "mapping", "noMap-meats_g_per_kg_bw.csv"),
+          row.names = FALSE)
+
+sub_df2 <-meta_df[c("PARENT_SAMPLE_NAME", paste0(agg_columns,"_g"))]
+write.csv(sub_df2, file = file.path("data", "mapping", "noMap-meats_g.csv"),
+          row.names = FALSE)
+
+###### Add demo data to meats ######
+# sub_df1 <- meta_df[c("PARENT_SAMPLE_NAME", agg_columns)]
+# sub_df1 <- merge(sub_df1, demo_data, all = FALSE, by = 0)
+# sub_df1 <- within(sub_df1, rm("Row.names"))
+# fname <- paste0("noMap", "-", "rf_demographics_meats_g_per_kg_bw.csv")
+# write.csv(sub_df1, file = file.path("data", "mapping", fname),
 #           row.names = FALSE)
 # 
-# # Add demo data to meats
-# sub_df <- sub_df[c("PARENT_SAMPLE_NAME", agg_columns)]
-# sub_df <- merge(sub_df, demo_data, all = FALSE, by = 0)
-# sub_df <- within(sub_df, rm("Row.names"))
+# sub_df1 <- sub_df1[c("PARENT_SAMPLE_NAME", agg_columns)]
+# sub_df1 <- merge(sub_df1, demo_data, all = FALSE, by = 0)
+# sub_df1 <- within(sub_df1, rm("Row.names"))
 # fname <- paste0("noMap", "-", "rf_demographics_meats_g.csv")
-# write.csv(sub_df, file = file.path("data", "mapping", fname),
+# write.csv(sub_df1, file = file.path("data", "mapping", fname),
 #           row.names = FALSE)
-# 
-# 
-# #### Make non-mb-non-map dataset ####
-# sub_df <- meta_df[meta_df$SITE != "MB/IIT",]
-# write.csv(sub_df, file = file.path("data", "mapping", "noMB_noMap-meats_g.csv"),
-#           row.names = FALSE)
-# sub_df <- sub_df[c("PARENT_SAMPLE_NAME", agg_columns)]
-# write.csv(sub_df, file = file.path("data", "mapping", "noMB_noMap-rf_meats_g.csv"),
-#           row.names = FALSE)
-# 
-# # Add demo data to meats
-# sub_df <- merge(sub_df, demo_data, all = FALSE, by = 0)
-# sub_df <- within(sub_df, rm("Row.names"))
-# fname <- paste0("noMB_noMap", "-", "rf_demographics_meats_g.csv")
-# write.csv(sub_df, file = file.path("data", "mapping", fname),
-#           row.names = FALSE)
-# 
+
+##### Make non-mb-non-map dataset #####
+sub_df <- meta_df[meta_df$SITE != "MB/IIT",]
+write.csv(sub_df, file = file.path("data", "mapping", "noMB_noMap-meats_g.csv"),
+          row.names = FALSE)
+sub_df <- sub_df[c("PARENT_SAMPLE_NAME", agg_columns)]
+write.csv(sub_df, file = file.path("data", "mapping", "noMB_noMap-rf_meats_g.csv"),
+          row.names = FALSE)
+
+# Add demo data to meats
+sub_df <- merge(sub_df, demo_data, all = FALSE, by = 0)
+sub_df <- within(sub_df, rm("Row.names"))
+fname <- paste0("noMB_noMap", "-", "rf_demographics_meats_g.csv")
+write.csv(sub_df, file = file.path("data", "mapping", fname),
+          row.names = FALSE)
+
 # Remove LCMS technical data for testing in random forest
 # meta_df <- meta_df[c("PARENT_SAMPLE_NAME", "SITE","TIMEPOINT","TREATMENT", agg_columns, names(new_rows))]
 sub_df <- meta_df[c("PARENT_SAMPLE_NAME", paste0(agg_columns,"_g"))]
@@ -240,15 +280,60 @@ sub_df <- meta_df[c("PARENT_SAMPLE_NAME", paste0(agg_columns,"_g_per_kg_bw"))]
 write.csv(sub_df, file = file.path("data", "mapping", "noMap-rf_meats_g_per_kg_bw.csv"),
           row.names = FALSE)
 
+###### Make all 2 site datasets ######
+two_sites <- combinat::combn(unique(meta_df$SITE), 2, simplify = TRUE)
 
-# # Add demo data to meats
-# sub_df <- merge(meta_df, demo_data, all = FALSE, by = 0)
-# sub_df <- within(sub_df, rm("Row.names"))
-# fname <- paste0("noMap", "-", "rf_demographics_meats_g.csv")
-# write.csv(sub_df, file = file.path("data", "mapping", fname),
-#           row.names = FALSE)
+for (st in seq_along(1:ncol(two_sites))){
+  my_sites <- two_sites[,st]
+  sub_df <- meta_df[meta_df$SITE %in% my_sites,]
+  # Remove LCMS technical data for testing in random forest
+  # sub_df <- sub_df[c("PARENT_SAMPLE_NAME", "SITE", "TREATMENT", agg_columns)]
+  sub_df1 <- sub_df[c("PARENT_SAMPLE_NAME", paste0(agg_columns,"_g"))]
+  clean_site <- paste(my_sites, collapse = "_")
+  clean_site <- gsub("/", "_", clean_site)
+  clean_site <- gsub("-", "_", clean_site)
+  clean_sites <- c(clean_sites, clean_site)
+  
+  fname <- paste0(clean_site, "-", "rf_meats_g.csv")
+  write.csv(sub_df1, file = file.path("data", "mapping", fname),
+            row.names = FALSE)
+  print(fname)
+  # Remove LCMS technical data for testing in random forest
+  # sub_df <- sub_df[c("PARENT_SAMPLE_NAME", "SITE", "TREATMENT", agg_columns)]
+  sub_df2 <- sub_df[c("PARENT_SAMPLE_NAME", paste0(agg_columns,"_g_per_kg_bw"))]
+  fname <- paste0(clean_site, "-", "rf_meats_g_per_kg_bw.csv")
+  write.csv(sub_df2, file = file.path("data", "mapping", fname),
+            row.names = FALSE)
+  print(fname)
+}
+###### Make all 3 site datasets ######
+three_sites <- combn(unique(meta_df$SITE), 3, simplify = TRUE)
+for (st in seq_along(1:ncol(three_sites))){
+  my_sites <- three_sites[,st]
+  sub_df <- meta_df[meta_df$SITE %in% my_sites,]
+  # Remove LCMS technical data for testing in random forest
+  # sub_df <- sub_df[c("PARENT_SAMPLE_NAME", "SITE", "TREATMENT", agg_columns)]
+  sub_df1 <- sub_df[c("PARENT_SAMPLE_NAME", paste0(agg_columns,"_g"))]
+  clean_site <- paste(my_sites, collapse = "_")
+  clean_site <- gsub("/", "_", clean_site)
+  clean_site <- gsub("-", "_", clean_site)
+  clean_sites <- c(clean_sites, clean_site)
+  
+  fname <- paste0(clean_site, "-", "rf_meats_g.csv")
+  write.csv(sub_df1, file = file.path("data", "mapping", fname),
+            row.names = FALSE)
+  print(fname)
+  # Remove LCMS technical data for testing in random forest
+  # sub_df <- sub_df[c("PARENT_SAMPLE_NAME", "SITE", "TREATMENT", agg_columns)]
+  sub_df2 <- sub_df[c("PARENT_SAMPLE_NAME", paste0(agg_columns,"_g_per_kg_bw"))]
+  fname <- paste0(clean_site, "-", "rf_meats_g_per_kg_bw.csv")
+  write.csv(sub_df2, file = file.path("data", "mapping", fname),
+            row.names = FALSE)
+  print(fname)
+}
 
 print("End R script.")
+
 
 
 
