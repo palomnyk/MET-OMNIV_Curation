@@ -91,7 +91,8 @@ parser.add_argument("-m", "--use_saved_model", default=False, type=bool,
                   help="Boolean: use saved model and only make figures, if it exists, or train new model (false).")
 parser.add_argument("-n", "--num_cv_folds", default=10, type=int,
                   help="number of folds for crossvalidation.")
-
+parser.add_argument("-T", "--plot_trees", default=False, type=bool,
+                  help="Show 5 random trees from RF, yes or no. Will only plot them if score is above ave score threshold")
 options, unknown = parser.parse_known_args()
 
 print(options)
@@ -246,6 +247,7 @@ with open(result_fpath, "w+") as fl:
 				print(f"{model_path} does not exist.")
 		feature_df = feature_df.loc[feature_df["response_var"] == resp_var,:]
 		ave_score = np.mean(feature_df["accuracy"])
+		ave_std = np.std(feature_df["accuracy"].tolist(), ddof=1)
 		print(f"{resp_var} ave_score = {ave_score}, len ave_score {len(feature_df['accuracy'])}")
 		print(f"feature_df['accuracy'].tolist()")
 		print(feature_df["accuracy"])
@@ -259,24 +261,25 @@ with open(result_fpath, "w+") as fl:
 		plt.barh(y=feature_mean.index[0:bar_shown], width=feature_mean.iloc[0:bar_shown,0], xerr=feature_mean.iloc[0:bar_shown,1])
 		plt.xlabel(f"Top {bar_shown} Relative Importances")
 		plt.xticks(rotation="vertical")
-		plt.title(f"{options.output_label},n\{model_name} score: {round(ave_score, 3)}")
+		plt.title(f"{options.output_label}\n{model_name} score: {round(ave_score, 3)}, std: {round(ave_std, 3)}")
 		plt.suptitle(f"Feature importance: {resp_var}")
 		pdf.savefig(bbox_inches='tight')
 		plt.close()
 		
 		if ave_score > score_threshold_SHAP:
 			#Plot 5 random trees
-			fig, axes = plt.subplots(nrows = 1,ncols = 5,figsize = (10,2), dpi=900)
-			for index in range(0, 5):
-				tree.plot_tree(clf.estimators_[index],
-				feature_names = pred_train.columns.tolist(), 
-				# class_names=cn,
-				filled = True,
-				ax = axes[index])
-				axes[index].set_title('Estimator: ' + str(index), fontsize = 11)
-			# fig.savefig('rf_5trees.png')
-			pdf.savefig(bbox_inches='tight')
-			plt.close()
+			if options.plot_trees:
+				fig, axes = plt.subplots(nrows = 1,ncols = 5,figsize = (10,2), dpi=900)
+				for index in range(0, 5):
+					tree.plot_tree(clf.estimators_[index],
+					feature_names = pred_train.columns.tolist(), 
+					# class_names=cn,
+					filled = True,
+					ax = axes[index])
+					axes[index].set_title('Estimator: ' + str(index), fontsize = 11)
+				# fig.savefig('rf_5trees.png')
+				pdf.savefig(bbox_inches='tight')
+				plt.close()
 
 		print("Created feature importance figure", flush=True)
 		# if not is_numeric_dtype(resp_train) or resp_train.dtype.name == "boolean":
