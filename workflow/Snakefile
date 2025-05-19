@@ -32,14 +32,16 @@ all_clean_sites1 = all_clean_sites
 rule completed:
 	input:
 # Nutrition data reorganization
-		os.path.join("data", "diet", "nutrition_data", "combined_esha_studies.tsv"),
-		expand("data/diet/nutrition_data/mb-{file}",\
-		   file=["HEI_with_proportions_long.tsv","HEI_with_proportions_long.xlsx", "HEI_with_proportions_long.tsv"]),
+		# os.path.join("data", "diet", "nutrition_data", "combined_esha_studies.tsv"),
+		# expand("data/diet/nutrition_data/mb-{file}",\
+		#    file=["HEI_with_proportions_long.tsv","HEI_with_proportions_long.xlsx", "HEI_with_proportions_long.tsv"]),
 # Beef biomarker Rand Forest
 		# expand("output/norm_meat/tables/{all_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-{norm_meat}_scores.csv",
 		# metblmcs_lev=metabolomics_levels, all_site=all_clean_sites, norm_meat=normaliz_meats),
 		# midpoint for exp sankey autoproten
 		# "data/mapping/noMap_metadata_auto-pro_demo.csv",
+		expand("output/norm_meat/graphics/metabolites_Sankey-{metblmcs_lev}-{norm_meat}.html",
+		metblmcs_lev=metabolomics_levels, norm_meat=normaliz_meats)
 		# expand("output/norm_meat/graphics/{clean_site}-metabolites_Sankey-auto_protein-{metblmcs_lev}-{norm_meat}.html",
 		# metblmcs_lev=metabolomics_levels, clean_site=clean_sites, norm_meat=normaliz_meats),
 # Beef biomarker study descriptions
@@ -60,12 +62,12 @@ rule completed:
 		# expand(f"output/no_map_CVD/graphics/{cvd_prefix}-{'{metblmcs_lev}'}-site_comparison.pdf",
 		# metblmcs_lev=metabolomics_levels),
 # For evaluating the models
-		expand("output/ml_eval/tables/shap_feat_imp_train_{all_site}-test_{all_site1}-demo-log-filt_all_bat_norm_imput-chem-{norm_meat}-train_test_sep.csv",
-		all_site=all_clean_sites, all_site1=all_clean_sites1, norm_meat=normaliz_meats),
+		# expand("output/ml_eval/tables/shap_feat_imp_train_{all_site}-test_{all_site1}-demo-log-filt_all_bat_norm_imput-chem-{norm_meat}-train_test_sep.csv",
+		# all_site=all_clean_sites, all_site1=all_clean_sites1, norm_meat=normaliz_meats),
 		# expand("output/ml_eval/tables/rnd_shuf-{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein_scores.csv",
 		# metblmcs_lev=metabolomics_levels,clean_site=clean_sites),
-		expand("output/ml_eval/graphics/heatmap_metabolite_{norm_meat}.pdf",
-		norm_meat=normaliz_meats)
+		# expand("output/ml_eval/graphics/heatmap_metabolite_{norm_meat}.pdf",
+		# norm_meat=normaliz_meats)
 
 # Rscript scripts/ds_descrip/compare_site_scores.R\
 # 	--metblmcs_lev chem\
@@ -380,7 +382,10 @@ rule org_auto_protein_label_response_data:
 		"data/diet/nutrition_data/esha_combined_meats_HEI_vals28Sep2023.tsv",
 		"data/diet/nutrition_data/mb-esha_meats_FPED_vals.tsv",
 		"data/mapping/mb/MB-2112_Screen and Rand.xlsx",
-		"data/diet/nutrition_data/mb-unique_esha_fped.csv"
+		"data/diet/nutrition_data/mb-unique_esha_fped.csv",
+		expand("data/diet/nutrition_data/mb-{file}",\
+		   file=["HEI_conversion_table_wide.tsv",
+		   		"HEI_conversion_table_long.tsv","combined_esha_studies_HEI.tsv","HEI_missing_items.tsv"])
 	output: 
 		expand("data/mapping/{clean_site}-rf_meats.csv", clean_site=clean_sites),
 		expand("data/mapping/{clean_site}-meats.csv", clean_site=clean_sites),
