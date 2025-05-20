@@ -56,9 +56,10 @@ resp_vars_plot <- function (df_table, title_text){
     ggplot2::ggtitle(label = paste(title_text)) +
     geom_text(data = means, aes(label=paste("m:",x), y=x + 0.1, x = 3), color="black") +
     ggplot2::scale_x_discrete(guide = guide_axis(angle = 90)) +
-    ggplot2::geom_hline(data = means, aes(yintercept = x), color="red", linetype=4) +
-    ggplot2::geom_hline(data = means, aes(yintercept = x + s), color="blue", linetype=2) +
-    ggplot2::geom_hline(data = means, aes(yintercept = x - s), color="blue", linetype=2) +
+    ggplot2::stat_summary(fun.y=mean, geom="point", shape="-", size=9, color="red", fill="red") +
+    # ggplot2::geom_hline(data = means, aes(yintercept = x), color="red", linetype=4) +
+    # ggplot2::geom_hline(data = means, aes(yintercept = x + s), color="blue", linetype=2) +
+    # ggplot2::geom_hline(data = means, aes(yintercept = x - s), color="blue", linetype=2) +
     coord_cartesian(ylim = c(-0.1,1)) +
     ggplot2::facet_grid(~ response_var)
   return(g)
@@ -91,6 +92,7 @@ print(paste("data files found:", paste(dir_files, collapse = ", ")))
 response_var <- vector(mode = "character")
 site_name <- vector(mode = "character")
 score <- vector(mode = "numeric")
+sample_name <- vector(mode = "character")
 
 ##### Iterate through files and populate variables #####
 for (i in 1:length(dir_files)){
