@@ -131,7 +131,7 @@ pred_test_df = pred_test_df.sort_values(by = options.id_var)
 # test_id_list = resp_test_df.loc[:,options.id_var]
 # train_id_list = resp_train_df.loc[:,options.id_var]
 #output files
-output_label = f"{resp_col_label}{options.output_label}_train_test_sep".replace("/", "／")
+output_label = f"{resp_col_label}{options.output_label}".replace("/", "／")
 model_storage = pathlib.Path("data","models")
 shap_storage = pathlib.Path("data","models")
 result_fpath = os.path.join(output_dir, "tables", f"{output_label}_scores.csv")
