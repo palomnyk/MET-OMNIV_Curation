@@ -10,7 +10,7 @@ import os
 import pandas as pd
 
 resp_colmns = ["beef_level", "TIMEPOINT"]
-metabolomics_levels = ["chem", "sub_pathway","super_pathway"]
+metabolomics_levels = ["chem"]#, "sub_pathway","super_pathway"]
 clean_sites = ["PSU_MED", "MB_IIT", "Purdue", "USDA_MED", "noMap"]
 clean_sites1 = ["PSU_MED", "MB_IIT", "Purdue", "USDA_MED", "noMap"]
 orgi_sites = ["PSU-MED", "MB/IIT", "Purdue", "USDA-MED"]
@@ -252,7 +252,7 @@ rule combine_auto_pro_demo:
 		"""
 
 rule combine_metabol_demo:
-	# conda:"env/python_conda_env.yml"
+	conda:"env/python_conda_env.yml"
 	input:
 		diet_org = "data/metabolomics/log-filt_all_bat_norm_imput-{metblmcs_lev}.csv",
 		helper = "data/mapping/noMap_demo.csv"
@@ -283,7 +283,6 @@ rule random_forest_cvd_metabol:
 	resources:
 		runtime=2880, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
 		mem="100gb",
-		partition="short"
 	shell:
 		"""
 			python scripts/ml/random_forest_cross_val.py \
@@ -309,7 +308,6 @@ rule random_forest_auto_protein_normalize:
 	resources:
 		runtime=1000, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
 		mem="100gb",
-		partition="short"
 	shell:
 		"""
 			python scripts/ml/random_forest_cross_val.py \
@@ -459,7 +457,6 @@ rule random_forest_metadata_cvd_demo_meat:
 	resources:
 		runtime=1000, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
 		mem="100gb",
-		partition="short"
 	shell:
 		"""
 			python scripts/ml/random_forest_cross_val.py \
@@ -585,7 +582,6 @@ rule combine_rf_resp_var_by_site_normalize_meat_g:
 # 	resources:
 # 		runtime=1000, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
 # 		mem="100gb",
-# 		partition="short"
 # 	shell:
 # 		"""
 # 			python scripts/ml/random_forest_cross_val.py \
@@ -641,8 +637,7 @@ rule random_forest_rnd_shuf_auto_protein:
 		label = "rnd_shuf-{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein"
 	resources:
 		runtime=1000, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
-		mem="100gb",
-		partition="short"
+		mem="100gb"
 	shell:
 		"""
 			python scripts/ml/random_forest_cross_val.py \
@@ -668,7 +663,6 @@ rule create_rand_frst_train_test_seperate_sites_chem:
 	resources:
 		runtime=1000, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
 		mem="75gb",
-		partition="short"
 	shell:
 		"""
 		python scripts/ml/rand_frst_train_test_specify.py\
