@@ -271,9 +271,8 @@ for (ns in all_suffixes){
   # Remove LCMS technical data for testing in random forest
   # meta_df <- meta_df[c("PARENT_SAMPLE_NAME", "SITE","TIMEPOINT","TREATMENT", agg_columns, names(new_rows))]
   sub_df1 <-meta_df[c("PARENT_SAMPLE_NAME", paste0(agg_columns,ns))]
-  write.csv(sub_df1, file = file.path("data", "mapping", paste0("noMap-meats", ns, ".csv")),
+  write.csv(sub_df1, file = file.path("data", "mapping", paste0("noMap-rf_meats", ns, ".csv")),
             row.names = FALSE)
-  
   # # Add demo data to meats
   # sub_df <- merge(sub_df, demo_data, all = FALSE, by = 0)
   # sub_df <- within(sub_df, rm("Row.names"))
