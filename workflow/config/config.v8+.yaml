@@ -9,23 +9,24 @@ cluster-generic-submit-cmd:
     --job-name=smk-{rule}-{wildcards}
     --output=slurmLogs/{rule}/%j.{wildcards}.log
     --error=slurmLogs/{rule}/%j.{wildcards}.log
+    --time={resources.runtime}
     --mail-user=aaron.yerke@usda.gov
-    --mail-type=BEGIN,END,FAIL
+    --account=nhanes_ml
+    --mail-type=END,FAIL
     --parsable
     # --software-deployment-method conda
 default-resources:
-  - partition=short
+  - partition=ceres
   - mem_mb=1000
-  - time=120 #num minutes
-  - nodes=10
-  - ntasks=5
-# conda-prefix: "~/.conda/envs/python_ml_conda"
+  - runtime=120 #num minutes
+  - nodes=1
+  - ntasks=1
 restart-times: 0
 max-jobs-per-second: 10
 max-status-checks-per-second: 1
-local-cores: 3
+local-cores: 1
 latency-wait: 60
-jobs: 500
+jobs: 150
 keep-going: True
 rerun-incomplete: True
 printshellcmds: True
