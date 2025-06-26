@@ -39,6 +39,8 @@ print(paste("Working in", getwd()))
 if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
 if (!requireNamespace("readxl", quietly = TRUE))  BiocManager::install("readxl")
 library("readxl")
+if (!requireNamespace("openxlsx", quietly = TRUE))  BiocManager::install("openxlsx")
+library("openxlsx")
 
 print("Loaded packages")
 
@@ -47,7 +49,7 @@ base_dir <- file.path("data", "diet")
 mb_diet <- file.path(base_dir, "mb", "2112 Results.xlsx")
 
 #### Loading in data ####
-xl_wb <- getSheetNames(mb_diet)
+xl_wb <- openxlsx::getSheetNames(mb_diet)
 diet_df <- openxlsx::read.xlsx(mb_diet)
 mb_map <- readxl::read_xlsx(file.path("data","mapping","mb", "MB-2112_Screen and Rand.xlsx"),
                             col_names = TRUE)
