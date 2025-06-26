@@ -1,5 +1,5 @@
 # Author: Aaron Yerke (aaronyerke@gmail.com)
-# Script for building sankey plots showing how each response feature shares top
+# Script for building Sankey plots showing how each response feature shares top
 # X metabolomic elements by feature importance
 # Left nodes = respnse feature
 # Right nodes = metabolites
@@ -30,13 +30,18 @@ source(file.path("scripts","data_org", "data_org_func.R"))
 option_list <- list(
   optparse::make_option(c("-f", "--input"), type="character",
                         # default="data/mapping/noMap_metadata_demo.csv",
-                        default = file.path("data", "mapping", "noMap-auto_protn_metadata.csv"),
+                        default = file.path("data", "diet", "nutrition_data", "all_sites-meats_normailize_full_df.csv"),
                         help="path of first csv"),
   optparse::make_option(c("-s", "--output_dir"), type="character",
                         default = "no_map", help="dir in /output"),
   optparse::make_option(c("-o", "--out_name"), type="character",
-                        default = "exp_org_Sankey.html",
-                        help="Path of output csv.")
+                        default = "boxplot_grid_summary_meats_g_per_kg_bw.pdf",
+                        help="Path of output csv."),
+  optparse::make_option(c("-u", "--suffix"), type="character",
+                        # default = "_g_per_bmi",
+                        default = "_g_per_kg_bw",
+                        # default = "_g",
+                        help="Suffix of columns wanted")
 );
 opt_parser <- optparse::OptionParser(option_list=option_list);
 opt <- parse_args(opt_parser);
@@ -52,8 +57,8 @@ dir.create(output_dir)
 inp_df <- read.csv(opt$input, check.names = FALSE,
                    row.names = "PARENT_SAMPLE_NAME")
 inp_df <- inp_df[!is.na(inp_df$SITE),]
-level_cols <- colnames(inp_df)[grepl("_levels",colnames(inp_df))]
-meat_cols <- gsub("_levels", "", level_cols)
+my_reg_ex <- paste0(opt$suffix, "$")
+g_cols <- colnames(inp_df)[grepl(my_reg_ex,colnames(inp_df))]
 exp_org_cols <- c("SITE", "TREATMENT")
 
 #### Org data ####
@@ -61,7 +66,7 @@ treats <- unique(inp_df$TREATMENT)
 treat_plots <- lapply(1:length(treats), function(m){
   trmnt <- treats[m]
   
-  sub_inp_df <- inp_df[inp_df$TREATMENT == trmnt, meat_cols]
+  sub_inp_df <- inp_df[inp_df$TREATMENT == trmnt, g_cols]
   long_sub_inp_df <- reshape2::melt(sub_inp_df)
   
   if (m < length(treats)){
@@ -73,13 +78,13 @@ treat_plots <- lapply(1:length(treats), function(m){
       theme(axis.title.x=element_blank(),
             axis.text.x=element_blank(),
             axis.ticks.x=element_blank()) +
-      coord_cartesian(ylim = c(0, 400))
+      coord_cartesian(ylim = c(0, 10))
     g
   }else{
     g <- ggplot2::ggplot(long_sub_inp_df, aes(x=variable, y=value)) + 
       geom_boxplot() +
       ggplot2::ylab(paste(trmnt)) +
-      coord_cartesian(ylim = c(0, 400)) +
+      coord_cartesian(ylim = c(0, 10)) +
       theme(axis.title.x=element_blank())
       # ggplot2::ggtitle(label = paste(trmnt)) +
       # ggplot2::scale_x_discrete(guide = guide_axis(angle = 90))
@@ -95,15 +100,8 @@ treat_plots <- lapply(1:length(treats), function(m){
 #   ggplot2::scale_x_discrete(guide = guide_axis(angle = 90)) 
 # g
 
-
-
-
-pdf(file.path(output_dir, "graphics", paste0("boxplot_grid_summary.pdf")),
+pdf(file.path(output_dir, "graphics", opt$out_name),
     width = 3.5, height = 6.5)
-
-# for (g in treat_plots){
-#   print(g)
-# }
 
 grid.arrange(arrangeGrob(grobs = treat_plots,
              ncol = 1, # Second row with 2 plots in 2 different columns
@@ -112,5 +110,5 @@ grid.arrange(arrangeGrob(grobs = treat_plots,
 
 dev.off()
 
-
 print("Reached end of R script!")
+
