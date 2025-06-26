@@ -21,7 +21,7 @@ nutri_dir = os.path.join("data", "diet", "nutrition_data")
 mapping_predictor_groups = ["rf_demographics_meats", "rf_meats"]
 metabo_pred_dietarys = ["log-filt_all_bat_norm_imput", "demo-log-filt_all_bat_norm_imput"]
 metabo_pred_cvds = ["meat-demo-log-filt_all_bat_norm_imput"]
-normaliz_meats = ["meats_g", "meats_g_per_kg_bw", "meats_g_per_bmi"]
+normaliz_meats = ["meats_g", "meats_g_per_kg_bw", "meats_g_per_bmi", "meats_rmOut_g", "meats_rmOut_g_per_kg_bw", "meats_rmOut_g_per_bmi"]
 cvd_prefix = "CVD"
 multi_sites = ["PSU_MED_MB_IIT","PSU_MED_Purdue","PSU_MED_USDA_MED","MB_IIT_Purdue","MB_IIT_USDA_MED",
 	"Purdue_USDA_MED","PSU_MED_MB_IIT_Purdue","PSU_MED_MB_IIT_USDA_MED","PSU_MED_Purdue_USDA_MED",
@@ -69,12 +69,13 @@ rule completed:
 		# expand(f"output/no_map_CVD/graphics/{cvd_prefix}-{'{metblmcs_lev}'}-site_comparison.pdf",
 		# metblmcs_lev=metabolomics_levels),
 # For evaluating the models
-		expand("output/ml_eval/tables/shap_feat_imp_train_{all_site}-test_{all_site1}-demo-log-filt_all_bat_norm_imput-chem-{norm_meat}-train_test_sep.csv",
-		all_site=all_clean_sites, all_site1=all_clean_sites1, norm_meat=normaliz_meats),
+		# expand("output/ml_eval/tables/shap_feat_imp_train_{all_site}-test_{all_site1}-demo-log-filt_all_bat_norm_imput-chem-{norm_meat}-train_test_sep.csv",
+		# all_site=all_clean_sites, all_site1=all_clean_sites1, norm_meat=normaliz_meats),
 		# expand("output/ml_eval/tables/rnd_shuf-{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein_scores.csv",
 		# metblmcs_lev=metabolomics_levels,clean_site=clean_sites),
-		expand("output/ml_eval/graphics/heatmap_metabolite_{norm_meat}.pdf",
-		norm_meat=normaliz_meats)
+		# i expand("output/ml_eval/graphics/heatmap_metabolite_{norm_meat}.pdf", norm_meat=normaliz_meats),
+		expand("output/ml_eval/graphics/best_gen_model_metabolite_{norm_meat}.pdf", norm_meat=normaliz_meats)
+	
 
 # Rscript scripts/ds_descrip/compare_site_scores.R\
 # 	--metblmcs_lev chem\
@@ -318,7 +319,7 @@ rule random_forest_auto_protein_normalize:
 				--delimiter , \
 				--title "{params.label}" \
 				--id_var "PARENT_SAMPLE_NAME" \
-				--num_cv_folds 5
+				--num_cv_folds 5 
 		"""
 
 rule plot_demo_data:
@@ -354,7 +355,7 @@ rule exp_org_Sankey:#Sankey shows experimental organization
 		"output/no_map_auto_protein/graphics/exp_org_Sankey.html"
 	params:
 	resources:
-		runtime=60, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
+		time=60, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
 		mem="16gb"
 	shell:
 		"""
@@ -519,8 +520,8 @@ rule compare_sites_cvd:
 
 rule compare_sites_norm_meat:
 	input:
-		expand("output/norm_meat/tables/{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-{norm_meat}_scores.csv",
-		metblmcs_lev=metabolomics_levels,clean_site=clean_sites, norm_meat=normaliz_meats),
+		expand("output/norm_meat/tables/{all_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-{norm_meat}_scores.csv",
+		metblmcs_lev=metabolomics_levels,all_site=all_clean_sites, norm_meat=normaliz_meats),
 	output:
 		"output/norm_meat/graphics/norm_meat-{metblmcs_lev}-{norm_meat}-site_comparison.pdf"
 	params:
@@ -531,8 +532,9 @@ rule compare_sites_norm_meat:
 			--metblmcs_lev {wildcards.metblmcs_lev}\
 			--in_dir output/norm_meat/tables/\
 			--out_subdir output/norm_meat/graphics/\
+			--out_file {output[0]}\
 			--out_prefix {params.prefix} \
-			--group_pattern "-demo-log-filt_all_bat_norm_imput-{wildcards.metblmcs_lev}-{wildcards.norm_meat}_scores.csv"
+			--group_pattern '"-demo-log-filt_all_bat_norm_imput-{wildcards.metblmcs_lev}-{wildcards.norm_meat}_scores.csv"'
 		"""
 
 rule copy_norm_meat_single_sites_to_new_out_folder:
@@ -636,7 +638,7 @@ rule random_forest_rnd_shuf_auto_protein:
 	params:
 		label = "rnd_shuf-{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein"
 	resources:
-		runtime=1000, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
+		runtime=5, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
 		mem="100gb"
 	shell:
 		"""
@@ -677,16 +679,28 @@ rule create_rand_frst_train_test_seperate_sites_chem:
 			--respons_df_start 1
 		"""
 
-rule heatmap_train_test_seperate_sites_chem_beef:
+rule heatmap_train_test_seperate_sites:
 	input:
 		expand("output/ml_eval/tables/shap_feat_imp_train_{all_site}-test_{all_site1}-demo-log-filt_all_bat_norm_imput-chem-{norm_meat}-train_test_sep.csv",
 		all_site=all_clean_sites, all_site1=all_clean_sites1, norm_meat=normaliz_meats)
 	output:
-		"output/ml_eval/graphics/heatmap_metabolite_{norm_meat}.pdf"
+		"output/ml_eval/graphics/heatmap_metabolite_{norm_meat}.pdf",
+		"output/ml_eval/tables/heatmap_data-demo-log-filt_all_bat_norm_imput-chem-{norm_meat}-train_test_sep.csv"
 	shell:
 		"""
-		Rscrpit scripts/ds_descrip/heatmap_site_to_site_comparison.R\
-			--out_name {output[0]}\
-			--group_pattern demo-log-filt_all_bat_norm_imput-chem-{wildcards.norm_meat}-train_test_sep_train_test_sep
+		Rscript scripts/ds_descrip/heatmap_site_to_site_comparison.R\
+			--outname {output[0]}\
+			--group_pattern "'-demo-log-filt_all_bat_norm_imput-chem-{wildcards.norm_meat}-train_test_sep_scores'"
+		"""
+rule best_gen_model_chem:
+	input:
+		"output/ml_eval/tables/heatmap_data-demo-log-filt_all_bat_norm_imput-chem-{norm_meat}-train_test_sep.csv"
+	output:
+		"output/ml_eval/graphics/best_gen_model_metabolite_{norm_meat}.pdf"
+	shell:
+		"""
+		Rscript scripts/ds_descrip/best_general_model_plots.R\
+			--infile {input[0]}\
+			--outfile {output[0]}
 		"""
 

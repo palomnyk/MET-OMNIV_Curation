@@ -22,15 +22,21 @@ option_list <- list(
   optparse::make_option(c("-i", "--in_dir"), type="character", 
                         default=file.path("output", "norm_meat", "tables"), 
                         help="dir with input 'scores' files"),
-  optparse::make_option(c("-o", "--out_subdir"), type="character", 
+  optparse::make_option(c("-s", "--out_subdir"), type="character", 
                         default=file.path("output/no_map/graphics"), 
+                        help="dataset dir path"),
+  optparse::make_option(c("-o", "--out_file"), type="character", 
                         help="dataset dir path"),
   optparse::make_option(c("-p", "--out_prefix"), type="character", 
                         default=file.path("auto_prot_"), 
                         help="prefix in output file name"),
   optparse::make_option(c("-g", "--group_pattern"), type="character", 
-                        default="-demo-log-filt_all_bat_norm_imput-chem-meats_g_per_kg_bw", 
-                        # default="-demo-log-filt_all_bat_norm_imput-chem-meats_g_meats_g_per_kg_bw", 
+                        # default="-demo-log-filt_all_bat_norm_imput-chem-meats_g_per_kg_bw_scores.csv",
+                        # default="-demo-log-filt_all_bat_norm_imput-chem-meats_rmOut_g_scores.csv",
+                        default="-demo-log-filt_all_bat_norm_imput-chem-meats_rmOut_g_per_kg_bw_scores.csv",
+                        # default="-demo-log-filt_all_bat_norm_imput-chem-meats_rmOut_g_per_bmi_scores.csv",
+                        # default="-demo-log-filt_all_bat_norm_imput-chem-meats_g_scores.csv",
+                        # default="-demo-log-filt_all_bat_norm_imput-chem-meats_g_per_bmi_scores.csv",
                         help="pattern to separate score files if there are more than one group in the dir"),
   optparse::make_option(c("-c", "--cancel_pattern"), type="character", 
                         default="", 
@@ -71,21 +77,20 @@ correct_sites <- c("PSU-MED","MB/IIT","Purdue","USDA-MAP","USDA-MED")
 clean_sites <- c("PSU_MED", "MB_IIT", "Purdue", "USDA_MED", "noMap", "PSU_MED_MB_IIT","PSU_MED_Purdue","PSU_MED_USDA_MED","MB_IIT_Purdue","MB_IIT_USDA_MED",
                 "Purdue_USDA_MED","PSU_MED_MB_IIT_Purdue","PSU_MED_MB_IIT_USDA_MED","PSU_MED_Purdue_USDA_MED",
                 "MB_IIT_Purdue_USDA_MED")
+group_pattern <- gsub('\\"', "", opt$group_pattern)
 
 #### Scrape dir to find data ####
-dir_files <- list.files(file.path(opt$in_dir), pattern = "_scores.csv")
-# Take only our "group" by filtering for group pattern
-if (opt$group_pattern != FALSE){
-  dir_files <- Filter(function(x) grepl(opt$group_pattern, x), dir_files)
-}
-# take only files from our metabolomics level
-if (opt$metblmcs_lev != FALSE){
-  dir_files <- Filter(function(x) grepl(paste0("-",opt$metblmcs_lev,"-"), x), dir_files)
-}
-# use grep with multiple options to filter dir_files
-dir_files <- Filter(function(x) grepl(paste(clean_sites, collapse = "|"), x),
-                    dir_files)
+expected_files <- paste0(clean_sites, group_pattern)
 
+dir_files <- list.files(file.path(opt$in_dir), pattern = "_scores.csv")
+# # Take only our "group" by filtering for group pattern
+# if (group_pattern != FALSE){
+#   dir_files <- Filter(function(x) grepl(group_pattern, x), dir_files)
+# }
+
+dir_files <- Filter(function(x) x %in% expected_files, dir_files)
+
+print(paste("Using group_pattern:", group_pattern))
 print(paste("data files found:", paste(dir_files, collapse = ", ")))
 
 # create empty vectors to fill
@@ -98,7 +103,7 @@ sample_name <- vector(mode = "character")
 for (i in 1:length(dir_files)){
   dat_f <- dir_files[i]
   print(dat_f)
-  my_split <- unlist(strsplit(dat_f, opt$group_pattern))
+  my_split <- unlist(strsplit(dat_f, group_pattern))
   my_site <- clean_sites[which(sapply(clean_sites, function(x)(x == my_split[1])))]
   dat_f_path <- file.path(opt$in_dir, dat_f)
   if (file.size(dat_f_path) > 0){
@@ -119,12 +124,9 @@ for (i in 1:length(dir_files)){
 
 big_table <- data.frame(response_var, site_name, score)
 
-pdf(file.path(opt$out_subdir, paste0(opt$out_prefix,"-",
-                                     opt$metblmcs_lev,
-                                     "-site_comparison.pdf")),
-    width = 18, height = 8)
+pdf(opt$out_file, width = 18, height = 8)
 
-my_title <- paste("Group:", opt$group_pattern, "| metabo lev:", opt$metblmcs_lev)
+my_title <- paste("Group:", group_pattern, "| metabo lev:", opt$metblmcs_lev)
 resp_vars_plot(big_table, my_title)
 
 dev.off()
