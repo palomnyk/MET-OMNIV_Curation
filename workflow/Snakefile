@@ -32,6 +32,9 @@ meat_types = ["beef", "chicken", "pork", "turkey", "processed", "meat"]
 g_meats = [s + "_g" for s in meat_types]
 g_per_bw_meats = [s + "_g_per_kg_bw" for s in meat_types]
 
+sub_demo = ["male_only", "female_only","age24_36","age36_42","age42_57","age57_73",
+	"bmi20.35_25.2", "bmi25.2_27.9","bmi27.9_30.78","bmi30.78_40.5"]
+
 rule completed:
 	input:
 # Nutrition data reorganization
@@ -47,6 +50,9 @@ rule completed:
 		# metblmcs_lev=metabolomics_levels, norm_meat=normaliz_meats)
 		# expand("output/norm_meat/graphics/{clean_site}-metabolites_Sankey-auto_protein-{metblmcs_lev}-{norm_meat}.html",
 		# metblmcs_lev=metabolomics_levels, clean_site=clean_sites, norm_meat=normaliz_meats),
+# Biomarker check if demographics change output
+		expand("output/demo_scor/graphics/demo_comp-{metblmcs_lev}-{norm_meat}-{sub_demo}-site_compar.pdf",
+		metblmcs_lev=metabolomics_levels, norm_meat=normaliz_meats, sub_demo=sub_demo),
 # Beef biomarker study descriptions
 		expand("output/norm_meat/graphics/norm_meat-{metblmcs_lev}-{norm_meat}-site_comparison.pdf",
 		metblmcs_lev=metabolomics_levels, norm_meat=normaliz_meats),
@@ -75,7 +81,8 @@ rule completed:
 		# metblmcs_lev=metabolomics_levels,clean_site=clean_sites),
 		# i expand("output/ml_eval/graphics/heatmap_metabolite_{norm_meat}.pdf", norm_meat=normaliz_meats),
 		expand("output/ml_eval/graphics/best_gen_model_metabolite_{norm_meat}.pdf", norm_meat=normaliz_meats)
-	
+
+
 
 # Rscript scripts/ds_descrip/compare_site_scores.R\
 # 	--metblmcs_lev chem\
@@ -704,3 +711,60 @@ rule best_gen_model_chem:
 			--outfile {output[0]}
 		"""
 
+# rule make_demo_metabolom_subsets:
+# 	input:
+# 		"data/metabolomics/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv"
+# 	output:
+# 		expand("data/metabolomics/all_site-{sub_demo}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv",
+# 		sub_demo=sub_demo, metblmcs_lev=metabolomics_levels)
+# 	script:
+# 		"""
+# 		Rscript scripts/data_org/subset_demo_metabol.R\
+# 			--infile {input[0]}\
+# 			--outdir data/metabolomics
+# 		"""
+
+rule random_forest_meat_biomarker_demo:
+	input:
+		response = "data/mapping/{all_site}-rf_{norm_meat}.csv",
+		predictor = "data/metabolomics/all_site-{sub_demo}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv"
+	output:
+		"output/demo_scor/tables/{all_site}-{sub_demo}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-{norm_meat}_scores.csv",
+		"output/demo_scor/tables/shap_feat_imp_{all_site}-{sub_demo}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-{norm_meat}.csv",
+		"output/demo_scor/tables/feat_imp_{all_site}-{sub_demo}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-{norm_meat}.csv"
+	params:
+		label = "{all_site}-{sub_demo}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-{norm_meat}"
+	resources:
+		runtime=1000, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
+		mem="100gb",
+	shell:
+		"""
+			python scripts/ml/random_forest_cross_val.py \
+				--pred_path {input.predictor} \
+				--output_label {params.label} \
+				--response_fn {input.response} \
+				--out_folder demo_scor \
+				--delimiter , \
+				--title "{params.label}" \
+				--id_var "PARENT_SAMPLE_NAME" \
+				--num_cv_folds 5 
+		"""
+
+rule compare_sites_demo_scor:
+	input:
+		expand("output/demo_scor/tables/{all_site}-{sub_demo}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-{norm_meat}_scores.csv",
+		metblmcs_lev=metabolomics_levels,all_site=all_clean_sites, norm_meat=normaliz_meats, sub_demo=sub_demo),
+	output:
+		"output/demo_scor/graphics/demo_comp-{metblmcs_lev}-{norm_meat}-{sub_demo}-site_compar.pdf"
+	params:
+		prefix = "demo_scor"
+	shell:
+		"""
+		Rscript scripts/ds_descrip/compare_site_scores.R\
+			--metblmcs_lev {wildcards.metblmcs_lev}\
+			--in_dir output/demo_scor/tables/\
+			--out_subdir output/demo_scor/graphics/\
+			--out_file {output[0]}\
+			--out_prefix {params.prefix} \
+			--group_pattern '"-{wildcards.sub_demo}-demo-log-filt_all_bat_norm_imput-{wildcards.metblmcs_lev}-{wildcards.norm_meat}_scores.csv"'
+		"""
