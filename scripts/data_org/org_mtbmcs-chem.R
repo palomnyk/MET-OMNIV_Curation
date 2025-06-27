@@ -47,7 +47,7 @@ filter_metabolites <- function(df) {
 
 #### Establish directory layout and other constants ####
 metabo_f <- file.path("data", "metabolomics", "UARS-01-23ML+",
-                      "UARS-01-23ML+ DATA TABLES (ALL SAMPLES).xlsx")
+                      "UARS-01-23ML+ DATA TABLES (EDTA PLASMA SAMPLES).xlsx")
 
 #### Loading in data ####
 mtbmcs_peak <-openxlsx::read.xlsx(metabo_f,
@@ -69,7 +69,7 @@ names(mtbmcs_bnI) <- chem_link$CHEMICAL_NAME[match(names(mtbmcs_bnI), chem_link$
 names(mtbmcs_bn) <- chem_link$CHEMICAL_NAME[match(names(mtbmcs_bn), chem_link$CHEM_ID)]
 
 metabo_f <- file.path("data", "metabolomics", "UARS-01-23ML+",
-                      "UARS-01-23ML+ DATA TABLES (DATA ADJUSTED BY BASELINE SAMPLES FROM EACH SITE).xlsx")
+                      "UARS-01-23ML+ DATA TABLES (EDTA PLASMA SAMPLES).xlsx")
 
 #### Filter nmetabolites ####
 my_cols <- filter_metabolites(mtbmcs_bn)
