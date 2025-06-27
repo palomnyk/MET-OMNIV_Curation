@@ -115,7 +115,7 @@ meta_df <- meta_df[meta_df$CORRECTED_SITE != "USDA-MAP",]
 
 meta_df <- meta_df[,c("PARENT_SAMPLE_NAME", "age", "bmi", "sex")]
 
-write.csv(meta_df, file = file.path("data", "mapping", "noMap_demo.csv"),
+write.csv(meta_df, file = file.path("data", "mapping", "all_sites_demo.csv"),
           row.names = FALSE)
 
 

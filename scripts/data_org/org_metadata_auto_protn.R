@@ -38,7 +38,7 @@ mb_map <- as.data.frame(readxl::read_excel(file.path("data","mapping","mb", "MB-
 #                                sep = "\t", check.names = FALSE)
 usda_auto_protn_df <- read.csv(file = file.path(nut_dir, "esha_combined_meats_HEI_vals28Sep2023.tsv"),
                                sep = "\t", check.names = FALSE)
-demo_data <- read.csv("data/mapping/noMap_demo.csv", check.names = FALSE,
+demo_data <- read.csv("data/mapping/all_sites_demo.csv", check.names = FALSE,
                       row.names = "PARENT_SAMPLE_NAME")
 control_treatments <- c("Med 100","Purple", "Orange","Med 200","USUAL", "C")
 correct_sites <- c("PSU-MED","MB/IIT","Purdue","USDA-MAP","USDA-MED")
@@ -262,43 +262,43 @@ write.csv(meta_df, file = file.path("data", "mapping", "all_sites-meats.csv"),
           row.names = FALSE)
 
 meta_df <- meta_df[! is.na(meta_df$beef),]
-write.csv(meta_df, file = file.path("data", "mapping", "noMap-meats.csv"),
+write.csv(meta_df, file = file.path("data", "mapping", "all_sites-meats.csv"),
           row.names = FALSE)
 
 # Add demo data to meats
 sub_df <- sub_df[c("PARENT_SAMPLE_NAME", agg_columns)]
 sub_df <- merge(sub_df, demo_data, all = FALSE, by = 0)
 sub_df <- within(sub_df, rm("Row.names"))
-fname <- paste0("noMap", "-", "rf_demographics_meats.csv")
+fname <- paste0("all_sites", "-", "rf_demographics_meats.csv")
 write.csv(sub_df, file = file.path("data", "mapping", fname),
           row.names = FALSE)
 
 
 #### Make non-mb-non-map dataset ####
 sub_df <- meta_df[meta_df$SITE != "MB/IIT",]
-write.csv(sub_df, file = file.path("data", "mapping", "noMB_noMap-meats.csv"),
+write.csv(sub_df, file = file.path("data", "mapping", "noMB_all_sites-meats.csv"),
           row.names = FALSE)
 sub_df <- sub_df[c("PARENT_SAMPLE_NAME", agg_columns)]
-write.csv(sub_df, file = file.path("data", "mapping", "noMB_noMap-rf_meats.csv"),
+write.csv(sub_df, file = file.path("data", "mapping", "noMB_all_sites-rf_meats.csv"),
           row.names = FALSE)
 
 # Add demo data to meats
 sub_df <- merge(sub_df, demo_data, all = FALSE, by = 0)
 sub_df <- within(sub_df, rm("Row.names"))
-fname <- paste0("noMB_noMap", "-", "rf_demographics_meats.csv")
+fname <- paste0("noMB_all_sites", "-", "rf_demographics_meats.csv")
 write.csv(sub_df, file = file.path("data", "mapping", fname),
           row.names = FALSE)
 
 # Remove LCMS technical data for testing in random forest
 # meta_df <- meta_df[c("PARENT_SAMPLE_NAME", "SITE","TIMEPOINT","TREATMENT", agg_columns, names(new_rows))]
 meta_df <- meta_df[c("PARENT_SAMPLE_NAME", agg_columns)]
-write.csv(meta_df, file = file.path("data", "mapping", "noMap-rf_meats.csv"),
+write.csv(meta_df, file = file.path("data", "mapping", "all_sites-rf_meats.csv"),
           row.names = FALSE)
 
 # Add demo data to meats
 sub_df <- merge(meta_df, demo_data, all = FALSE, by = 0)
 sub_df <- within(sub_df, rm("Row.names"))
-fname <- paste0("noMap", "-", "rf_demographics_meats.csv")
+fname <- paste0("all_sites", "-", "rf_demographics_meats.csv")
 write.csv(sub_df, file = file.path("data", "mapping", fname),
           row.names = FALSE)
 

@@ -29,7 +29,7 @@ source(file.path("scripts","data_org", "data_org_func.R"))
 #### Parse command line arguments ####
 option_list <- list(
   optparse::make_option(c("-f", "--input"), type="character",
-                        # default="data/mapping/noMap_metadata_demo.csv",
+                        # default="data/mapping/all_sites_metadata_demo.csv",
                         default = file.path("data", "diet", "nutrition_data", "all_sites-meats_normailize_full_df.csv"),
                         help="path of first csv"),
   optparse::make_option(c("-s", "--output_dir"), type="character",

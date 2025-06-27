@@ -27,7 +27,7 @@ metad_intrest <- c("beef_level", "beef_level_oz")
 mtbmcs_df <-openxlsx::read.xlsx(metabo_f,
                         sheet = "Log-Transformed",
                         rowNames = TRUE)
-meta_df <- read.csv(file = file.path("data", "mapping", "noMap_metadata.csv"),
+meta_df <- read.csv(file = file.path("data", "mapping", "all_sites_metadata.csv"),
                     header = TRUE, check.names = FALSE, row.names = 1)
 chem_link <- openxlsx::read.xlsx(xlsxFile = metabo_f,
                                  sheet = "Chemical Annotation")

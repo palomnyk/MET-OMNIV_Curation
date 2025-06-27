@@ -48,7 +48,7 @@ print(opt)
 base_dir <- file.path("data", "mapping")
 correct_sites <- c("PSU-MED","MB/IIT","Purdue","USDA-MAP","USDA-MED")
 clean_sites_single <- c("PSU_MED", "MB_IIT", "Purdue", "USDA_MED")
-clean_sites <- c("PSU_MED", "MB_IIT", "Purdue", "USDA_MED", "noMap", "PSU_MED_MB_IIT","PSU_MED_Purdue","PSU_MED_USDA_MED","MB_IIT_Purdue","MB_IIT_USDA_MED",
+clean_sites <- c("PSU_MED", "MB_IIT", "Purdue", "USDA_MED", "all_sites", "PSU_MED_MB_IIT","PSU_MED_Purdue","PSU_MED_USDA_MED","MB_IIT_Purdue","MB_IIT_USDA_MED",
                 "Purdue_USDA_MED","PSU_MED_MB_IIT_Purdue","PSU_MED_MB_IIT_USDA_MED","PSU_MED_Purdue_USDA_MED",
                 "MB_IIT_Purdue_USDA_MED")
 group_pattern <- gsub("\\'", "", opt$group_pattern)
@@ -112,7 +112,7 @@ for (rw in 1:nrow(big_table)){
     if (grepl( cs, big_table$training[rw]) & grepl(cs, big_table$testing[rw])){
       same_cs <- TRUE
     }
-  if (big_table$training[rw] == "noMap" | big_table$testing[rw] == "noMap"){
+  if (big_table$training[rw] == "all_sites" | big_table$testing[rw] == "all_sites"){
     same_cs <- TRUE
   }
   overlap[rw] <- same_cs

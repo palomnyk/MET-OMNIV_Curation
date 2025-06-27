@@ -11,8 +11,8 @@ import pandas as pd
 
 resp_colmns = ["beef_level", "TIMEPOINT"]
 metabolomics_levels = ["chem"]#, "sub_pathway","super_pathway"]
-clean_sites = ["PSU_MED", "MB_IIT", "Purdue", "USDA_MED", "noMap"]
-clean_sites1 = ["PSU_MED", "MB_IIT", "Purdue", "USDA_MED", "noMap"]
+clean_sites = ["PSU_MED", "MB_IIT", "Purdue", "USDA_MED", "all_sites"]
+clean_sites1 = ["PSU_MED", "MB_IIT", "Purdue", "USDA_MED", "all_sites"]
 orgi_sites = ["PSU-MED", "MB/IIT", "Purdue", "USDA-MED"]
 project_diet_prefix = ["", "mb-"]
 # metabolomics_transforms = ["","log-"]
@@ -45,7 +45,7 @@ rule completed:
 		expand("output/norm_meat/tables/{all_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-{norm_meat}_scores.csv",
 		metblmcs_lev=metabolomics_levels, all_site=all_clean_sites, norm_meat=normaliz_meats),
 		# midpoint for exp sankey autoproten
-		# "data/mapping/noMap_metadata_auto-pro_demo.csv",
+		# "data/mapping/all_sites_metadata_auto-pro_demo.csv",
 		# expand("output/norm_meat/graphics/metabolites_Sankey-{metblmcs_lev}-{norm_meat}.html",
 		# metblmcs_lev=metabolomics_levels, norm_meat=normaliz_meats)
 		# expand("output/norm_meat/graphics/{clean_site}-metabolites_Sankey-auto_protein-{metblmcs_lev}-{norm_meat}.html",
@@ -187,8 +187,8 @@ rule combine_USDA_ESHA:
 rule organize_response_data_beef_only:
 	input: "data/metabolomics/UARS-01-23ML+/UARS-01-23ML+ DATA TABLES (ALL SAMPLES).XLSX"
 	output: "data/mapping/full_metadata.csv",
-			"data/mapping/noMap_metadata.csv",
-			"data/mapping/rf_noMap_metadata.csv"
+			"data/mapping/all_sites_metadata.csv",
+			"data/mapping/rf_all_sites_metadata.csv"
 	params:
 	shell:
 		"""
@@ -215,7 +215,7 @@ rule organize_demographics:
 		"data/mapping/mb/MB-2112_Screen and Rand.xlsx",
 		"data/mapping/purdue/AY_sample_codebook 9.12.2024 Campbell data.xlsx",
 	output: "data/mapping/full_demo.csv",
-			"data/mapping/noMap_demo.csv"
+			"data/mapping/all_sites_demo.csv"
 	shell:
 		"""
 		Rscript scripts/data_org/org_demo_help.R
@@ -224,10 +224,10 @@ rule organize_demographics:
 rule combine_metadata_demo:
 	conda:"env/python_conda_env.yml"
 	input:
-		diet_org = "data/mapping/noMap_demo.csv",
-		helper = "data/mapping/noMap-meats.csv"
+		diet_org = "data/mapping/all_sites_demo.csv",
+		helper = "data/mapping/all_sites-meats.csv"
 	output:
-		"data/mapping/noMap-meats-demo.csv"
+		"data/mapping/all_sites-meats-demo.csv"
 	resources:
 		runtime=60, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
 		mem="16gb"
@@ -243,10 +243,10 @@ rule combine_metadata_demo:
 rule combine_auto_pro_demo:
 	conda:"env/python_conda_env.yml"
 	input:
-		diet_org = "data/mapping/noMap_demo.csv",
-		helper = "data/mapping/noMap-meats.csv"
+		diet_org = "data/mapping/all_sites_demo.csv",
+		helper = "data/mapping/all_sites-meats.csv"
 	output:
-		"data/mapping/noMap_metadata_auto-pro_demo.csv"
+		"data/mapping/all_sites_metadata_auto-pro_demo.csv"
 	resources:
 		runtime=60, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
 		mem="16gb"
@@ -263,7 +263,7 @@ rule combine_metabol_demo:
 	conda:"env/python_conda_env.yml"
 	input:
 		diet_org = "data/metabolomics/log-filt_all_bat_norm_imput-{metblmcs_lev}.csv",
-		helper = "data/mapping/noMap_demo.csv"
+		helper = "data/mapping/all_sites_demo.csv"
 	output:
 		"data/metabolomics/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv"
 	resources:
@@ -330,7 +330,7 @@ rule random_forest_auto_protein_normalize:
 		"""
 
 rule plot_demo_data:
-	input: "data/mapping/noMap_metadata_auto-pro_demo.csv"
+	input: "data/mapping/all_sites_metadata_auto-pro_demo.csv"
 	output:
 		"output/norm_meat/graphics/demo_plots.pdf"
 	params:
@@ -343,7 +343,7 @@ rule plot_demo_data:
 		   --output_fpath {output[0]}
 		"""
 rule plot_cvd_markers:
-	input: "data/CVD/modified/noMap-cvd_markers.csv"
+	input: "data/CVD/modified/all_sites-cvd_markers.csv"
 	output:
 		"output/no_map_CVD/graphics/CVD_markers_plots.pdf"
 	params:
@@ -357,7 +357,7 @@ rule plot_cvd_markers:
 		"""
 
 rule exp_org_Sankey:#Sankey shows experimental organization
-	input: "data/mapping/noMap-meats.csv"
+	input: "data/mapping/all_sites-meats.csv"
 	output:
 		"output/no_map_auto_protein/graphics/exp_org_Sankey.html"
 	params:
@@ -412,7 +412,7 @@ rule org_auto_protein_label_response_data:
 
 rule normalize_auto_protein_meats:
 	input:
-		"data/mapping/noMap-meats.csv",
+		"data/mapping/all_sites-meats.csv",
 	output: 
 		expand("data/mapping/{all_site}-rf_{norm_meat}.csv", all_site=all_clean_sites, norm_meat=normaliz_meats)
 	params:
@@ -441,7 +441,7 @@ rule comb_output_Sankey_norm_meat:#Compares top hits of feature importance for R
 rule PCA_plot_numeric_meats:#Compares top hits of feature importance for RF run
 	conda:"env/python_conda_env.yml"
 	input:
-		"data/mapping/noMap-meats.csv"
+		"data/mapping/all_sites-meats.csv"
 	output:
 		"output/norm_meat/graphics/metabolites_Sankey-{metblmcs_lev}.html"
 	shell:
@@ -479,7 +479,7 @@ rule random_forest_metadata_cvd_demo_meat:
 
 rule org_cvd_response_data:
 	input: 
-		"data/mapping/noMap-meats.csv",
+		"data/mapping/all_sites-meats.csv",
 	output: 
 		expand("data/CVD/modified/{clean_site}-rf_cvd_markers.csv", clean_site=clean_sites),
 		# expand("data/CVD/modified/{clean_site}-cvd_markers.csv", clean_site=clean_sites)
@@ -606,10 +606,10 @@ rule combine_rf_resp_var_by_site_normalize_meat_g:
 # rule combine_meats_demo:
 # 	conda:"env/python_conda_env.yml"
 # 	input:
-# 		diet_org = "data/mapping/noMap_demo.csv",
-# 		helper = "data/mapping/noMap-meats.csv"
+# 		diet_org = "data/mapping/all_sites_demo.csv",
+# 		helper = "data/mapping/all_sites-meats.csv"
 # 	output:
-# 		"data/mapping/noMap_metadata_auto-pro_demo.csv"
+# 		"data/mapping/all_sites_metadata_auto-pro_demo.csv"
 # 	resources:
 # 		runtime=60, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
 # 		mem="16gb"
@@ -747,7 +747,7 @@ rule random_forest_meat_biomarker_demo:
 				--delimiter , \
 				--title "{params.label}" \
 				--id_var "PARENT_SAMPLE_NAME" \
-				--num_cv_folds 5 
+				--num_cv_folds 3
 		"""
 
 rule compare_sites_demo_scor:

@@ -28,7 +28,7 @@ source(file.path("scripts","data_org", "data_org_func.R"))
 #### Parse command line arguments ####
 option_list <- list(
   # optparse::make_option(c("-f", "--featimp_path"), type="character",
-  #                       # default = "output/no_map_auto_protein/tables/feat_imp_noMap-demo-log-filt_all_bat_norm_imput-chem-auto_protein.csv",
+  #                       # default = "output/no_map_auto_protein/tables/feat_imp_all_sites-demo-log-filt_all_bat_norm_imput-chem-auto_protein.csv",
   #                       default = "/project/nhanes_ml/beef_biomarkers/output/ml_eval/tables/reorg-chicken-shap_feat_imp-demo-log-filt_all_bat_norm_imput-chem-.csv",
   #                       help="path of first csv"),
   # optparse::make_option(c("-s", "--output_dir"), type="character",
@@ -47,23 +47,7 @@ option_list <- list(
   #                       default = 5,
   #                       help="Number of comparison features in plot.")
   
-  optparse::make_option(c("-f", "--featimp_path"), type="character",
-                        default = "/project/nhanes_ml/beef_biomarkers/output/ml_eval/tables/reorg-Avg_dystolic-shap_feat_imp-rf_demographics_meats--.csv",
-                        help="path of first csv"),
-  optparse::make_option(c("-s", "--output_dir"), type="character",
-                        default = "ml_eval", help="dir in /output"),
-  optparse::make_option(c("-o", "--out_name"), type="character",
-                        default = "Avg_dystolic_demo_meat_comp_sites_Sankey.html",
-                        help="Path of output csv."),
-  optparse::make_option(c("-t", "--accuracy_threshold"), type="numeric",
-                        default = -1000000000,
-                        help="Threshold for score for inclusion in graphic."),
-  optparse::make_option(c("-g", "--grouping_column"), type="character",
-                        default = "SITE",
-                        help="Column for grouping - not features"),
-  optparse::make_option(c("-x", "--top_X"), type="integer",
-                        default = 5,
-                        help="Number of comparison features in plot.")
+  
 );
 opt_parser <- optparse::OptionParser(option_list=option_list);
 opt <- parse_args(opt_parser);
@@ -179,4 +163,22 @@ print("End R script")
 #                       help="Column for grouping - not features"),
 # optparse::make_option(c("-x", "--top_X"), type="integer",
 #                       default = 5,
+#                       help="Number of comparison features in plot.")
+
+# optparse::make_option(c("-f", "--featimp_path"), type="character",
+#                       default = "/project/nhanes_ml/beef_biomarkers/output/ml_eval/tables/reorg-beef-shap_feat_imp-demo-log-filt_all_bat_norm_imput-chem-.csv",
+#                       help="path of first csv"),
+# optparse::make_option(c("-s", "--output_dir"), type="character",
+#                       default = "ml_eval", help="dir in /output"),
+# optparse::make_option(c("-o", "--out_name"), type="character",
+#                       default = "Chicken_metabol_comp_sites_Sankey.html",
+#                       help="Path of output csv."),
+# optparse::make_option(c("-t", "--accuracy_threshold"), type="numeric",
+#                       default = -1000000000,
+#                       help="Threshold for score for inclusion in graphic."),
+# optparse::make_option(c("-g", "--grouping_column"), type="character",
+#                       default = "SITE",
+#                       help="Column for grouping - not features"),
+# optparse::make_option(c("-x", "--top_X"), type="integer",
+#                       default = 7,
 #                       help="Number of comparison features in plot.")

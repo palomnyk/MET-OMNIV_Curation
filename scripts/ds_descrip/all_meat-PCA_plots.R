@@ -20,7 +20,7 @@ print("Loaded packages")
 #### Parse command line arguments ####
 option_list <- list(
   optparse::make_option(c("-m", "--matad_path"), type="character",
-                        # default = "data/mapping/noMap_metadata.csv",
+                        # default = "data/mapping/all_sites_metadata.csv",
                         default = "data/diet/nutrition_data/all_sites-meats_normalize_full_df.csv",
                         help="data from which colors and symbols will come"),
   optparse::make_option(c("-p", "--points"), type="character",

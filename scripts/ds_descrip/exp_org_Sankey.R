@@ -10,9 +10,9 @@ if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocMana
 if (!requireNamespace("networkD3", quietly = TRUE))  BiocManager::install("networkD3")
 # Load package
 library("networkD3")
-# if (!requireNamespace("pandoc", quietly = TRUE)) BiocManager::install("pandoc")
-# library("pandoc")
-if (!requireNamespace("optparse", quietly = TRUE)) BiocManager::install("optparse")
+if (!requireNamespace("pandoc", quietly = TRUE)) BiocManager::install("pandoc")
+library("pandoc")
+if (!requireNamespace("optparse", quienotly = TRUE)) BiocManager::install("optparse")
 library("optparse")
 
 print("Loaded dependencies")
@@ -23,8 +23,8 @@ source(file.path("scripts","data_org", "data_org_func.R"))
 #### Parse command line arguments ####
 option_list <- list(
   optparse::make_option(c("-f", "--input"), type="character",
-                        # default="data/mapping/noMap_metadata_demo.csv",
-                        default = file.path("data", "mapping", "noMap-auto_protn_metadata.csv"),
+                        # default="data/mapping/all_sites_metadata_demo.csv",
+                        default = file.path("data", "mapping", "all_sites-meats.csv"),
                         help="path of first csv"),
   optparse::make_option(c("-s", "--output_dir"), type="character",
                         default = "no_map_auto_protein", help="dir in /output"),

@@ -17,7 +17,7 @@ print("Reading cml arguments")
 # --------------------------------------------------------------------------
 option_list <- list(
   optparse::make_option(c("-a", "--data"), type="character",
-                        default="data/mapping/noMap_metadata_demo.csv",
+                        default="data/mapping/all_sites_metadata_demo.csv",
                         help="filename in tables folder"),
   optparse::make_option(c("-l", "--delim"), type="character", default="\t",
                         help="metadata file deliminator", metavar="character"),

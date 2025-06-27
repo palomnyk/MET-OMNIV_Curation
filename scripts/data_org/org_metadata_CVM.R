@@ -85,13 +85,13 @@ write.csv(meta_df, file = file.path("data", "mapping", "CVM_metadata.csv"),
 
 meta_df <- meta_df[! is.na(meta_df$beef),]
 
-write.csv(meta_df, file = file.path("data", "mapping", "noMap_CVM_metadata.csv"),
+write.csv(meta_df, file = file.path("data", "mapping", "all_sites_CVM_metadata.csv"),
           row.names = FALSE)
 
 # Remove LCMS technical data for testing in random forest
 # meta_df <- meta_df[c("PARENT_SAMPLE_NAME","TIMEPOINT","TREATMENT", agg_columns, names(meat_rows))]
 meta_df <- meta_df[c("PARENT_SAMPLE_NAME", agg_columns)]
-write.csv(meta_df, file = file.path("data", "mapping", "rf_noMap_CVM_metadata.csv"),
+write.csv(meta_df, file = file.path("data", "mapping", "rf_all_sites_CVM_metadata.csv"),
           row.names = FALSE)
 
 print("End R script.")

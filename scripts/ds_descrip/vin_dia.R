@@ -40,7 +40,7 @@ opt <- parse_args(opt_parser);
 print("Commandline arguments:")
 
 
-df1 <- read.csv("output/no_map_auto_protein/tables/shap_feat_imp_noMap-demo-log-filt_all_bat_norm_imput-chem-auto_protein.csv",
+df1 <- read.csv("output/no_map_auto_protein/tables/shap_feat_imp_all_sites-demo-log-filt_all_bat_norm_imput-chem-auto_protein.csv",
                 check.names = FALSE)
 
 resp_vars <- c()

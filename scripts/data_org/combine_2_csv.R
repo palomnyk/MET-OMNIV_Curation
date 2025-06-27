@@ -6,10 +6,6 @@ chooseCRANmirror(graphics=FALSE, ind=66)
 
 ### Loading dependencies ####
 if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
-if (!requireNamespace("readxl", quietly = TRUE)) BiocManager::install("readxl")
-library("readxl")
-if (!requireNamespace("ggplot2", quietly = TRUE)) BiocManager::install("ggplot2")
-library("ggplot2")
 if (!requireNamespace("optparse", quietly = TRUE)) BiocManager::install("optparse")
 library("optparse")
 
@@ -22,14 +18,14 @@ source(file.path("scripts","data_org", "data_org_func.R"))
 option_list <- list(
   optparse::make_option(c("-f", "--first_path"), type="character",
                         # default = "Data/diet/d1_nutri_food_2015.csv",
-                        default = "data/mapping/noMap_auto_protn_metadata.csv",
+                        default = "data/mapping/all_sites_meats.csv",
                         help="path of first csv"),
   optparse::make_option(c("-s", "--secnd_path"), type="character",
                         # default = "Data/demo/helper_features_2009-2020.csv",
-                        default = "data/mapping/noMap_demo.csv",
+                        default = "data/mapping/all_sites_demo.csv",
                         help="Path of second csv."),
   optparse::make_option(c("-o", "--out_path"), type="character",
-                        default = "data/mapping/noMap_metadata_auto-pro_demo.csv",
+                        default = "data/mapping/all_sites_metadata_auto-pro_demo.csv",
                         help="Path of output csv."),
   optparse::make_option(c("-i", "--id_var"), type="character",
                         default="PARENT_SAMPLE_NAME",

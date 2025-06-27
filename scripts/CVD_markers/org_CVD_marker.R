@@ -158,24 +158,24 @@ write.csv(meta_df, file = file.path(out_dir, "all_sites-cvd_markers.csv"),
           row.names = FALSE)
 
 meta_df <- meta_df[meta_df$SITE != "Map",]
-write.csv(meta_df, file = file.path(out_dir, "noMap-cvd_markers.csv"),
+write.csv(meta_df, file = file.path(out_dir, "all_sites-cvd_markers.csv"),
           row.names = FALSE)
 sub_df <- meta_df[c("PARENT_SAMPLE_NAME", "SITE", agg_columns)]
-write.csv(sub_df, file = file.path(out_dir, "noMap-cvd_markers_site.csv"),
+write.csv(sub_df, file = file.path(out_dir, "all_sites-cvd_markers_site.csv"),
           row.names = FALSE)
 
 #### Make non-mb-non-map dataset ####
 sub_df <- meta_df[meta_df$SITE != "MB/IIT",]
-write.csv(sub_df, file = file.path(out_dir, "noMB_noMap-cvd_markers.csv"),
+write.csv(sub_df, file = file.path(out_dir, "noMB_all_sites-cvd_markers.csv"),
           row.names = FALSE)
 sub_df <- sub_df[c("PARENT_SAMPLE_NAME", agg_columns)]
-write.csv(sub_df, file = file.path(out_dir, "noMB_noMap-rf_cvd_markers.csv"),
+write.csv(sub_df, file = file.path(out_dir, "noMB_all_sites-rf_cvd_markers.csv"),
           row.names = FALSE)
 
 # Remove LCMS technical data for testing in random forest
 # meta_df <- meta_df[c("PARENT_SAMPLE_NAME", "SITE","TIMEPOINT","TREATMENT", agg_columns, names(new_rows))]
 meta_df <- meta_df[c("PARENT_SAMPLE_NAME", agg_columns)]
-write.csv(meta_df, file = file.path(out_dir, "noMap-rf_cvd_markers.csv"),
+write.csv(meta_df, file = file.path(out_dir, "all_sites-rf_cvd_markers.csv"),
           row.names = FALSE)
 
 print("End R script.")

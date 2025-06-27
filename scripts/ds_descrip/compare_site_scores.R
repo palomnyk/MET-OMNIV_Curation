@@ -74,7 +74,7 @@ resp_vars_plot <- function (df_table, title_text){
 #### Establish directory layout and other constants ####
 base_dir <- file.path("data", "mapping")
 correct_sites <- c("PSU-MED","MB/IIT","Purdue","USDA-MAP","USDA-MED")
-clean_sites <- c("PSU_MED", "MB_IIT", "Purdue", "USDA_MED", "noMap", "PSU_MED_MB_IIT","PSU_MED_Purdue","PSU_MED_USDA_MED","MB_IIT_Purdue","MB_IIT_USDA_MED",
+clean_sites <- c("PSU_MED", "MB_IIT", "Purdue", "USDA_MED", "all_sites", "PSU_MED_MB_IIT","PSU_MED_Purdue","PSU_MED_USDA_MED","MB_IIT_Purdue","MB_IIT_USDA_MED",
                 "Purdue_USDA_MED","PSU_MED_MB_IIT_Purdue","PSU_MED_MB_IIT_USDA_MED","PSU_MED_Purdue_USDA_MED",
                 "MB_IIT_Purdue_USDA_MED")
 group_pattern <- gsub('\\"', "", opt$group_pattern)

@@ -55,7 +55,7 @@ print(opt)
 output_dir <- file.path(opt$out_dir)
 nut_dir <- file.path("data", "diet", "nutrition_data")
 
-meta_df <- read.csv(file = file.path("data", "mapping", "noMap-meats.csv"),
+meta_df <- read.csv(file = file.path("data", "mapping", "all_sites-meats.csv"),
                     check.names = FALSE)
 usda_energy_weight <- as.data.frame(readxl::read_excel(
   file.path("data","diet","med","Body weight and energy intake data USDA HS54 and HS68.xlsx")),
@@ -76,7 +76,7 @@ purdue_meta <- openxlsx::read.xlsx(file.path("data","mapping", "purdue", "AY_sam
                                    sheet = "Subject Characteristics",
                                    sep.names = " ")
 purdue_meta$short_id <- sapply(strsplit(purdue_meta$`Participant ID`, "-"), "[", 3)#take 3rd part of split
-demo_data <- read.csv("data/mapping/noMap_demo.csv", check.names = FALSE,
+demo_data <- read.csv("data/mapping/all_sites_demo.csv", check.names = FALSE,
                       row.names = "PARENT_SAMPLE_NAME")
 correct_sites <- c("PSU-MED","MB/IIT","Purdue","USDA-MAP","USDA-MED")
 agg_columns <- c("beef", "chicken", "pork", "turkey", "processed", "meat")
@@ -271,12 +271,12 @@ for (ns in all_suffixes){
   # Remove LCMS technical data for testing in random forest
   # meta_df <- meta_df[c("PARENT_SAMPLE_NAME", "SITE","TIMEPOINT","TREATMENT", agg_columns, names(new_rows))]
   sub_df1 <-meta_df[c("PARENT_SAMPLE_NAME", paste0(agg_columns,ns))]
-  write.csv(sub_df1, file = file.path("data", "mapping", paste0("noMap-rf_meats", ns, ".csv")),
+  write.csv(sub_df1, file = file.path("data", "mapping", paste0("all_sites-rf_meats", ns, ".csv")),
             row.names = FALSE)
   # # Add demo data to meats
   # sub_df <- merge(sub_df, demo_data, all = FALSE, by = 0)
   # sub_df <- within(sub_df, rm("Row.names"))
-  # fname <- paste0("noMB_noMap", "-", "rf_demographics_meats_g.csv")
+  # fname <- paste0("noMB_all_sites", "-", "rf_demographics_meats_g.csv")
   # write.csv(sub_df, file = file.path("data", "mapping", fname),
   #           row.names = FALSE)
 }
@@ -285,14 +285,14 @@ for (ns in all_suffixes){
 # sub_df1 <- meta_df[c("PARENT_SAMPLE_NAME", agg_columns)]
 # sub_df1 <- merge(sub_df1, demo_data, all = FALSE, by = 0)
 # sub_df1 <- within(sub_df1, rm("Row.names"))
-# fname <- paste0("noMap", "-", "rf_demographics_meats_g_per_kg_bw.csv")
+# fname <- paste0("all_sites", "-", "rf_demographics_meats_g_per_kg_bw.csv")
 # write.csv(sub_df1, file = file.path("data", "mapping", fname),
 #           row.names = FALSE)
 # 
 # sub_df1 <- sub_df1[c("PARENT_SAMPLE_NAME", agg_columns)]
 # sub_df1 <- merge(sub_df1, demo_data, all = FALSE, by = 0)
 # sub_df1 <- within(sub_df1, rm("Row.names"))
-# fname <- paste0("noMap", "-", "rf_demographics_meats_g.csv")
+# fname <- paste0("all_sites", "-", "rf_demographics_meats_g.csv")
 # write.csv(sub_df1, file = file.path("data", "mapping", fname),
 #           row.names = FALSE)
 
