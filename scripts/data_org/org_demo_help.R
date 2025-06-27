@@ -23,7 +23,7 @@ print("Loaded packages")
 #### Establish directory layout and other constants ####
 base_dir <- file.path("data", "metabolomics", "UARS-01-23ML+")
 metabo_f <- file.path(base_dir,
-                      "UARS-01-23ML+ DATA TABLES (DATA ADJUSTED BY BASELINE SAMPLES FROM EACH SITE).xlsx")
+                      "UARS-01-23ML+ DATA TABLES (EDTA PLASMA SAMPLES).xlsx")
 metabo_f_new <- file.path(base_dir,"NCBA_siteCorrected_mod.xlsx")
 
 #### Loading in data ####
@@ -67,10 +67,10 @@ sex <- vector(mode="character", length = nrow(meta_df))
 for (i in seq_along(1:nrow(meta_df))){
   id <- meta_df$CLIENT_SAMPLE_ID[i]
   site <- meta_df$CORRECTED_SITE[i]
-  print(paste(id, site))
+  # print(paste(id, site))
   if (site %in% c("USDA-MED", "PSU-MED")){
     my_row <- which(usda_med_df$Subject == id)[1]
-    print(paste(my_row, id))
+    # print(paste(my_row, id))
     age[i] <- usda_med_df[my_row, "Age"]
     bmi[i] <- usda_med_df[my_row, "BMI"]
     sex[i] <- usda_med_df[my_row, "Sex"]
@@ -93,6 +93,7 @@ for (i in seq_along(1:nrow(meta_df))){
   }
   if (site == "Purdue"){
     my_row <- which(purdue_meta$short_id == id)[1]
+    print(purdue_meta$short_id[my_row])
     age[i] <- purdue_meta[my_row, "Age"]
     bmi[i] <- purdue_meta[my_row, "BMI"]
     sex[i] <- purdue_meta[my_row, "Sex"]

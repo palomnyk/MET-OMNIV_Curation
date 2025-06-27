@@ -22,7 +22,7 @@ print("Loaded packages")
 base_dir <- file.path("data", "metabolomics", "UARS-01-23ML+")
 nut_dir <- file.path("data", "diet", "nutrition_data")
 metabo_f <- file.path(base_dir,
-                      "UARS-01-23ML+ DATA TABLES (DATA ADJUSTED BY BASELINE SAMPLES FROM EACH SITE).xlsx")
+                      "UARS-01-23ML+ DATA TABLES (EDTA PLASMA SAMPLES).xlsx")
 metabo_f_new <- file.path(base_dir,"NCBA_siteCorrected_mod.xlsx")
 meat_thresholds <- c(0.0, 70) #high beef was 2.5 oz or higher, 2.5 *28 == 69.72 round to 70
 meat_threshold_names <- c("no", "low", "high")
