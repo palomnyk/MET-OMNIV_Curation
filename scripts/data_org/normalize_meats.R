@@ -79,9 +79,15 @@ purdue_meta$short_id <- sapply(strsplit(purdue_meta$`Participant ID`, "-"), "[",
 demo_data <- read.csv("data/mapping/all_sites_demo.csv", check.names = FALSE,
                       row.names = "PARENT_SAMPLE_NAME")
 correct_sites <- c("PSU-MED","MB/IIT","Purdue","USDA-MAP","USDA-MED")
-agg_columns <- c("beef", "chicken", "pork", "turkey", "processed", "meat")
+base_col_names <- c("beef", "chicken", "pork", "turkey", "meat")
 norm_suffixes <- c("_g", "_g_per_kg_bw", "_g_per_bmi")
-clean_sites <- c()
+clean_sites <- c()#to bee filled in section: Make all 2 site datasets
+
+# Organize meat type of column names
+agg_columns <- unlist(lapply(base_col_names, function(x){
+  c(x, paste0(x, "_proc"), paste0(x, "_min_proc"))
+}))
+
 
 #### Add columns to fill in to meta_df ####
 for (ac in agg_columns){
@@ -143,9 +149,9 @@ for (i in seq_along(1:nrow(meta_df))){
     meta_df[i ,paste0(agg_columns,"_g_per_bmi")] <- my_g_per_bmi
   }
   if (site == "USDA-MAP" ){
-    meta_df[i ,agg_columns] <- rep(NA,6)
-    meta_df[i ,paste0(agg_columns,"_g")] <- rep(NA,6)
-    meta_df[i ,paste0(agg_columns,"_g_per_kg_bw")] <- rep(NA,6)
+    meta_df[i ,agg_columns] <- rep(NA,length(agg_columns))
+    meta_df[i ,paste0(agg_columns,"_g")] <- rep(NA,length(agg_columns))
+    meta_df[i ,paste0(agg_columns,"_g_per_kg_bw")] <- rep(NA,length(agg_columns))
   }
   if (site == "MB/IIT"){
     mb_screen <- mb_map[mb_map$Randomization == id, "Screen"]
@@ -176,7 +182,7 @@ for (i in seq_along(1:nrow(meta_df))){
       missing <- paste("meta_row:",i, "|site:", site,"|id:", id, "|treatment:", treat)
       missing_data <- c(missing_data, paste("site:", site,"| id:", id))
       missing_ids <- c(missing_ids, id)
-      meta_df[i ,paste0(agg_columns,"_g_per_kg_bw")] <- rep(NA,6)
+      meta_df[i ,paste0(agg_columns,"_g_per_kg_bw")] <- rep(NA,length(agg_columns))
       my_bw <- NA
       my_bmi <- NA
     }
@@ -204,19 +210,54 @@ meta_df$bmi <- bmi
 #   meta_df[,paste0(ac,"_g_per_bmi")] <- log(meta_df[,paste0(ac,"_g_per_bmi")] + 1)
 # }
 
-#### Remove outliers ####
+#### Remove high outliers ####
+# Cycle through agg_columns (meat types) and remove outliers for each type of
+# normalization (norm suffix). Outliers are defined as values higher than 1.5 * the interquantile
+# range.
+
+# Create table to keep track of samples removed
+normalization <- c()
+meat_group <- c()
+sample_group <- c()
+samples_removed <- c()
+percent_sample_lost <- c()
+Q3 <- c()
+iqr <- c()
+  
 for (ac in agg_columns){
   for (ns in norm_suffixes){
-    my_col <- meta_df[,paste0(ac,ns)]
+    col_name <- paste0(ac,ns)
+    my_col <- meta_df[,col_name]
     my_Q3 <- quantile(my_col, .75, na.rm = TRUE)
     my_IQR <- IQR(my_col, na.rm = TRUE)
-    my_col[my_col > my_Q3 + 1.5*my_IQR] = NA
+    my_cuttoff <- my_Q3 + 2*my_IQR
+    num_rm <- length(my_col[my_col > my_cuttoff])
+    my_col[my_col > my_Q3 + 2*my_IQR] = NA
     meta_df[paste0(ac,"_rmOut",ns)] <- my_col
     print(identical(my_col, meta_df[,paste0(ac,ns)]))
+    #Save values for output table
+    normalization <- c(normalization, ns)
+    meat_group <- c(meat_group, ac)
+    sample_group <- c(sample_group, col_name)
+    samples_removed <- c(samples_removed, num_rm)
+    percent_sample_lost <- c(percent_sample_lost, num_rm/length(my_col))
+    Q3 <- c(Q3, my_Q3)
+    iqr <- c(iqr, my_IQR)
   }
 }
-all_suffixes <- c(norm_suffixes, paste0("_rmOut",norm_suffixes))
 
+outlier_df <- data.frame(
+  normalization = normalization,
+  meat_group = meat_group,
+  sample_group = sample_group,
+  samples_removed = samples_removed,
+  percent_sample_lost = percent_sample_lost,
+  Q3 = Q3,
+  IQR = iqr)
+
+write.csv(outlier_df, file = file.path(nut_dir, "outlier_info.csv"),)
+aDasdADSD
+all_suffixes <- c(norm_suffixes, paste0("_rmOut",norm_suffixes))
 #### Save output ####
 write.csv(meta_df,
           file = file.path(nut_dir, "all_sites-meats_normalize_full_df.csv"),
