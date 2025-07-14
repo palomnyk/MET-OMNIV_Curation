@@ -59,7 +59,7 @@ inp_df <- read.csv(opt$input, check.names = FALSE,
 inp_df <- inp_df[!is.na(inp_df$SITE),]
 my_reg_ex <- paste0(opt$suffix, "$")
 g_cols <- colnames(inp_df)[grepl(my_reg_ex,colnames(inp_df))]
-# g_cols <- g_cols[!grepl("rmOut",g_cols)]
+g_cols <- g_cols[!grepl("rmOut",g_cols)]
 exp_org_cols <- c("SITE", "TREATMENT")
 max_y <- max(inp_df[,g_cols], na.rm = TRUE) * 1.05
 
@@ -77,27 +77,35 @@ treat_plots <- lapply(1:length(treats), function(m){
   
   # Make colors: red if boxplot is empty, black if it is >0
   my_colors <- c()
+  my_counts <- c()
   for (v in unique(long_sub_inp_df$variable)){
-    print("in for loop")
     my_subset <- long_sub_inp_df[long_sub_inp_df$variable == v,"value"]
-    print(long_sub_inp_df[long_sub_inp_df$variable == v,"value"])
     if (all(unique(my_subset[!is.na(my_subset)]) %in% c(0)) || all(is.na(my_subset))){
-         my_colors <- c(my_colors,"red")
-        }else{
-          my_colors <- c(my_colors,"black")
-        }
+      my_colors <- c(my_colors,"red")
+    }else{
+      my_colors <- c(my_colors,"black")
+    }
+    my_counts <- c(my_counts, length(my_subset[my_subset != 0]))
   }
   
-  print(my_colors)
+  print(my_counts)
+  print(length(my_counts))
   
   # Make vector holding number of counts in each boxplot
-  #TODO
+  
 
   if (m < length(treats)){
     g <- ggplot2::ggplot(long_sub_inp_df, aes(x=variable, y=value)) + 
-      geom_boxplot(color = unlist(my_colors)) +
+      geom_boxplot(color = my_colors) +
       ggplot2::ylab(paste(trmnt)) +
       # ggplot2::ggtitle(label = paste(trmnt)) +
+      ggplot2::annotate("text",
+               x = 1:length(my_counts),
+               y = aggregate(value ~ variable, long_sub_inp_df, median)[ , 2],
+               # y = rep(max_y * 0.95, length(my_counts)),
+               label = my_counts,
+               col = "blue",
+               vjust = - 1) +
       ggplot2::scale_x_discrete(guide = guide_axis(angle = 90)) +
       theme(axis.title.x=element_blank(),
             axis.text.x=element_blank(),
@@ -110,7 +118,14 @@ treat_plots <- lapply(1:length(treats), function(m){
       geom_boxplot(color = unlist(my_colors)) +
       ggplot2::ylab(paste(trmnt)) +
       coord_cartesian(ylim = c(0, max_y)) +
-      theme(axis.title.x=element_blank()) 
+      theme(axis.title.x=element_blank()) +
+      ggplot2::annotate("text",
+                        x = 1:length(my_counts),
+                        y = aggregate(value ~ variable, long_sub_inp_df, median)[ , 2],
+                        # y = rep(max_y * 0.95, length(my_counts)),
+                        label = my_counts,
+                        col = "blue",
+                        vjust = - 1) 
       # ggplot2::ggtitle(label = paste(trmnt)) +
       # ggplot2::scale_x_discrete(guide = guide_axis(angle = 90))
     g
