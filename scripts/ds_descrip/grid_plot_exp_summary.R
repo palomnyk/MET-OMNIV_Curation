@@ -30,17 +30,17 @@ source(file.path("scripts","data_org", "data_org_func.R"))
 option_list <- list(
   optparse::make_option(c("-f", "--input"), type="character",
                         # default="data/mapping/all_sites_metadata_demo.csv",
-                        default = file.path("data", "diet", "nutrition_data", "all_sites-meats_normailize_full_df.csv"),
+                        default = file.path("data", "diet", "nutrition_data", "all_sites-meats_normalize_full_df.csv"),
                         help="path of first csv"),
   optparse::make_option(c("-s", "--output_dir"), type="character",
                         default = "no_map", help="dir in /output"),
   optparse::make_option(c("-o", "--out_name"), type="character",
-                        default = "boxplot_grid_summary_meats_g_per_kg_bw.pdf",
+                        default = "boxplot_grid_summary_meats_g.pdf",
                         help="Path of output csv."),
   optparse::make_option(c("-u", "--suffix"), type="character",
                         # default = "_g_per_bmi",
-                        default = "_g_per_kg_bw",
-                        # default = "_g",
+                        # default = "_g_per_kg_bw",
+                        default = "_g",
                         help="Suffix of columns wanted")
 );
 opt_parser <- optparse::OptionParser(option_list=option_list);
@@ -59,54 +59,72 @@ inp_df <- read.csv(opt$input, check.names = FALSE,
 inp_df <- inp_df[!is.na(inp_df$SITE),]
 my_reg_ex <- paste0(opt$suffix, "$")
 g_cols <- colnames(inp_df)[grepl(my_reg_ex,colnames(inp_df))]
+# g_cols <- g_cols[!grepl("rmOut",g_cols)]
 exp_org_cols <- c("SITE", "TREATMENT")
+max_y <- max(inp_df[,g_cols], na.rm = TRUE) * 1.05
 
-#### Org data ####
+#### Org data and plot ####
 treats <- unique(inp_df$TREATMENT)
 treat_plots <- lapply(1:length(treats), function(m){
   trmnt <- treats[m]
-  
+  print("treatment")
+  print(trmnt)
+  # Subset data by treatment
   sub_inp_df <- inp_df[inp_df$TREATMENT == trmnt, g_cols]
+  # Create long version of dataframe
   long_sub_inp_df <- reshape2::melt(sub_inp_df)
+  long_sub_inp_df[is.na(long_sub_inp_df)] <- 0
   
+  # Make colors: red if boxplot is empty, black if it is >0
+  my_colors <- c()
+  for (v in unique(long_sub_inp_df$variable)){
+    print("in for loop")
+    my_subset <- long_sub_inp_df[long_sub_inp_df$variable == v,"value"]
+    print(long_sub_inp_df[long_sub_inp_df$variable == v,"value"])
+    if (all(unique(my_subset[!is.na(my_subset)]) %in% c(0)) || all(is.na(my_subset))){
+         my_colors <- c(my_colors,"red")
+        }else{
+          my_colors <- c(my_colors,"black")
+        }
+  }
+  
+  print(my_colors)
+  
+  # Make vector holding number of counts in each boxplot
+  #TODO
+
   if (m < length(treats)){
     g <- ggplot2::ggplot(long_sub_inp_df, aes(x=variable, y=value)) + 
-      geom_boxplot() +
+      geom_boxplot(color = unlist(my_colors)) +
       ggplot2::ylab(paste(trmnt)) +
       # ggplot2::ggtitle(label = paste(trmnt)) +
       ggplot2::scale_x_discrete(guide = guide_axis(angle = 90)) +
       theme(axis.title.x=element_blank(),
             axis.text.x=element_blank(),
             axis.ticks.x=element_blank()) +
-      coord_cartesian(ylim = c(0, 10))
+      scale_color_manual(values=my_colors) +
+      coord_cartesian(ylim = c(0, max_y))
     g
   }else{
     g <- ggplot2::ggplot(long_sub_inp_df, aes(x=variable, y=value)) + 
-      geom_boxplot() +
+      geom_boxplot(color = unlist(my_colors)) +
       ggplot2::ylab(paste(trmnt)) +
-      coord_cartesian(ylim = c(0, 10)) +
-      theme(axis.title.x=element_blank())
+      coord_cartesian(ylim = c(0, max_y)) +
+      theme(axis.title.x=element_blank()) 
       # ggplot2::ggtitle(label = paste(trmnt)) +
       # ggplot2::scale_x_discrete(guide = guide_axis(angle = 90))
     g
   }
-
 })
 
-# g <- ggplot2::ggplot(sub_inp_df, aes(x=variable, y=value)) + 
-#   geom_boxplot() +
-#   ggplot2::ylab("Grams") +
-#   ggplot2::ggtitle(label = paste(treats)) +
-#   ggplot2::scale_x_discrete(guide = guide_axis(angle = 90)) 
-# g
+#### Arrange plots and save output ####
 
 pdf(file.path(output_dir, "graphics", opt$out_name),
-    width = 3.5, height = 6.5)
+    width = 24, height = 10)
 
 grid.arrange(arrangeGrob(grobs = treat_plots,
              ncol = 1, # Second row with 2 plots in 2 different columns
              nrow = length(treats)))
-# ncol=1, nrow = length(treats)
 
 dev.off()
 
