@@ -1,7 +1,8 @@
 # Author: Aaron Yerke (aaronyerke@gmail.com)
-# Script for organizing auto and hand labeled protein categories
+# Script for aggregating auto and hand labeled meat data from individual
+# participants and protein categories
 # Notes:
-# Dropped "SITE" column and change "CORRECTED_SITE" to "SITE"
+# Dropped "SITE" column and changed "CORRECTED_SITE" to "SITE"
 
 rm(list = ls()) #clear workspace
 
@@ -36,7 +37,7 @@ mb_map <- as.data.frame(readxl::read_excel(file.path("data","mapping","mb", "MB-
                         check.names=FALSE)
 # usda_auto_protn_df <- read.csv(file = file.path(nut_dir ,"esha_combined_meats_HEI_vals.tsv"),
 #                                sep = "\t", check.names = FALSE)
-usda_auto_protn_df <- read.csv(file = file.path(nut_dir, "esha_combined_meats_HEI_vals28Sep2023.tsv"),
+usda_auto_protn_df <- read.csv(file = file.path(nut_dir, "esha_combined_meats_HEI_vals28Jun2025.tsv"),
                                sep = "\t", check.names = FALSE)
 demo_data <- read.csv("data/mapping/all_sites_demo.csv", check.names = FALSE,
                       row.names = "PARENT_SAMPLE_NAME")
@@ -44,6 +45,12 @@ control_treatments <- c("Med 100","Purple", "Orange","Med 200","USUAL", "C")
 correct_sites <- c("PSU-MED","MB/IIT","Purdue","USDA-MAP","USDA-MED")
 
 unknown_beef <- c("Blue","Red","Green", "Yellow", "baseline", "BL")
+
+# Organize meat type of column names
+base_col_names <- c("beef", "chicken", "pork", "turkey", "meat")
+agg_columns <- unlist(lapply(base_col_names, function(x){
+  c(x, paste0(x, "_proc"), paste0(x, "_min_proc"))
+}))
 
 # Preserve orginal treatement labels for troubhshooting:
 meta_df$ORIG_TREAT <- meta_df$TREATMENT
@@ -61,6 +68,7 @@ meta_df <- meta_df[!(meta_df$TREATMENT %in% control_treatments),]
 meta_df <- meta_df[!(meta_df$TREATMENT %in% unknown_beef),]
 
 ##### Improve readability #####
+#Drop incorrect "SITE" colum and rename "CORRECTED_SITE" to "SITE"
 drops <- c("SITE")
 meta_df <- meta_df[ , !(names(meta_df) %in% drops)]
 colnames(meta_df)[colnames(meta_df) == "CORRECTED_SITE"] = "SITE"
@@ -68,6 +76,10 @@ colnames(meta_df)[colnames(meta_df) == "CORRECTED_SITE"] = "SITE"
 meta_df$TREATMENT[meta_df$TREATMENT == "A"] <- "Chicken"
 meta_df$TREATMENT[meta_df$TREATMENT == "B"] <- "Beef"
 
+#### Remove BASE from Purdue
+meta_df <- meta_df[! (meta_df$SITE == "Purdue" & meta_df$TIMEPOINT == "baseline"), ]
+  
+  
 #### Add column to show which baseline is first for each MB participant ####
 mb_rand_labels <- meta_df[meta_df$SITE == "MB/IIT", "CLIENT_SAMPLE_ID"]
 mb_parents <- meta_df[meta_df$SITE == "MB/IIT", "PARENT_SAMPLE_NAME"]
@@ -100,12 +112,17 @@ meta_df$TREATMENT[meta_df$SITE == "MB/IIT" & meta_df$TIMEPOINT == "baseline"] <-
 # meta_df <- meta_df[!meta_df$documented_usual == "FALSE",]
 
 #### Create df for meat sums, starting with mb ####
-agg_columns <- c("beef", "chicken", "pork", "turkey", "processed", "meat")
+
+for (bc in base_col_names){
+  print(bc)
+  base_meat <- mb_auto_protn_df[,bc]
+}
+
+
+##### Aggregate each mb intervention #####
 mb_meat_totals <- data.frame(matrix(ncol = 0,
                                     nrow = length(unique(mb_auto_protn_df$Intervention))))
-# names(meat_totals) <- agg_columns
 
-#### Aggregate each mb intervention ####
 row.names(mb_meat_totals) <- unique(mb_auto_protn_df$Intervention)
 for (clm in agg_columns){
   meat_sum <- aggregate(mb_auto_protn_df[,clm], by=list(mb_auto_protn_df$Intervention), sum)
@@ -169,12 +186,12 @@ for (i in seq_along(1:nrow(meta_df))){
       meat_rows[i,] <- usda_meat_totals["TYPICAL AMERICAN",]
     }
     if (treat == "Control"){
-      meat_rows[i,] <- c(NA,NA,NA,NA,NA,NA)
+      meat_rows[i,] <- rep(NA, length(ncol(meat_rows)))
       stop("Found treatement of Control in USDA columns, it shouldn't be there")
     }
   }
   if (site == "USDA-MAP" ){
-    meat_rows[i,] <- rep(NA,6)
+    meat_rows[i,] <- rep(NA, length(ncol(meat_rows)))
   }
   if (site == "MB/IIT"){
     mb_id <- mb_map[mb_map$Randomization == id, "Screen"]
@@ -188,17 +205,31 @@ for (i in seq_along(1:nrow(meta_df))){
     }else{
       meta_df$mb_intervention[i] <- paste0("missing_", mb_pro_id)
       if (treat == "Chicken"){
-        meat_rows[i,] <- c(0,184,0,0,0,0)
+        meat_rows[i,"chicken"] <- 184
+        meat_rows[i,"chicken_min_proc"] <- 184
+        meat_rows[i,"chicken"] <- 184
+        meat_rows[i,"chicken_min_proc"] <- 184
+        
       }else{
         if (treat == "Beef"){
-          meat_rows[i,] <- c(184,0,0,0,0,0)
+          meat_rows[i,"beef"] <- 184
+          meat_rows[i,"beef_min_proc"] <- 184
+          meat_rows[i,"meat"] <- 184
+          meat_rows[i,"meat_min_proc"] <- 184
         }
       }
     }
   }
   if (site == "Purdue"){
-    if (treat == "MED") meat_rows[i,] <- c(168,0,0,0,0,0)
-    if (treat == "VEG") meat_rows[i,] <- c(0,0,0,0,0,0)
+    if (treat == "MED"){
+      meat_rows[i,"beef"] <- 168
+      meat_rows[i,"beef_min_proc"] <- 168
+      meat_rows[i,"meat"] <- 168
+      meat_rows[i,"meat_min_proc"] <- 168
+    }
+    if (treat == "VEG"){
+      meat_rows[i,] <- rep(0, ncol(meat_rows))
+    }
   }
 }
 
@@ -253,7 +284,6 @@ for (site in unique(meta_df$SITE)){
   fname <- paste0(clean_site, "-", "rf_demographics_meats.csv")
   write.csv(sub_df, file = file.path("data", "mapping", fname),
             row.names = FALSE)
-  
 }
 
 write.csv(meat_totals, file = file.path(nut_dir, "auto_protn_meat_totals_by_treatment.csv"))
@@ -263,43 +293,6 @@ write.csv(meta_df, file = file.path("data", "mapping", "all_sites-meats.csv"),
 
 meta_df <- meta_df[! is.na(meta_df$beef),]
 write.csv(meta_df, file = file.path("data", "mapping", "all_sites-meats.csv"),
-          row.names = FALSE)
-
-# Add demo data to meats
-sub_df <- sub_df[c("PARENT_SAMPLE_NAME", agg_columns)]
-sub_df <- merge(sub_df, demo_data, all = FALSE, by = 0)
-sub_df <- within(sub_df, rm("Row.names"))
-fname <- paste0("all_sites", "-", "rf_demographics_meats.csv")
-write.csv(sub_df, file = file.path("data", "mapping", fname),
-          row.names = FALSE)
-
-
-#### Make non-mb-non-map dataset ####
-sub_df <- meta_df[meta_df$SITE != "MB/IIT",]
-write.csv(sub_df, file = file.path("data", "mapping", "noMB_all_sites-meats.csv"),
-          row.names = FALSE)
-sub_df <- sub_df[c("PARENT_SAMPLE_NAME", agg_columns)]
-write.csv(sub_df, file = file.path("data", "mapping", "noMB_all_sites-rf_meats.csv"),
-          row.names = FALSE)
-
-# Add demo data to meats
-sub_df <- merge(sub_df, demo_data, all = FALSE, by = 0)
-sub_df <- within(sub_df, rm("Row.names"))
-fname <- paste0("noMB_all_sites", "-", "rf_demographics_meats.csv")
-write.csv(sub_df, file = file.path("data", "mapping", fname),
-          row.names = FALSE)
-
-# Remove LCMS technical data for testing in random forest
-# meta_df <- meta_df[c("PARENT_SAMPLE_NAME", "SITE","TIMEPOINT","TREATMENT", agg_columns, names(new_rows))]
-meta_df <- meta_df[c("PARENT_SAMPLE_NAME", agg_columns)]
-write.csv(meta_df, file = file.path("data", "mapping", "all_sites-rf_meats.csv"),
-          row.names = FALSE)
-
-# Add demo data to meats
-sub_df <- merge(meta_df, demo_data, all = FALSE, by = 0)
-sub_df <- within(sub_df, rm("Row.names"))
-fname <- paste0("all_sites", "-", "rf_demographics_meats.csv")
-write.csv(sub_df, file = file.path("data", "mapping", fname),
           row.names = FALSE)
 
 print("End R script.")
