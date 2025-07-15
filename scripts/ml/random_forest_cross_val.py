@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Author: Aaron Yerke, aaronyerke@gmail.com
-# This is a script for random forest for NHANES study
-# Should take a table with predictor/explanatory/independant and a table
+# This is a script for random forest for  biomarkers study
+# Should take a table with predictor/explanatory/independant and another
 # with response/outcome/dependant variable.
 # Returns accuracy and other metrics and feature importance.
 # Interesting resources for SHAP values:
@@ -54,6 +54,7 @@ import shap
 from sklearn import tree
 from joblib import dump,load
 # import plotnine
+# import pdb; pdb.set_trace()
 
 # QT_DEBUG_PLUGINS=1
 # --------------------------------------------------------------------------
@@ -196,7 +197,7 @@ with open(result_fpath, "w+") as fl:
 				# print(f"len resp_train {len(resp_train)}, {resp_train.dtype}")
 				if is_numeric_dtype(resp_train) and resp_train.dtype.name != "boolean":
 					print(f"going to RandomForestRegressor(), {resp_var }")
-					clf = RandomForestRegressor(n_estimators=n_trees)
+					clf = RandomForestRegressor(n_estimators=n_trees, )
 					model_name = "RF_Regressor"
 				else:
 					print("going to RandomForestClassifier()")
@@ -261,7 +262,7 @@ with open(result_fpath, "w+") as fl:
 		plt.barh(y=feature_mean.index[0:bar_shown], width=feature_mean.iloc[0:bar_shown,0], xerr=feature_mean.iloc[0:bar_shown,1])
 		plt.xlabel(f"Top {bar_shown} Relative Importances")
 		plt.xticks(rotation="vertical")
-		plt.title(f"{options.output_label}\n{model_name} score: {round(ave_score, 3)}, std: {round(ave_std, 3)}")
+		plt.title(f"{options.output_label} {model_name} score: {round(ave_score, 3)}, std: {round(ave_std, 3)}")
 		plt.suptitle(f"Feature importance: {resp_var}")
 		pdf.savefig(bbox_inches='tight')
 		plt.close()
@@ -305,12 +306,12 @@ with open(result_fpath, "w+") as fl:
 		print("shap_values.shape", flush=True)
 		print(shap_values.shape, flush=True)
 
-		top_features = feature_mean.index[0:4].tolist()
+		top_features = feature_mean.index[0:20].tolist()
 		if model_name == "RF_Classifier":
-			imp_use = shap_values.values[:,1]
-			shap_use = shap_values[:,:,1]
+			imp_use = shap_values.values[:,0]
+			shap_use = shap_values[:,:,0]
 			wf_use = shap_values[0,0]
-			dep_use = explainer.shap_values(pred_train, check_additivity=False)[:,:,1]
+			dep_use = explainer.shap_values(pred_train, check_additivity=False)[:,:,0]
 			# shap.plots.beeswarm(shap_values[:,:,1], max_display=shap_shown, show = False)
 		else:
 			shap_use = shap_values
@@ -318,9 +319,6 @@ with open(result_fpath, "w+") as fl:
 			dep_use = explainer.shap_values(pred_train)
 			# record shap feature importance
 			vals = np.abs(shap_values.values).mean(0)
-			print("vals")
-			print(vals)
-			print(pred_train.columns)
 			shap_dict = dict(zip(pred_train.columns, vals))
 			print(shap_dict)
 			for key in shap_dict:
@@ -344,15 +342,22 @@ with open(result_fpath, "w+") as fl:
 			#works like this: shap.plots.waterfall(explanation[id_to_explain,:,output_to_explain])
 			pdf.savefig(bbox_inches='tight')
 			plt.close()
-
-			fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(10, 6))
-			axes = axes.ravel() #flattens a n dimentional object to 1 d				
+			
 			for i, dep in enumerate(top_features):
 				print(f"{i} {dep}, {model_name}", flush=True)
-				shap.dependence_plot(dep, dep_use, pred_train, show = False, ax=axes[i])
+				shap.dependence_plot(dep, explainer.shap_values(pred_train), pred_train, show = False)
 				plt.suptitle(f"Final cross validation\nSHAP dependency, {resp_var}")
-			pdf.savefig(bbox_inches='tight')
-			plt.close()
+				pdf.savefig(bbox_inches='tight')
+				plt.close()
+			# fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(10, 6))
+			# axes = axes.ravel() #flattens a n dimentional object to 1 d				
+			# for i, dep in enumerate(top_features):
+			# 	print(f"{i} {dep}, {model_name}", flush=True)
+			# 	shap.dependence_plot(dep, dep_use, pred_train, show = False, ax=axes[i])
+			# 	plt.suptitle(f"Final cross validation\nSHAP dependency, {resp_var}")
+			# pdf.savefig(bbox_inches='tight')
+			# plt.close()
+
 			# matplotlib.rcParams.update(matplotlib.rcParamsDefault)#restore to default
 		except Exception as e:
 			print(f"Exception: shap beeswarm {model_name} {resp_var}", flush=True)
