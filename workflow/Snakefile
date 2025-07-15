@@ -3,6 +3,7 @@
 # TODO fix Sankey to run in conda env
 
 # Snakemake rerun all jobs from the rule I just edited: --forcerun or -R flag
+# Snakemake rule "complete" comments with "i" are intermediate steps kept for debugging
 
 configfile: "workflow/config/config.v8+.yaml"
 
@@ -28,12 +29,13 @@ multi_sites = ["PSU_MED_MB_IIT","PSU_MED_Purdue","PSU_MED_USDA_MED","MB_IIT_Purd
 	"MB_IIT_Purdue_USDA_MED"]
 all_clean_sites = clean_sites + multi_sites
 all_clean_sites1 = all_clean_sites
-meat_types = ["beef", "chicken", "pork", "turkey", "processed", "meat"]
+meat_types = ["beef","beef_proc","beef_min_proc","chicken", "chicken_proc", "chicken_min_proc",
+	"pork","pork_proc", "pork_min_proc","turkey", "turkey_proc", "turkey_min_proc", "meat","meat_proc","meat_min_proc" ]
 g_meats = [s + "_g" for s in meat_types]
 g_per_bw_meats = [s + "_g_per_kg_bw" for s in meat_types]
 
-sub_demo = ["male_only", "female_only","age24_36","age36_42","age42_57","age57_73",
-	"bmi20.35_25.2", "bmi25.2_27.9","bmi27.9_30.78","bmi30.78_40.5"]
+sub_demo = ["male_only", "female_only","age24_42","age42_73",
+	"bmi20.35_27.9", "bmi27.9_40.5"]
 
 rule completed:
 	input:
@@ -81,8 +83,6 @@ rule completed:
 		# metblmcs_lev=metabolomics_levels,clean_site=clean_sites),
 		# i expand("output/ml_eval/graphics/heatmap_metabolite_{norm_meat}.pdf", norm_meat=normaliz_meats),
 		expand("output/ml_eval/graphics/best_gen_model_metabolite_{norm_meat}.pdf", norm_meat=normaliz_meats)
-
-
 
 # Rscript scripts/ds_descrip/compare_site_scores.R\
 # 	--metblmcs_lev chem\
@@ -207,7 +207,7 @@ rule organize_metabolomics:
 
 rule organize_demographics:
 	input: 
-		"data/metabolomics/UARS-01-23ML+/UARS-01-23ML+ DATA TABLES (ALL SAMPLES).XLSX",
+		"data/metabolomics/UARS-01-23ML+/UARS-01-23ML+ DATA TABLES (EDTA PLASMA SAMPLES).xlsx",
 		"data/mapping/PSU demo.xlsx",
 		"data/mapping/USDA PSU Med Beef Data.xlsx",
 		"data/diet/mb/2112 V3    .csv", 
@@ -747,7 +747,7 @@ rule random_forest_meat_biomarker_demo:
 				--delimiter , \
 				--title "{params.label}" \
 				--id_var "PARENT_SAMPLE_NAME" \
-				--num_cv_folds 3
+				--num_cv_folds 5
 		"""
 
 rule compare_sites_demo_scor:
