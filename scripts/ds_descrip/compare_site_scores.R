@@ -48,29 +48,6 @@ opt <- parse_args(opt_parser);
 print("Commandline arguments:")
 print(opt)
 
-#### Functions ####
-resp_vars_plot <- function (df_table, title_text){
-  means <- aggregate(df_table$score, by=list(df_table$response_var), mean)
-  names(means) <- c("response_var", "m")
-  stdv <- aggregate(df_table$score, by=list(df_table$response_var), sd)
-  names(stdv) <- c("response_var", "s")
-  means <- merge(means, stdv)
-  means$x <- round(means$m, 3)
-  g <- ggplot2::ggplot(df_table, aes(x=site_name, y=score)) + 
-    geom_boxplot() +
-    ggplot2::ylab("Score") +
-    ggplot2::ggtitle(label = paste(title_text)) +
-    geom_text(data = means, aes(label=paste("m:",x), y=x + 0.1, x = 3), color="black") +
-    ggplot2::scale_x_discrete(guide = guide_axis(angle = 90)) +
-    ggplot2::stat_summary(fun.y=mean, geom="point", shape="-", size=9, color="red", fill="red") +
-    # ggplot2::geom_hline(data = means, aes(yintercept = x), color="red", linetype=4) +
-    # ggplot2::geom_hline(data = means, aes(yintercept = x + s), color="blue", linetype=2) +
-    # ggplot2::geom_hline(data = means, aes(yintercept = x - s), color="blue", linetype=2) +
-    coord_cartesian(ylim = c(-0.1,1)) +
-    ggplot2::facet_grid(~ response_var)
-  return(g)
-}
-
 #### Establish directory layout and other constants ####
 base_dir <- file.path("data", "mapping")
 correct_sites <- c("PSU-MED","MB/IIT","Purdue","USDA-MAP","USDA-MED")
@@ -102,13 +79,13 @@ sample_name <- vector(mode = "character")
 ##### Iterate through files and populate variables #####
 for (i in 1:length(dir_files)){
   dat_f <- dir_files[i]
-  print(dat_f)
+  # print(dat_f)
   my_split <- unlist(strsplit(dat_f, group_pattern))
   my_site <- clean_sites[which(sapply(clean_sites, function(x)(x == my_split[1])))]
   dat_f_path <- file.path(opt$in_dir, dat_f)
   if (file.size(dat_f_path) > 0){
     my_table <- read.csv(dat_f_path, header = T)
-    print(dim(my_table))
+    # print(dim(my_table))
     for (r in 1:nrow(my_table)){
       if(!my_table$response_var[r] %in% c("PARENT_SAMPLE_NAME")){
         response_var <- c(response_var, rep(my_table$response_var[r], length(3:ncol(my_table))))
@@ -119,15 +96,34 @@ for (i in 1:length(dir_files)){
   }else{
     print(paste(dat_f, "is empty"))
   }
-  
 }
 
 big_table <- data.frame(response_var, site_name, score)
 
 pdf(opt$out_file, width = 18, height = 8)
 
-my_title <- paste("Group:", group_pattern, "| metabo lev:", opt$metblmcs_lev)
-resp_vars_plot(big_table, my_title)
+title_text <- paste("Group:", group_pattern, "| metabo lev:", opt$metblmcs_lev)
+#### Functions ####
+
+means <- aggregate(big_table$score, by=list(big_table$response_var), mean)
+names(means) <- c("response_var", "m")
+stdv <- aggregate(big_table$score, by=list(big_table$response_var), sd)
+names(stdv) <- c("response_var", "s")
+means <- merge(means, stdv)
+means$round_x <- round(means$m, 3)
+g <- ggplot2::ggplot(big_table, aes(x=site_name, y=score)) + 
+  geom_boxplot() +
+  ggplot2::ylab("Score") +
+  ggplot2::ggtitle(label = paste(title_text)) +
+  geom_text(data = means, aes(label=paste("m:",round_x), y=m + 0.1, x = 3), color="black") +
+  ggplot2::scale_x_discrete(guide = guide_axis(angle = 90)) +
+  ggplot2::stat_summary(fun=mean, geom="point", shape="-", size=9, color="red", fill="red") +
+  # ggplot2::geom_hline(data = means, aes(yintercept = x), color="red", linetype=4) +
+  # ggplot2::geom_hline(data = means, aes(yintercept = x + s), color="blue", linetype=2) +
+  # ggplot2::geom_hline(data = means, aes(yintercept = x - s), color="blue", linetype=2) +
+  coord_cartesian(ylim = c(-0.1,1)) +
+  ggplot2::facet_grid(~ response_var)
+print(g)
 
 dev.off()
 
