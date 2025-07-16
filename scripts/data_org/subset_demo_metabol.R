@@ -54,29 +54,37 @@ print(outfile)
 #### Subset age and save ####
 age_no_na_df <- in_df[!is.na(in_df$age),]
 quantiles <- quantile(in_df$age, na.rm = TRUE)
+quantiles <- quantiles[c("0%", "50%", "100%")]
 
 first_qt <- round(quantiles[1],2)
+sec_qt <- round(quantiles[2],2)
+thrd_qt <- round(quantiles[3],2)
 
-for (q in 2:length(quantiles)){
-  sec_qt <- round(quantiles[q],2)
-  group_qunt <- age_no_na_df[age_no_na_df$age <= sec_qt & age_no_na_df$age >= first_qt, ]
-  outfile <- paste0(opt$outdir, "/all_site-", "age",
-                    as.character(first_qt),"_",as.character(sec_qt),"-",
-                    suffix_fname)
-  print(outfile)
-  write.csv(group_qunt, file = outfile, row.names = FALSE)
-  first_qt <- sec_qt
-}
+group_qunt <- age_no_na_df[age_no_na_df$age < sec_qt & age_no_na_df$age >= first_qt, ]
+outfile <- paste0(opt$outdir, "/all_site-", "age",
+                  as.character(first_qt),"_",as.character(sec_qt),"-",
+                  suffix_fname)
+print(outfile)
+write.csv(group_qunt, file = outfile, row.names = FALSE)
+
+group_qunt <- age_no_na_df[age_no_na_df$age <= thrd_qt & age_no_na_df$age >= sec_qt, ]
+outfile <- paste0(opt$outdir, "/all_site-", "age",
+                  as.character(sec_qt),"_",as.character(thrd_qt),"-",
+                  suffix_fname)
+print(outfile)
+write.csv(group_qunt, file = outfile, row.names = FALSE)
 
 #### Subset bmi and save ####
 bmi_no_na_df <- in_df[!is.na(in_df$bmi),]
 quantiles <- quantile(in_df$bmi, na.rm = TRUE)
+#Remove 25 and 75 quantiles
+quantiles <- quantiles[c("0%", "50%", "100%")]
 
 first_qt <- round(quantiles[1],2)
 
 for (q in 2:length(quantiles)){
   sec_qt <- round(quantiles[q],2)
-  group_qunt <- bmi_no_na_df[bmi_no_na_df$bmi <= sec_qt & bmi_no_na_df$bmi >= first_qt, ]
+  group_qunt <- bmi_no_na_df[bmi_no_na_df$bmi < sec_qt & bmi_no_na_df$bmi >= first_qt, ]
   outfile <- paste0(opt$outdir, "/all_site-", "bmi",
                     as.character(first_qt),"_",as.character(sec_qt),"-",
                     suffix_fname)
