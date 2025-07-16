@@ -41,7 +41,7 @@ print(opt)
 
 #### Establish directory layout and other constants ####
 metabo_f <- file.path("data", "metabolomics", "UARS-01-23ML+",
-            "UARS-01-23ML+ DATA TABLES (DATA ADJUSTED BY BASELINE SAMPLES FROM EACH SITE).xlsx")
+                      "UARS-01-23ML+ DATA TABLES (EDTA PLASMA SAMPLES).xlsx")
 output_dir <- file.path("output", opt$output_dir)
 dir.create(file.path(output_dir, "graphics"))
 dir.create(file.path(output_dir, "tables"))
@@ -57,17 +57,24 @@ chem_link <- openxlsx::read.xlsx(xlsxFile = metabo_f,
 #### Establish variables ####
 correct_sites <- c("PSU-MED","MB/IIT","Purdue","USDA-MAP","USDA-MED")
 agg_columns <- c("beef", "chicken", "pork", "turkey", "processed", "meat")
-
-# meta_df[,paste0(ac,"_g")] <- meta_df[,ac]
-# meta_df[,paste0(ac,"_g_per_kg_bw")] <- meta_df[,ac]
+metad_intrest <- c("beef_rmOut_g", "beef_rmOut_g_per_kg_bw", "beef_rmOut_g_per_bmi", "bodyweight","bmi", "daily_energy")
+char_metad_interest <- c("SITE")
+hid_leg_meta_intrst <- c("SUBJECT_ID")
 
 #### Data reorganization ####
 mtbmcs_df <- orig_mtbmcs_df[row.names(meta_df),]
 stopifnot(identical(row.names(mtbmcs_df), row.names(meta_df)))
 
-#### PCA ####
-metad_intrest <- colnames(meta_df)
+##### Create new column for treatment + site plot #####
+meta_df$SITE_TREATMENT <- paste(meta_df$SITE, meta_df$TREATMENT, sep = ": ")
 
+##### Create new column for PSU/USDA Med study #####
+meta_df$USDA_PSU <- sapply(1:nrow(meta_df), FUN = function(x){
+  ifelse(meta_df$SITE[x] %in% c("USDA-MED", "PSU-MED"), 
+         meta_df$SITE_TREATMENT[x], NA)})
+
+char_metad_interest <- c(char_metad_interest, "SITE_TREATMENT", "USDA_PSU")
+#### PCA ####
 print("Checking for columns/chems with zero variance")
 
 zero_var <- which(apply(mtbmcs_df, 2, var) == 0)
@@ -94,11 +101,8 @@ meta_df$SITE <- factor(meta_df$SITE, levels = c(my_order))
 
 #### Make gradient plots for numeric data ####
 numeric_cols_TF <- unlist(lapply(meta_df, is.numeric), use.names = TRUE)#find numeric columns
-metad_intrest <- paste0(agg_columns ,"_g_per_kg_bw")
 
 numeric_plots <- vector(mode = "list", length = length(metad_intrest))
-
-test <- meta_df[meta_df$CLIENT_IDENTIFIER == "MED 232 DP2.2 EDTA Plas"]
 
 interest_labels <- c("MED 232 DP2.2 EDTA Plas", "5404 B4", "MED 230 DP3.2 EDTA Plas", "5407 B4",
   "MED 207 DP1.2 EDTA Plas", "5426 B8", "MED 218 DP3.2 EDTA Plas", "5422 B8")
@@ -107,37 +111,56 @@ numeric_plots <- lapply(1:length(metad_intrest), function(m){
   md <- metad_intrest[m]
   meta_fact <- factor(meta_df[,md])
   g <- ggplot2::ggplot(myPCA, aes(x=PC1, y=PC2)) +
-    # ggplot2::geom_point(aes(col = meta_df[,md])) +
-    ggplot2::geom_point(aes(shape = factor(meta_df$SITE), col = meta_df[,md])) +
-    ggplot2::ggtitle(paste0( md)) + # Blank Title for the Graph
+    ggplot2::geom_point(aes(col = meta_df[,md])) +
+    # ggplot2::geom_point(aes(shape = as.factor(meta_df$SITE), col = meta_df[,md])) +
+    ggplot2::ggtitle(paste0(md)) + # Blank Title for the Graph
     ggplot2::xlab(paste0("PC1", ", ", round(my_var_exp[1],2)*100, "%")) +
     ggplot2::ylab(paste0("PC2", ", ", round(my_var_exp[2],2)*100, "%")) +
-    ggplot2::labs(color = md, shape = "SITE") +
+    ggplot2::labs(color = md) +
     ggplot2::theme(text=element_text(size=18)) +
-    ggplot2::scale_colour_gradient(low = "cornflowerblue", high = "deeppink4", na.value = NA)
+    ggplot2::scale_colour_gradient(na.value = NA,
+                                   low = "cornflowerblue", high = "deeppink4")
 })
 
-site_list <- lapply(1:1, function(m){
-g <- ggplot2::ggplot(myPCA, aes(x=PC1, y=PC2, col = meta_df$SITE)) +
-  # ggplot2::geom_point(aes(shape = factor(meta_df$SITE))) +
-  ggplot2::geom_point() +
-  ggplot2::ggtitle(paste0("SITE")) + # Blank Title for the Graph
-  ggplot2::xlab(paste0("PC1: ", round(my_var_exp[1],2)*100, "%")) +
-  ggplot2::ylab(paste0("PC2:", round(my_var_exp[2],2)*100, "%")) +
-  ggplot2::labs(color = "SITE") +
-  ggplot2::theme(text=element_text(size=18)) +
-  ggplot2::stat_ellipse()
+#### Plots for factor/character data ####
+site_list <- lapply(1:length(char_metad_interest), function(m){
+  md <- char_metad_interest[m]
+  meta_fact <- factor(meta_df[,md])
+  g <- ggplot2::ggplot(myPCA, aes(x=PC1, y=PC2, col = meta_fact)) +
+    # ggplot2::geom_point(aes(shape = factor(meta_df$SITE))) +
+    ggplot2::geom_point() +
+    ggplot2::ggtitle(paste0(md)) + # Blank Title for the Graph
+    ggplot2::xlab(paste0("PC1: ", round(my_var_exp[1],2)*100, "%")) +
+    ggplot2::ylab(paste0("PC2:", round(my_var_exp[2],2)*100, "%")) +
+    ggplot2::labs(color = md) +
+    ggplot2::theme(text=element_text(size=18)) +
+    ggplot2::stat_ellipse()
 })
-# pdf(file.path(output_dir, "graphics", paste0("numeric_", opt$out_name,".pdf")),
-#     width = 22, height = 10)
+
+hidden_legend <- lapply(1:length(hid_leg_meta_intrst), function(m){
+  md <- hid_leg_meta_intrst
+  meta_fact <- factor(meta_df[,md])
+  g <- ggplot2::ggplot(myPCA, aes(x=PC1, y=PC2, col = meta_fact)) +
+    # ggplot2::geom_point(aes(shape = factor(meta_df$SITE))) +
+    ggplot2::geom_point(show.legend = FALSE) +
+    ggplot2::ggtitle(paste0(md)) + # Blank Title for the Graph
+    ggplot2::xlab(paste0("PC1: ", round(my_var_exp[1],2)*100, "%")) +
+    ggplot2::ylab(paste0("PC2:", round(my_var_exp[2],2)*100, "%")) +
+    ggplot2::labs(color = md) +
+    ggplot2::theme(text=element_text(size=18)) +
+    ggplot2::stat_ellipse() +
+    ggplot2::theme(legend.position = "none")
+})
+
+pdf(file.path(output_dir, "graphics", paste0("numeric_", opt$out_name,".pdf")),
+    width = 30, height = 15)
 
 
 grid.arrange(grobs=c(site_list, numeric_plots),
-             ncol=4,
-             common.legend = TRUE, top="Gradient PCA plots")
+             ncol=4)#common.legend = TRUE, top="Gradient PCA plots"
 
-# dev.off()
-
+dev.off()
+sadfsd
 
 #### Plots for individual sites ####
 for (st in unique(meta_df$SITE)){
