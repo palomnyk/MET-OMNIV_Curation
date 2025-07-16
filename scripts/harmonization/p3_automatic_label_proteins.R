@@ -235,29 +235,16 @@ esha_studies <- readxl::read_excel(file.path(data_dir, "esha_combined_meats_HEI_
 esha_studies <- type.convert(esha_studies, as.is = TRUE)#automatically reset incorrectly classified column types
 
 #### Use HEI values to convert g to oz  ####
-esha_studies$beef <- vector(length = nrow(esha_studies), mode = "double")
-esha_studies$pork <- vector(length = nrow(esha_studies), mode = "double")
-esha_studies$chicken <- vector(length = nrow(esha_studies), mode = "double")
-esha_studies$turkey <- vector(length = nrow(esha_studies), mode = "double")
-esha_studies$seafood <- vector(length = nrow(esha_studies), mode = "double")
-esha_studies$processed <- vector(length = nrow(esha_studies), mode = "logical")
-esha_studies$red_meat <- vector(length = nrow(esha_studies), mode = "double")
-esha_studies$poultry <- vector(length = nrow(esha_studies), mode = "double")
-esha_studies$meat <- vector(length = nrow(esha_studies), mode = "double")
+# Organize meat type of column names
+base_col_names <- c("beef", "chicken", "pork", "turkey", "meat")
+agg_columns <- unlist(lapply(base_col_names, function(x){
+  c(x, paste0(x, "_proc"), paste0(x, "_min_proc"))
+}))
 
-#Min processed meat
-esha_studies$mproc_meat <- vector(length = nrow(esha_studies), mode = "double")
-esha_studies$mproc_beef <- vector(length = nrow(esha_studies), mode = "double")
-esha_studies$mproc_pork <- vector(length = nrow(esha_studies), mode = "double")
-esha_studies$mproc_chicken <- vector(length = nrow(esha_studies), mode = "double")
-esha_studies$mproc_turkey <- vector(length = nrow(esha_studies), mode = "double")
-
-#processed meat
-esha_studies$proc_meat <- vector(length = nrow(esha_studies), mode = "double")
-esha_studies$proc_beef <- vector(length = nrow(esha_studies), mode = "double")
-esha_studies$proc_pork <- vector(length = nrow(esha_studies), mode = "double")
-esha_studies$proc_chicken <- vector(length = nrow(esha_studies), mode = "double")
-esha_studies$proc_turkey <- vector(length = nrow(esha_studies), mode = "double")
+#### Add food aggregation columns to output df  ####
+for (ag in agg_columns){
+  esha_studies[,ag] <- vector(length = nrow(esha_studies), mode = "double")
+}
 
 #HEI vars
 esha_studies$HEI_gb_cup <- vector(length = nrow(esha_studies), mode = "double")
@@ -287,18 +274,18 @@ for (rw in 1:nrow(esha_studies)){
   esha_studies$meat[rw] <- grms * as.numeric(my_excel$meat[HEI_index])
   
   #Min processed meat
-  esha_studies$mproc_meat[rw] <- grms * as.numeric(my_excel$mproc_meat[HEI_index])
-  esha_studies$mproc_beef[rw] <- grms * as.numeric(my_excel$mproc_beef[HEI_index])
-  esha_studies$mproc_pork[rw] <- grms * as.numeric(my_excel$mproc_pork[HEI_index])
-  esha_studies$mproc_chicken[rw] <- grms * as.numeric(my_excel$mproc_chicken[HEI_index])
-  esha_studies$mproc_turkey[rw] <- grms * as.numeric(my_excel$mproc_turkey[HEI_index])
+  esha_studies$meat_min_proc[rw] <- grms * as.numeric(my_excel$mproc_meat[HEI_index])
+  esha_studies$beef_min_proc[rw] <- grms * as.numeric(my_excel$mproc_beef[HEI_index])
+  esha_studies$pork_min_proc[rw] <- grms * as.numeric(my_excel$mproc_pork[HEI_index])
+  esha_studies$chicken_min_proc[rw] <- grms * as.numeric(my_excel$mproc_chicken[HEI_index])
+  esha_studies$turkey_min_proc[rw] <- grms * as.numeric(my_excel$mproc_turkey[HEI_index])
   
   #processed meat
-  esha_studies$proc_meat[rw] <- grms * as.numeric(my_excel$proc_meat[HEI_index])
-  esha_studies$proc_beef[rw] <- grms * as.numeric(my_excel$proc_beef[HEI_index])
-  esha_studies$proc_pork[rw] <- grms * as.numeric(my_excel$proc_pork[HEI_index])
-  esha_studies$proc_chicken[rw] <- grms * as.numeric(my_excel$proc_chicken[HEI_index])
-  esha_studies$proc_turkey[rw] <- grms * as.numeric(my_excel$proc_turkey[HEI_index])
+  esha_studies$meat_proc[rw] <- grms * as.numeric(my_excel$proc_meat[HEI_index])
+  esha_studies$beef_proc[rw] <- grms * as.numeric(my_excel$proc_beef[HEI_index])
+  esha_studies$pork_proc[rw] <- grms * as.numeric(my_excel$proc_pork[HEI_index])
+  esha_studies$chicken_proc[rw] <- grms * as.numeric(my_excel$proc_chicken[HEI_index])
+  esha_studies$turkey_proc[rw] <- grms * as.numeric(my_excel$turkey[HEI_index])
   
   #HEI var
   esha_studies$HEI_gb_cup[rw] <- grms / as.numeric(my_excel$HEI_GreensBeans_Conv[HEI_index])
@@ -313,14 +300,14 @@ for (rw in 1:nrow(esha_studies)){
   esha_studies$HEI_total_wholeGrains_cup[rw] <- grms / as.numeric(my_excel$HEI_WholeGrains_Conv[HEI_index])
 }
 
-processed_meat <- esha_studies$processed * esha_studies$meat
-esha_studies$processed <- processed_meat
+# processed_meat <- esha_studies$processed * esha_studies$meat
+# esha_studies$processed <- processed_meat
 
 # set missing values to NA, as per Lauren's instruction
 esha_studies[is.na(esha_studies)] <- 0
 
-data.table::fwrite(esha_studies, file = file.path(data_dir, "esha_combined_meats_HEI_vals28Sep2023.tsv"), 
+data.table::fwrite(esha_studies, file = file.path(data_dir, "esha_combined_meats_HEI_vals28Jun2025.tsv"),
                    sep = "\t", row.names = F)
-openxlsx::write.xlsx(esha_studies, file = file.path(data_dir, "esha_combined_meats_HEI_vals28Sep2023.xlsx"))
+openxlsx::write.xlsx(esha_studies, file = file.path(data_dir, "esha_combined_meats_HEI_vals28Jun2025.xlsx"))
 
 print("Reached end of R script!")

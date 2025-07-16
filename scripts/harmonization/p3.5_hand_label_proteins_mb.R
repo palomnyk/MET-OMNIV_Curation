@@ -69,20 +69,25 @@ esha_studies <- data.table::fread(file.path(data_dir, paste0(opt$out_prefix,"com
                                   strip.white=FALSE, na.strings = c("", "NA"))
 esha_studies <- type.convert(esha_studies, as.is = TRUE)#automatically reset incorrectly classified column types
 
+# Organize meat type of column names
+base_col_names <- c("beef", "chicken", "pork", "turkey", "meat")
+agg_columns <- unlist(lapply(base_col_names, function(x){
+  c(x, paste0(x, "_proc"), paste0(x, "_min_proc"))
+}))
+
 #### Cycle through ESHA_studies items and label them ####
 
 #### Use HEI values to convert g to oz  ####
-esha_studies$beef <- vector(length = nrow(esha_studies), mode = "double")
-esha_studies$pork <- vector(length = nrow(esha_studies), mode = "double")
-esha_studies$chicken <- vector(length = nrow(esha_studies), mode = "double")
-esha_studies$turkey <- vector(length = nrow(esha_studies), mode = "double")
-esha_studies$processed <- vector(length = nrow(esha_studies), mode = "double")
+for (ag in agg_columns){
+  esha_studies[,ag] <- vector(length = nrow(esha_studies), mode = "double")
+}
 
 for (rw in 1:nrow(esha_studies)){
   my_item <- gsub('"', '', esha_studies$`Item Name`[rw])
   my_item <- gsub('\\\\', "", my_item)
   grms <- as.numeric(esha_studies$`Wgt (g)`[rw])
   FPED_rw <- which(FPED_conv$`Item Name` == my_item)
+  processed <- FPED_conv[FPED_rw, "processed"]
   g_meat_per_100g_item <- unlist(FPED_conv[FPED_rw,"oz-g_equiv"])[1]*28/100
   g_meat_per_100g_item <- ifelse(is.na(g_meat_per_100g_item), 0, g_meat_per_100g_item)
   print("g_meat_per_100g_item")
@@ -90,20 +95,26 @@ for (rw in 1:nrow(esha_studies)){
   print(my_item)
   grms <- grms * g_meat_per_100g_item
   esha_studies$beef[rw] <- grms * FPED_conv[FPED_rw,"beef"] * g_meat_per_100g_item
-  # if (FPED_conv[FPED_rw,"beef"] == 1) stop()
+  esha_studies$beef_min_proc[rw] <- ifelse(processed == 0, grms * FPED_conv[FPED_rw,"beef"] * g_meat_per_100g_item, 0)
+  esha_studies$beef_proc[rw] <- ifelse(processed == 1, grms * FPED_conv[FPED_rw,"beef"] * g_meat_per_100g_item, 0)
+  
   esha_studies$pork[rw] <- grms * FPED_conv[FPED_rw,"pork"] * g_meat_per_100g_item
+  esha_studies$pork_min_proc[rw] <- ifelse(processed == 0, grms * FPED_conv[FPED_rw,"pork"] * g_meat_per_100g_item, 0)
+  esha_studies$pork_proc[rw] <- ifelse(processed == 1, grms * FPED_conv[FPED_rw,"pork"] * g_meat_per_100g_item, 0)
+  
   esha_studies$chicken[rw] <- grms * FPED_conv[FPED_rw,"chicken"] * g_meat_per_100g_item
+  esha_studies$chicken_min_proc[rw] <- ifelse(processed == 0, grms * FPED_conv[FPED_rw,"chicken"] * g_meat_per_100g_item, 0)
+  esha_studies$chicken_proc[rw] <- ifelse(processed == 1, grms * FPED_conv[FPED_rw,"chicken"] * g_meat_per_100g_item, 0)
+  
   esha_studies$turkey[rw] <- grms * FPED_conv[FPED_rw,"turkey"] * g_meat_per_100g_item
-  esha_studies$processed[rw] <- grms * FPED_conv[FPED_rw,"processed"] * g_meat_per_100g_item
+  esha_studies$turkey_min_proc[rw] <- ifelse(processed == 0, grms * FPED_conv[FPED_rw,"turkey"] * g_meat_per_100g_item, 0)
+  esha_studies$turkey_proc[rw] <- ifelse(processed == 1, grms * FPED_conv[FPED_rw,"turkey"] * g_meat_per_100g_item, 0)
 }
-
-# esha_studies[is.na(esha_studies)] <- 0
-# esha_studies[lengths(esha_studies) == 0] <- 0
 
 print(esha_studies)
 esha_studies$meat <- as.numeric(esha_studies$beef) + as.numeric(esha_studies$pork) + as.numeric(esha_studies$chicken) + as.numeric(esha_studies$turkey)
-# set missing values to NA, as per Lauren's instruction
-
+esha_studies$meat_min_proc <- as.numeric(esha_studies$beef_min_proc) + as.numeric(esha_studies$pork_min_proc) + as.numeric(esha_studies$chicken_min_proc) + as.numeric(esha_studies$turkey_min_proc)
+esha_studies$meat_proc <- as.numeric(esha_studies$beef_proc) + as.numeric(esha_studies$pork_proc) + as.numeric(esha_studies$chicken_proc) + as.numeric(esha_studies$turkey_proc)
 
 data.table::fwrite(esha_studies, file = file.path(data_dir, paste0(opt$out_prefix,"esha_meats_FPED_vals.tsv")),
                    sep = "\t", row.names = F)
