@@ -218,8 +218,7 @@ meta_df$bmi <- bmi
 
 #### Remove high outliers ####
 # Cycle through agg_columns (meat types) and remove outliers for each type of
-# normalization (norm suffix). Outliers are defined as values higher than 1.5 * the interquantile
-# range.
+# normalization (norm suffix). Z-score method
 # Resource: https://www.r-bloggers.com/2021/09/how-to-remove-outliers-in-r-3
 
 # Create table to keep track of samples removed
@@ -250,28 +249,7 @@ for (ac in agg_columns){
     percent_sample_lost <- c(percent_sample_lost, num_rm/num_samples*100)
   }
 }
-# for (ac in agg_columns){
-#   for (ns in norm_suffixes){
-#     col_name <- paste0(ac,ns)
-#     my_col <- meta_df[,col_name]
-#     my_Q3 <- quantile(my_col, .75, na.rm = TRUE)
-#     my_IQR <- IQR(my_col, na.rm = TRUE)
-#     my_cuttoff <- my_Q3 + 2*my_IQR
-#     num_rm <- length(my_col[my_col > my_cuttoff])
-#     my_col[my_col > my_Q3 + 2*my_IQR] = NA
-#     meta_df[paste0(ac,"_rmOut",ns)] <- my_col
-#     print(identical(my_col, meta_df[,paste0(ac,ns)]))
-#     #Save values for output table
-#     normalization <- c(normalization, ns)
-#     meat_group <- c(meat_group, ac)
-#     sample_group <- c(sample_group, col_name)
-#     samples_removed <- c(samples_removed, num_rm)
-#     percent_sample_lost <- c(percent_sample_lost, num_rm/length(my_col))
-#     Q3 <- c(Q3, my_Q3)
-#     iqr <- c(iqr, my_IQR)
-#   }
-# }
-# 
+
 outlier_df <- data.frame(
   normalization = normalization,
   meat_group = meat_group,
@@ -279,8 +257,6 @@ outlier_df <- data.frame(
   samples_removed = samples_removed,
   percent_sample_lost = percent_sample_lost,
   z_score <- z_score
-#   Q3 = Q3,
-#   IQR = iqr
 )
 
 write.csv(outlier_df, file = file.path(nut_dir, "z_score_outlier_info.csv"),
