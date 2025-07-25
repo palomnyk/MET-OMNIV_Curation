@@ -82,6 +82,7 @@ correct_sites <- c("PSU-MED","MB/IIT","Purdue","USDA-MAP","USDA-MED")
 base_col_names <- c("beef", "chicken", "pork", "turkey", "meat")
 norm_suffixes <- c("_g", "_g_per_kg_bw", "_g_per_bmi")
 clean_sites <- c()#to bee filled in section: Make all 2 site datasets
+pseudo_c <- 0.000001
 
 # Organize meat type of column names
 agg_columns <- unlist(lapply(base_col_names, function(x){
@@ -123,7 +124,7 @@ for (i in seq_along(1:nrow(meta_df))){
     my_energy <- usda_energy_weight[usda_energy_weight$SUBJCODE == id &
                                       usda_energy_weight$Period == chron_tp,
                                     "Calorie Level (kcal/d)"]
-    my_grams <- meta_df[i, agg_columns] * my_energy/2000
+    my_grams <- (meta_df[i, agg_columns] * my_energy/2000) + pseudo_c
     meta_df[i ,paste0(agg_columns,"_g")] <- my_grams
     my_bw <- usda_energy_weight[usda_energy_weight$SUBJCODE == id &
                                   usda_energy_weight$Period == chron_tp,
@@ -137,7 +138,7 @@ for (i in seq_along(1:nrow(meta_df))){
   }
   if (site %in% c("PSU-MED")){
     my_energy <- psu_energy[psu_energy$ID == paste0("MED", id),treat]
-    my_grams <- meta_df[i, agg_columns] * my_energy/2000
+    my_grams <- (meta_df[i, agg_columns] * my_energy/2000) + pseudo_c
     meta_df[i ,paste0(agg_columns,"_g")] <- my_grams
     my_bw <- PSU_weight[PSU_weight$ID == id &
                           PSU_weight$PERIOD == chron_tp - 1,
@@ -160,11 +161,14 @@ for (i in seq_along(1:nrow(meta_df))){
     my_table <- read.csv(file = file.path("data","CVD","raw","mb",
                                           paste0("2112 V",chron_tp+1, ".csv")),
                          check.names = FALSE)
-    
+    my_grams <- (meta_df[i, agg_columns]) + pseudo_c
     my_bw <- my_table[my_table$Screen == mb_screen, "Weight"] * 0.45359237#convert to kg
     print(paste("MB weight:", my_bw))
     
-    my_g_per_kg_bw <- meta_df[i, agg_columns]/as.numeric(my_bw)
+    #add pseudo count
+    meta_df[i ,paste0(agg_columns,"_g")] <- my_grams
+    
+    my_g_per_kg_bw <- my_grams/as.numeric(my_bw)
     meta_df[i ,paste0(agg_columns,"_g_per_kg_bw")] <- my_g_per_kg_bw
     
     my_g_per_bmi <- my_grams/as.numeric(my_bmi)
@@ -173,6 +177,8 @@ for (i in seq_along(1:nrow(meta_df))){
   if (site == "Purdue"){
     # asfddsf
     if (id %in% purdue_meta$short_id){
+      my_grams <- meta_df[i ,paste0(agg_columns)] + pseudo_c
+      meta_df[i ,paste0(agg_columns,"_g")] <- my_grams
       my_bw <- purdue_meta[purdue_meta$short_id == id, "Wt (kg)"]
       my_g_per_kg_bw <- meta_df[i, agg_columns]/as.numeric(my_bw)
       meta_df[i ,paste0(agg_columns,"_g_per_kg_bw")] <- my_g_per_kg_bw
