@@ -89,7 +89,6 @@ agg_columns <- unlist(lapply(base_col_names, function(x){
   c(x, paste0(x, "_proc"), paste0(x, "_min_proc"))
 }))
 
-
 #### Add columns to fill in to meta_df ####
 for (ac in agg_columns){
   meta_df[,paste0(ac,"_g")] <- meta_df[,ac]
@@ -177,10 +176,12 @@ for (i in seq_along(1:nrow(meta_df))){
   if (site == "Purdue"){
     # asfddsf
     if (id %in% purdue_meta$short_id){
-      my_grams <- meta_df[i ,paste0(agg_columns)] + pseudo_c
+      my_grams <- meta_df[i ,paste0(agg_columns)]
+      my_grams[is.na(my_grams)] <- 0
+      my_grams <- my_grams + pseudo_c
       meta_df[i ,paste0(agg_columns,"_g")] <- my_grams
       my_bw <- purdue_meta[purdue_meta$short_id == id, "Wt (kg)"]
-      my_g_per_kg_bw <- meta_df[i, agg_columns]/as.numeric(my_bw)
+      my_g_per_kg_bw <- my_grams/as.numeric(my_bw)
       meta_df[i ,paste0(agg_columns,"_g_per_kg_bw")] <- my_g_per_kg_bw
       my_g_per_bmi <- my_grams/as.numeric(my_bmi)
       meta_df[i ,paste0(agg_columns,"_g_per_bmi")] <- my_g_per_bmi
