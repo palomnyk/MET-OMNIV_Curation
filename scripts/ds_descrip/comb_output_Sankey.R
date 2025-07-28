@@ -3,7 +3,6 @@
 # X metabolomic elements by feature importance
 # Left nodes = respnse feature
 # Right nodes = metabolites
-#
 
 rm(list = ls()) #clear workspace
 
@@ -27,26 +26,25 @@ source(file.path("scripts","data_org", "data_org_func.R"))
 
 #### Parse command line arguments ####
 option_list <- list(
-  # optparse::make_option(c("-f", "--featimp_path"), type="character",
-  #                       # default = "output/no_map_auto_protein/tables/feat_imp_all_sites-demo-log-filt_all_bat_norm_imput-chem-auto_protein.csv",
-  #                       default = "/project/nhanes_ml/beef_biomarkers/output/ml_eval/tables/reorg-chicken-shap_feat_imp-demo-log-filt_all_bat_norm_imput-chem-.csv",
-  #                       help="path of first csv"),
-  # optparse::make_option(c("-s", "--output_dir"), type="character",
-  #                       default = "no_map", help="dir in /output"),
-  # optparse::make_option(c("-o", "--out_name"), type="character",
-  #                       default = "metabolites_Sankey.html",
-  #                       help="Path of output csv."),
-  # optparse::make_option(c("-t", "--accuracy_threshold"), type="numeric",
-  #                       default = -1000000000,
-  #                       help="Threshold for score for inclusion in graphic."),
-  # optparse::make_option(c("-g", "--grouping_column"), type="character",
-  #                       # default = "response_var",
-  #                       default = "SITE",
-  #                       help="Column for grouping - not features"),
-  # optparse::make_option(c("-x", "--top_X"), type="integer",
-  #                       default = 5,
-  #                       help="Number of comparison features in plot.")
-  
+  optparse::make_option(c("-f", "--featimp_path"), type="character",
+                        # default = "output/no_map_auto_protein/tables/feat_imp_all_sites-demo-log-filt_all_bat_norm_imput-chem-auto_protein.csv",
+                        default = "output/ml_eval/tables/reorg-chicken-shap_feat_imp-demo-log-filt_all_bat_norm_imput-chem-.csv",
+                        help="path of first csv"),
+  optparse::make_option(c("-s", "--output_dir"), type="character",
+                        default = "no_map", help="dir in /output"),
+  optparse::make_option(c("-o", "--out_name"), type="character",
+                        default = "metabolites_Sankey.html",
+                        help="Path of output csv."),
+  optparse::make_option(c("-t", "--accuracy_threshold"), type="numeric",
+                        default = -1000000000,
+                        help="Threshold for score for inclusion in graphic."),
+  optparse::make_option(c("-g", "--grouping_column"), type="character",
+                        # default = "response_var",
+                        default = "SITE",
+                        help="Column for grouping - not features"),
+  optparse::make_option(c("-x", "--top_X"), type="integer",
+                        default = 5,
+                        help="Number of comparison features in plot.")
   
 );
 opt_parser <- optparse::OptionParser(option_list=option_list);
@@ -64,7 +62,7 @@ top_X <- opt$top_X
 
 #### Loading in data ####
 feat_imp <- read.csv(opt$featimp_path, check.names = FALSE)
-
+print(feat_imp)
 #### Org data ####
 ave_accuracies <- aggregate(feat_imp$accuracy, by=list(feat_imp[,opt$grouping_column,]), mean)
 #remove features below threshold
@@ -118,12 +116,13 @@ p <- htmlwidgets::prependContent(p, htmltools::tags$h1("opt"))
 # p <- htmlwidgets::appendContent(p, htmltools::tags$p("Higgins KA, Rawal R, Kramer M, Baer DJ, Yerke A, Klurfeld DM. An overview of reviews on the association of low calorie sweetener consumption with body weight and adiposity. Advances in Nutrition (accepted)."))
 
 print("save network")
-Sys.setenv(RSTUDIO_PANDOC="/R/RStudio/bin/pandoc")
-Sys.setenv(OPENSSL_CONF="/dev/null")
-saveNetwork(p, file=file.path(output_dir, "graphics", opt$out_name), selfcontained = FALSE)
+saveNetwork(p, file=file.path(opt$out_name), selfcontained = TRUE)
 
-# webshot::install_phantomjs()
-webshot(file.path(output_dir, "graphics", opt$out_name), paste0(opt$out_name, ".pdf"))
+print("Make pdf")
+Sys.setenv(OPENSSL_CONF="/dev/null")
+# webshot::install_phantomjs(force = TRUE)
+webshot(url = opt$out_name,
+        file = file.path(paste0(opt$out_name,".pdf")))
 
 print("End R script")
 
