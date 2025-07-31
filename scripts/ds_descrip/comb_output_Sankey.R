@@ -33,7 +33,7 @@ option_list <- list(
   optparse::make_option(c("-s", "--output_dir"), type="character",
                         default = "no_map", help="dir in /output"),
   optparse::make_option(c("-o", "--out_name"), type="character",
-                        default = "metabolites_Sankey.html",
+                        default = "output/nomap/graphics/metabolites_Sankey.html",
                         help="Path of output csv."),
   optparse::make_option(c("-t", "--accuracy_threshold"), type="numeric",
                         default = -1000000000,
@@ -45,7 +45,6 @@ option_list <- list(
   optparse::make_option(c("-x", "--top_X"), type="integer",
                         default = 5,
                         help="Number of comparison features in plot.")
-  
 );
 opt_parser <- optparse::OptionParser(option_list=option_list);
 opt <- parse_args(opt_parser);
@@ -111,18 +110,18 @@ p <- sankeyNetwork(Links = links, Nodes = nodes, Source = "source",
                    height = 500, width = 500)
 p
 
-p <- htmlwidgets::prependContent(p, htmltools::tags$h1("opt"))
+p <- htmlwidgets::prependContent(p, htmltools::tags$h1(sub('\\..[^\\.]*$', '', basename(opt$featimp_path))))
 # p <- htmlwidgets::appendContent(p, htmltools::tags$p("*, SR that included children/adolescents only; ~, SR that included only adults; all other SR included all age groups."))
 # p <- htmlwidgets::appendContent(p, htmltools::tags$p("Higgins KA, Rawal R, Kramer M, Baer DJ, Yerke A, Klurfeld DM. An overview of reviews on the association of low calorie sweetener consumption with body weight and adiposity. Advances in Nutrition (accepted)."))
 
-print("save network")
+print(paste("save network:", opt$out_name))
 saveNetwork(p, file=file.path(opt$out_name), selfcontained = TRUE)
 
 print("Make pdf")
 Sys.setenv(OPENSSL_CONF="/dev/null")
 # webshot::install_phantomjs(force = TRUE)
 webshot(url = opt$out_name,
-        file = file.path(paste0(opt$out_name,".pdf")))
+        file = file.path(paste0(sub('\\..[^\\.]*$', '', opt$out_name),".pdf")))#remove extention and add .pdf ext
 
 print("End R script")
 

@@ -63,17 +63,21 @@ dir_files <- list.files(file.path(opt$in_dir), pattern = ".csv")
 if (opt$data_pattern != FALSE){
   dir_files <- Filter(function(x) grepl(opt$data_pattern, x), dir_files)
 }
+print(length(dir_files))
 # take only files from our metabolomics level
 if (opt$metblmcs_lev != FALSE){
   dir_files <- Filter(function(x) grepl(paste0("-",opt$metblmcs_lev,"-"), x), dir_files)
 }
+print(length(dir_files))
 # use grep with multiple options to filter dir_files
 if (opt$accuracy_pattern != FALSE){
   dir_files <- Filter(function(x) grepl(opt$accuracy_pattern, x), dir_files)
 }
+print(dir_files)
 # Filter for only listed SITEs
 # hack for match against multiple arguments
 dir_files <- Filter(function(x) grepl(paste(clean_sites,collapse="|"), x), dir_files)
+print(length(dir_files))
 print(paste("data files found:", paste(dir_files, collapse = ", ")))
 
 #### Reorganize dataframes to combine terms ####
@@ -81,11 +85,14 @@ my_resp_vars <- c()
 all_sites <- c()
 for (fl in dir_files) {
   my_file <- read.csv(file.path(opt$in_dir, fl), check.names = FALSE)
+  print(names(my_file)[1:10])
   my_site <- clean_sites[unlist(lapply(clean_sites, function(x){grepl(x, fl)}))]#determines
   all_sites <- c(all_sites, my_site)
   my_resp_vars <- c(my_resp_vars, my_file$response_var)
 }
 
+print(paste("my_resp_vars:", length(my_resp_vars)))
+print(paste("all_sites:", length(all_sites)))
 print(table(my_resp_vars))
 
 for (rv in unique(my_resp_vars)) {
@@ -113,7 +120,9 @@ for (rv in unique(my_resp_vars)) {
   }# for loop for files
   my_df$response_var <- unlist(my_sites)
   names(my_df)[names(my_df) == "response_var"] <- "SITE"
-  write.csv(my_df, file = file.path(output_dir, "tables", my_tabl_name),
+  outfile <- file.path(output_dir, "tables", my_tabl_name)
+  print(paste("Writing to", outfile))
+  write.csv(my_df, file = outfile,
             row.names = FALSE)
 }# For loop for response vars
 
