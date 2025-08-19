@@ -1,5 +1,5 @@
 # Author: Aaron Yerke (aaronyerke@gmail.com)
-# Script for making PCA
+# Script for making PCA of factors
 
 rm(list = ls()) #clear workspace
 
@@ -11,39 +11,56 @@ if (!requireNamespace("openxlsx", quietly = TRUE))  BiocManager::install("openxl
 library("openxlsx")
 if (!require("ggplot2")) BiocManager::install("ggplot2")
 library("ggplot2")
-
+if (!requireNamespace("optparse", quietly = TRUE)) BiocManager::install("optparse")
+library("optparse")
 print("Loaded packages")
+
+#### Parse command line arguments ####
+option_list <- list(
+  optparse::make_option(c("-m", "--matad_path"), type="character",
+                        # default = "data/mapping/all_sites_metadata.csv",
+                        default = "data/diet/nutrition_data/all_sites-meats_normalize_full_df.csv",
+                        help="data from which colors and symbols will come"),
+  optparse::make_option(c("-p", "--points"), type="character",
+                        # default = "data/metabolomics/filt_all_bat_norm_imput-chem.csv",
+                        default = "data/metabolomics/demo-log-filt_all_bat_norm_imput-chem.csv",
+                        help="data from which colors and symbols will come"),
+  optparse::make_option(c("-s", "--output_dir"), type="character",
+                        default = "norm_meat", help="dir in /output"),
+  optparse::make_option(c("-o", "--out_name"), type="character",
+                        default = "metabolite_pca",
+                        help="main output label without prefixes")
+);
+opt_parser <- optparse::OptionParser(option_list=option_list);
+opt <- parse_args(opt_parser);
+
+print("Commandline arguments:")
+print(opt)
 
 #### Establish directory layout and other constants ####
 metabo_f <- file.path("data", "metabolomics", "UARS-01-23ML+",
-            "UARS-01-23ML+ DATA TABLES (DATA ADJUSTED BY BASELINE SAMPLES FROM EACH SITE).xlsx")
-output_dir <- file.path("output", "no_map_chick_is_not_beef")
+                      "UARS-01-23ML+ DATA TABLES (EDTA PLASMA SAMPLES).xlsx")
+output_dir <- file.path("output", opt$output_dir)
 dir.create(file.path(output_dir, "graphics"))
 dir.create(file.path(output_dir, "tables"))
 
-metad_intrest <- c("beef_level", "beef_level_oz")
+metad_intrest <- c("SITE", "sex")
 
 #### Loading in data ####
-mtbmcs_df <-openxlsx::read.xlsx(metabo_f,
-                        sheet = "Log-Transformed",
-                        rowNames = TRUE)
-meta_df <- read.csv(file = file.path("data", "mapping", "all_sites_metadata.csv"),
+orig_mtbmcs_df <- read.csv(file = file.path(opt$points),
+                           header = TRUE, check.names = FALSE, row.names = "PARENT_SAMPLE_NAME")
+meta_df <- read.csv(file = file.path(opt$matad_path),
                     header = TRUE, check.names = FALSE, row.names = 1)
 chem_link <- openxlsx::read.xlsx(xlsxFile = metabo_f,
                                  sheet = "Chemical Annotation")
 
 #### Data reorganization ####
-names(mtbmcs_df) <- chem_link$CHEMICAL_NAME[match(names(mtbmcs_df), chem_link$CHEM_ID)]
-
-mtbmcs_df <- mtbmcs_df[row.names(meta_df),]
+mtbmcs_df <- orig_mtbmcs_df[row.names(meta_df),]
 stopifnot(identical(row.names(mtbmcs_df), row.names(meta_df)))
+meta_df$sex[meta_df$sex == 1] <- "male"
+meta_df$sex[meta_df$sex == 0] <- "female"
 
 #### PCA ####
-keep_rows <- row.names(meta_df)[which(meta_df$beef_level != "unknown")]
-
-meta_df <- meta_df[keep_rows,]
-mtbmcs_df <- mtbmcs_df[keep_rows,]
-
 meta_df <-  type.convert(meta_df, as.is = TRUE)#Reset column types automatically (for factors)
 
 print("Checking for columns/chems with zero variance")
@@ -68,82 +85,185 @@ my_var_exp <- my_prcmp$sdev^2/sum(my_prcmp$sdev^2)
 
 my_order <- c("USDA-MED", "PSU-MED", "Purdue", "MB/IIT")
 
-meta_df$CORRECTED_SITE <- factor(meta_df$CORRECTED_SITE, levels = c(my_order))
+meta_df$SITE <- factor(meta_df$SITE, levels = c(my_order))
 
-#### Make plots ####
-pdf(file.path(output_dir, "graphics", "beef_level_PCA.pdf"), width = 6, height = 4)
-for(md in metad_intrest){
-  # g <- ggplot2::ggplot(myPCA, aes(x=PC1, y=PC2, col = factor(meta_df[,md]))) +
-  #   ggplot2::geom_point(aes(shape = factor(meta_df$CORRECTED_SITE, ))) +
-  #   ggtitle(paste0("PCA of Metabolomics")) + # Blank Title for the Graph
-  #   xlab(paste0("PC 1, ", round(my_var_exp[1],2)*100, "%")) +
-  #   ylab(paste0("PC 2, ", round(my_var_exp[2],2)*100, "%")) +
-  #   labs(color = "BEEF INTAKE", shape = "Site") +
-  #   theme(text=element_text(size=18))
-  # print(g)
-  meta_fact <- factor(meta_df[,md])
-  t_pval_1 <- summary(aov(myPCA$PC1~meta_fact))[[1]][["Pr(>F)"]][[1]]#do anova and extract pvalue
-  print(paste("PVAL PC1: ", t_pval_1))
-  t_pval_2 <- summary(aov(myPCA$PC2~meta_fact))[[1]][["Pr(>F)"]][[1]]#do anova and extract pvalue
-  print(paste("PVAL PC2: ", t_pval_2))
-  pc1_symb <- ifelse( t_pval_1 < 0.05, yes = "*", no = "")
-  pc2_symb <- ifelse( t_pval_2 < 0.05, yes = "*", no = "")
+#### Make plots of meat_levels ####
+metad_intrest <- c("SITE", "sex")
+##### Get pc1 and pc2 pvalues for pvalue correction #####
+pc1_pvals <- c()
+pc2_pvals <- c()
+for(m in 1:length(metad_intrest)){
+  md <- metad_intrest[m]
+  use_cols <- !is.na(meta_df[,md])
+  meta_fact <- factor(meta_df[use_cols,md])
+  sub_pca <- myPCA[use_cols,]
+  print(levels(meta_fact))
+  # anova_pval_1 <- summary(aov(myPCA$PC1~meta_fact))[[1]][["Pr(>F)"]][[1]]#do anova and extract pvalue
+  anova_pval_1 <- kruskal.test(sub_pca$PC1~meta_fact)$p.value
+  pc1_pvals <- c(pc1_pvals, anova_pval_1)
+  anova_pval_2 <- kruskal.test(sub_pca$PC2~meta_fact)$p.value
+  pc2_pvals <- c(pc1_pvals, anova_pval_2)
+}
+pc1_adj_pv <- p.adjust(pc1_pvals, method = "BH")
+pc2_adj_pv <- p.adjust(pc2_pvals, method = "BH")
+
+##### Loop through and make plots #####
+factor_plots <- lapply(1:length(metad_intrest), function(m){
+  md <- metad_intrest[m]
+  use_cols <- !is.na(meta_df[,md])
+  meta_fact <- factor(meta_df[use_cols,md])
+  pc1_adj <- pc1_adj_pv[m]
+  pc2_adj <- pc2_adj_pv[m]
+  pc1_symb <- ifelse( pc1_adj < 0.05, yes = "*", no = "")
+  pc2_symb <- ifelse( pc2_adj < 0.05, yes = "*", no = "")
   g <- ggplot2::ggplot(myPCA, aes(x=PC1, y=PC2, col = meta_fact, group=meta_fact)) +
-    ggplot2::geom_point(aes(shape = factor(meta_df$CORRECTED_SITE))) +
-    # ggplot2::ggtitle(paste0("PCA of Metabolomics")) + # Blank Title for the Graph
+    # ggplot2::geom_point(aes(shape = factor(meta_df$SITE))) +
+    ggplot2::geom_point() +
+    ggplot2::ggtitle(paste0(md)) + # Blank Title for the Graph
     ggplot2::xlab(paste0("PC1", pc1_symb, ", ", round(my_var_exp[1],2)*100, "%")) +
     ggplot2::ylab(paste0("PC2", pc2_symb, ", ", round(my_var_exp[2],2)*100, "%")) +
     ggplot2::labs(color = md, shape = "Site") +
     ggplot2::theme(text=element_text(size=18)) +
     stat_ellipse()
-  ggplot2::ggsave(g, device = "png",
-                  filename = file.path(output_dir, "graphics", paste0(md, "_PCA_elipse.png")))
-  print(g)
-  
-  g <- ggplot2::ggplot(myPCA, aes(x=PC1, y=PC2, col = meta_fact, group=meta_fact)) +
-    ggplot2::geom_point(aes(shape = factor(meta_df$CORRECTED_SITE))) +
-    # ggplot2::ggtitle(paste0("PCA of Metabolomics")) + # Blank Title for the Graph
-    ggplot2::xlab(paste0("PC1", pc1_symb, ", ", round(my_var_exp[1],2)*100, "%")) +
-    ggplot2::ylab(paste0("PC2", pc2_symb, ", ", round(my_var_exp[2],2)*100, "%")) +
-    ggplot2::labs(color = md, shape = "Site") +
-    ggplot2::theme(text=element_text(size=18)) +
-  ggplot2::ggsave(g, device = "png",
-                  filename = file.path(output_dir, "graphics", paste0(md, "_PCA.png")))
-  print(g)
-  
+})
+
+pc1_plots <- lapply(1:length(metad_intrest), function(m){
+  md <- metad_intrest[m]
+  meta_fact <- factor(meta_df[!is.na(meta_df[,md]),md])
+  pc1_adj <- pc1_adj_pv[m]
+  pc2_adj <- pc2_adj_pv[m]
+  pc1_symb <- ifelse( pc1_adj < 0.05, yes = "*", no = "")
+  pc2_symb <- ifelse( pc2_adj < 0.05, yes = "*", no = "")
   g <- ggplot2::ggplot(myPCA, aes(x=PC1, y=meta_fact)) +
     ggplot2::geom_boxplot() +
-    ggplot2::ggtitle(paste0("Boxplot of PC1")) + # Blank Title for the Graph
+    ggplot2::ggtitle(paste0(md, " PC1")) + # Blank Title for the Graph
     ggplot2::xlab(paste0("PC1", pc1_symb)) +
     ggplot2::ylab(paste0(md)) +
     # ggplot2::labs(color = md, shape = "Site") +
-    ggplot2::theme(text=element_text(size=18))
-  print(g)
-  
+    ggplot2::theme(text=element_text(size=18)) +
+    ggpubr::geom_pwc(method = "wilcox.test", hide.ns = F)
+})
+
+pc2_plots <- lapply(1:length(metad_intrest), function(m){
+  md <- metad_intrest[m]
+  meta_fact <- factor(meta_df[!is.na(meta_df[,md]),md])
+  pc1_adj <- pc1_adj_pv[m]
+  pc2_adj <- pc2_adj_pv[m]
+  pc1_symb <- ifelse( pc1_adj < 0.05, yes = "*", no = "")
+  pc2_symb <- ifelse( pc2_adj < 0.05, yes = "*", no = "")
   g <- ggplot2::ggplot(myPCA, aes(x=PC2, y=meta_fact)) +
     ggplot2::geom_boxplot() +
-    ggplot2::ggtitle(paste0("Boxplot of PC2")) + # Blank Title for the Graph
-    ggplot2::xlab(paste0("PC2", pc1_symb)) +
+    ggplot2::ggtitle(paste0(md, " PC2")) +
+    ggplot2::xlab(paste0("PC2", pc2_symb)) +
     ggplot2::ylab(paste0(md)) +
     # ggplot2::labs(color = md, shape = "Site") +
-    ggplot2::theme(text=element_text(size=18))
-  print(g)
-  
-}
+    ggplot2::theme(text=element_text(size=18)) +
+    ggpubr::geom_pwc(method = "wilcox.test", hide.ns = TRUE)
+})
 
-g <- ggplot2::ggplot(myPCA, aes(x=PC1, y=PC2, col = meta_df[,"beef_level_oz"])) +
-  ggplot2::geom_point(aes(shape = factor(meta_df$CORRECTED_SITE))) +
-  # ggplot2::ggtitle(paste0("PCA of Metabolomics")) + # Blank Title for the Graph
-  ggplot2::xlab(paste0("PC1", pc1_symb, ", ", round(my_var_exp[1],2)*100, "%")) +
-  ggplot2::ylab(paste0("PC2", pc2_symb, ", ", round(my_var_exp[2],2)*100, "%")) +
-  ggplot2::labs(color = md, shape = "Site") +
-  ggplot2::theme(text=element_text(size=18)) +
-  ggplot2::scale_colour_gradient(low = "cornflowerblue", high = "deeppink4", na.value = NA)
-  # ggplot2::scale_colour_gradient(colors = heat.colors(2))
-  # heat.colors(n, alpha, rev = FALSE)
-  print(g)
+# pdf(file.path(output_dir, "graphics", paste0("factor_", opt$out_name,".pdf")),
+#     width = 25, height = 2.5*length(metad_intrest))
 
-dev.off()
+factor_plots <- c(factor_plots, pc1_plots, pc2_plots)
+lay <- rbind(c(1,1,1,3,3,5,5),
+             c(1,1,1,3,3,5,5),
+             c(2,2,2,4,4,6,6),
+             c(2,2,2,4,4,6,6))
+
+grid.arrange(grobs=factor_plots, layout_matrix = lay,
+             top="Categorized PCA plots")
+
+# dev.off()
+# #### Make plots of meat_levels ####
+# metad_intrest <- names(meta_df)[!numeric_cols_TF]
+# ##### Get pc1 and pc2 pvalues for pvalue correction #####
+# # pc1_pvals <- c()
+# # pc2_pvals <- c()
+# for(m in 1:length(metad_intrest)){
+#   md <- metad_intrest[m]
+#   meta_fact <- factor(meta_df[,md])
+#   print(levels(meta_fact))
+#   # anova_pval_1 <- summary(aov(myPCA$PC1~meta_fact))[[1]][["Pr(>F)"]][[1]]#do anova and extract pvalue
+#   # anova_pval_1 <- kruskal.test(myPCA$PC1~meta_fact)$p.value
+#   # pc1_pvals <- c(pc1_pvals, anova_pval_1)
+#   # anova_pval_2 <- kruskal.test(myPCA$PC2~meta_fact)$p.value
+#   # pc2_pvals <- c(pc1_pvals, anova_pval_2)
+# }
+# # pc1_adj_pv <- p.adjust(pc1_pvals, method = "BH")
+# # pc2_adj_pv <- p.adjust(pc2_pvals, method = "BH")
+# 
+# ##### Loop through and make plots #####
+# factor_plots <- lapply(1:length(metad_intrest), function(m){
+#   md <- metad_intrest[m]
+#   meta_fact <- factor(meta_df[,md])
+#   pc1_adj <- pc1_adj_pv[m]
+#   pc2_adj <- pc2_adj_pv[m]
+#   # pc1_symb <- ifelse( pc1_adj < 0.05, yes = "*", no = "")
+#   # pc2_symb <- ifelse( pc2_adj < 0.05, yes = "*", no = "")
+#   g <- ggplot2::ggplot(myPCA, aes(x=PC1, y=PC2, col = meta_fact, group=meta_fact)) +
+#     # ggplot2::geom_point(aes(shape = factor(meta_df$SITE))) +
+#     ggplot2::geom_point() +
+#     ggplot2::ggtitle(paste0(md)) + # Blank Title for the Graph
+#     ggplot2::xlab(paste0("PC1", pc1_symb, ", ", round(my_var_exp[1],2)*100, "%")) +
+#     ggplot2::ylab(paste0("PC2", pc2_symb, ", ", round(my_var_exp[2],2)*100, "%")) +
+#     ggplot2::labs(color = md, shape = "Site") +
+#     ggplot2::theme(text=element_text(size=18)) +
+#     stat_ellipse()
+# })
+# 
+# pc1_plots <- lapply(1:length(metad_intrest), function(m){
+#   md <- metad_intrest[m]
+#   meta_fact <- factor(meta_df[,md])
+#   pc1_adj <- pc1_adj_pv[m]
+#   pc2_adj <- pc2_adj_pv[m]
+#   pc1_symb <- ifelse( pc1_adj < 0.05, yes = "*", no = "")
+#   pc2_symb <- ifelse( pc2_adj < 0.05, yes = "*", no = "")
+#   g <- ggplot2::ggplot(myPCA, aes(x=PC1, y=meta_fact)) +
+#     ggplot2::geom_boxplot() +
+#     ggplot2::ggtitle(paste0(md, " PC1")) + # Blank Title for the Graph
+#     ggplot2::xlab(paste0("PC1", pc1_symb)) +
+#     ggplot2::ylab(paste0(md)) +
+#     # ggplot2::labs(color = md, shape = "Site") +
+#     ggplot2::theme(text=element_text(size=18))
+# })
+# 
+# pc2_plots <- lapply(1:length(metad_intrest), function(m){
+#   md <- metad_intrest[m]
+#   meta_fact <- factor(meta_df[,md])
+#   pc1_adj <- pc1_adj_pv[m]
+#   pc2_adj <- pc2_adj_pv[m]
+#   pc1_symb <- ifelse( pc1_adj < 0.05, yes = "*", no = "")
+#   pc2_symb <- ifelse( pc2_adj < 0.05, yes = "*", no = "")
+#   g <- ggplot2::ggplot(myPCA, aes(x=PC2, y=meta_fact)) +
+#     ggplot2::geom_boxplot() +
+#     ggplot2::ggtitle(paste0(md, " PC2")) +
+#     ggplot2::xlab(paste0("PC2", pc2_symb)) +
+#     ggplot2::ylab(paste0(md)) +
+#     # ggplot2::labs(color = md, shape = "Site") +
+#     ggplot2::theme(text=element_text(size=18))
+# })
+# 
+# pdf(file.path(output_dir, "graphics", paste0("factor_", opt$out_name,".pdf")),
+#     width = 25, height = 2.5*9)
+# 
+# factor_plots <- c(factor_plots, pc1_plots, pc2_plots)
+# lay <- rbind(c(1,1,10,6,6,15),
+#              c(1,1,19,6,6,24),
+#              c(2,2,11,7,7,16),
+#              c(2,2,20,7,7,25),
+#              c(3,3,12,8,8,17),
+#              c(3,3,21,8,8,26),
+#              c(4,4,13,9,9,18),
+#              c(4,4,22,9,9,27),
+#              c(5,5,14,NA,NA,NA),
+#              c(5,5,23,NA,NA,NA))
+#                
+# grid.arrange(grobs=factor_plots, layout_matrix = lay,
+#              top="Categorized PCA plots")
+# 
+# dev.off()
+
+print("End R script.")
 
 print("End R script.")
 
