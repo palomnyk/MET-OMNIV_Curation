@@ -33,8 +33,6 @@ g_per_bw_meats = [s + "_g_per_kg_bw" for s in meat_types]
 sub_demo = ["male_only", "female_only","age24_42","age42_73",
 	"bmi20.35_27.9", "bmi27.9_40.5"]
 
-age_demo = ["age24_42","age42_73"]
-
 rule completed:
 	input:
 # Nutrition data reorganization
@@ -52,15 +50,15 @@ rule completed:
 		expand("output/norm_meat/graphics/norm_meat-{metblmcs_lev}-{norm_meat}-site_comparison.pdf",
 		metblmcs_lev=metabolomics_levels, norm_meat=normaliz_meats),
 		# Check if demographics change output of biomarker model
-		expand("output/demo_scor/graphics/demo_comp-{metblmcs_lev}-{norm_meat}-{sub_demo}-site_compar.pdf",
-		metblmcs_lev=metabolomics_levels, norm_meat=normaliz_meats, sub_demo=sub_demo),
+		# expand("output/demo_scor/graphics/demo_comp-{metblmcs_lev}-{norm_meat}-{sub_demo}-site_compar.pdf",
+		# metblmcs_lev=metabolomics_levels, norm_meat=normaliz_meats, sub_demo=sub_demo),
 		# Check if age/sex/BMI changes output of biomarker model
-		expand("output/demo_scor/graphics/demo_comp-{metblmcs_lev}-{norm_meat}-age-site_compar.pdf",
-		metblmcs_lev=metabolomics_levels, norm_meat=normaliz_meats),
-		expand("output/demo_scor/graphics/demo_comp-{metblmcs_lev}-{norm_meat}-sex-site_compar.pdf",
-		metblmcs_lev=metabolomics_levels, norm_meat=normaliz_meats),
-		expand("output/demo_scor/graphics/demo_comp-{metblmcs_lev}-{norm_meat}-bmi-site_compar.pdf",
-		metblmcs_lev=metabolomics_levels, norm_meat=normaliz_meats),
+		# expand("output/demo_scor/graphics/demo_comp-{metblmcs_lev}-{norm_meat}-age-site_compar.pdf",
+		# metblmcs_lev=metabolomics_levels, norm_meat=normaliz_meats),
+		# expand("output/demo_scor/graphics/demo_comp-{metblmcs_lev}-{norm_meat}-sex-site_compar.pdf",
+		# metblmcs_lev=metabolomics_levels, norm_meat=normaliz_meats),
+		# expand("output/demo_scor/graphics/demo_comp-{metblmcs_lev}-{norm_meat}-bmi-site_compar.pdf",
+		# metblmcs_lev=metabolomics_levels, norm_meat=normaliz_meats),
 	# Compare normalizations
 		# Plot with tree
 		"output/norm_meat/graphics/compr_norm_tree.png",
@@ -108,7 +106,8 @@ rule completed:
 		# expand("output/ml_eval/tables/rnd_shuf-{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-auto_protein_scores.csv",
 		# metblmcs_lev=metabolomics_levels,clean_site=clean_sites),
 		# i expand("output/ml_eval/graphics/heatmap_metabolite_{norm_meat}.pdf", norm_meat=normaliz_meats),
-		# expand("output/ml_eval/graphics/best_gen_model_metabolite_{norm_meat}.pdf", norm_meat=normaliz_meats),
+		expand("output/ml_eval/graphics/best_gen_model_metabolite_{norm_meat}.pdf", norm_meat=normaliz_meats),
+		"output/ml_eval/tables/max_score_combine_table.csv",
 # For making github readme:
 		"workflow/reports/rulegraph.png",
 		"workflow/reports/dag.png"
@@ -742,6 +741,20 @@ rule heatmap_train_test_seperate_sites:
 			--outname {output[0]}\
 			--group_pattern "'-demo-log-filt_all_bat_norm_imput-chem-{wildcards.norm_meat}-train_test_sep_scores'"
 		"""
+
+rule find_highest_score_most_general_model:
+	input: 
+		expand("output/ml_eval/tables/heatmap_data-demo-log-filt_all_bat_norm_imput-chem-{norm_meat}-train_test_sep.csv",
+		norm_meat=normaliz_meats)
+	output:
+		"output/ml_eval/tables/max_score_combine_table.csv"
+	shell:	
+		"""
+		scripts/data_org/find_highest_score_most_general_model.R
+		"""
+
+
+
 rule best_gen_model_chem:
 	input:
 		"output/ml_eval/tables/heatmap_data-demo-log-filt_all_bat_norm_imput-chem-{norm_meat}-train_test_sep.csv"
@@ -754,18 +767,18 @@ rule best_gen_model_chem:
 			--outfile {output[0]}
 		"""
 
-# rule make_demo_metabolom_subsets:
-# 	input:
-# 		"data/metabolomics/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv"
-# 	output:
-# 		expand("data/metabolomics/all_site-{sub_demo}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv",
-# 		sub_demo=sub_demo, metblmcs_lev=metabolomics_levels)
-# 	script:
-# 		"""
-# 		Rscript scripts/data_org/subset_demo_metabol.R\
-# 			--infile {input[0]}\
-# 			--outdir data/metabolomics
-# 		"""
+rule make_demo_metabolom_subsets:
+	input:
+		"data/metabolomics/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv"
+	output:
+		expand("data/metabolomics/all_site-{sub_demo}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv",
+		sub_demo=sub_demo, metblmcs_lev=metabolomics_levels)
+	script:
+		"""
+		Rscript scripts/data_org/subset_demo_metabol.R\
+			--infile {input[0]}\
+			--outdir data/metabolomics
+		"""
 
 rule random_forest_meat_biomarker_demo: #Random forest to compare different subsets of demographic data
 	input:
@@ -901,3 +914,4 @@ rule readme_images:
 		snakemake --rulegraph |dot -Tpng > workflow/reports/rulegraph.png
 		snakemake --dag |dot -Tpng > workflow/reports/dag.png
 		"""
+
