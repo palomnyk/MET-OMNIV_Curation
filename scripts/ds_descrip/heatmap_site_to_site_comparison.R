@@ -53,6 +53,7 @@ clean_sites <- c("PSU_MED", "MB_IIT", "Purdue", "USDA_MED", "all_sites", "PSU_ME
                 "MB_IIT_Purdue_USDA_MED")
 group_pattern <- gsub("\\'", "", opt$group_pattern)
 print(paste("clean group pattern:", group_pattern))
+# location for saving big table
 bt_file_path <-file.path(opt$out_subdir,"tables",
                          paste0("heatmap_data", gsub("_scores", "", group_pattern), ".csv"))
 
@@ -74,9 +75,12 @@ print(paste("data files found:", paste(dir_files, collapse = ", ")))
 
 # create empty vectors to fill
 response_var <- vector(mode = "character")
+normalization <- vector(mode = "character")
 training <- vector(mode = "character")
 testing <- vector(mode = "character")
 score <- vector(mode = "numeric")
+score_path <- vector(mode = "character")
+shap_path <- vector(mode = "character")
 
 ##### Iterate through files and populate variables #####
 for (i in 1:length(dir_files)){
@@ -84,17 +88,22 @@ for (i in 1:length(dir_files)){
   my_split <- unlist(strsplit(dat_f, "-test_"))
   my_pred <- gsub("train_", "", my_split[1])
   my_resp <- unlist(strsplit(my_split[2], paste0(group_pattern)))[1]
-  # print(paste("Pred:", my_resp, "Resp:", my_resp))
-
+  print(paste("Pred:", my_resp, "Resp:", my_resp))
+  meat_split <- unlist(strsplit(dat_f, "-meats_"))[2]
+  meat_split <- gsub("-train_test_sep_scores.csv", "", meat_split)
   dat_f_path <- file.path(opt$in_dir, dat_f)
+  shap_fname <- paste0("shap_feat_imp_", gsub("_scores", "", dat_f))
   if (file.size(dat_f_path) > 0){
     my_table <- read.csv(dat_f_path, header = T)
     for (r in 1:nrow(my_table)){
       # if(my_table$response_var[r] %in% c("beef", "chicken", "pork", "turkey", "processed", "meat")){
       response_var <- c(response_var, rep(my_table$response_var[r], length(3:ncol(my_table))))
+      normalization <- c(normalization, rep(meat_split, length(3:ncol(my_table))))
       training <- c(training, rep(my_pred, length(3:ncol(my_table))))
       testing <- c(testing, rep(my_resp, length(3:ncol(my_table))))
       score <- c(score, unlist(my_table[r, 3:ncol(my_table)]))
+      score_path <- c(score_path, rep(dat_f_path, length(3:ncol(my_table))))
+      shap_path <- c(shap_path, rep(file.path(opt$in_dir, shap_fname), length(3:ncol(my_table))))
       # }
     }
   }else{
@@ -102,7 +111,7 @@ for (i in 1:length(dir_files)){
   }
 }
 
-big_table <- data.frame(response_var, training, testing, score)
+big_table <- data.frame(response_var, normalization, training, testing, score, score_path, shap_path)
 big_table <- big_table[order(big_table$response_var),]
 
 overlap <- vector(length = nrow(big_table))

@@ -91,7 +91,7 @@ score_path <- vector(mode = "character")
 shap_path <- vector(mode = "character")
 group_name <- vector(mode = "character")
 
-##### Iterate through files and populate variables #####
+##### Iterate through files and populate variables for cross validation #####
 for (i in 1:length(dir_files)){
   dat_f <- dir_files[i]
   # print(dat_f)
@@ -113,7 +113,7 @@ for (i in 1:length(dir_files)){
         site_name <- c(site_name, rep(my_site, length(3:ncol(my_table))))
         ave_score <- mean(unlist(my_table[r, 3:ncol(my_table)]))
         score <- c(score, rep(ave_score, length(3:ncol(my_table))))
-        normalization <- c(normalization, rep(my_normaliz, length(3:ncol(my_table))))
+        normalization <- c(normalization, rep(end_normaliz, length(3:ncol(my_table))))
         group_name <- c(group_name, rep(my_table$response_var[r], length(3:ncol(my_table))))
         score_path <- c(score_path, rep(dat_f_path, length(3:ncol(my_table))))
         shap_fname <- paste0("shap_feat_imp_", my_site,"-demo-log-filt_all_bat_norm_imput-chem-", my_normaliz,".csv")
@@ -177,7 +177,7 @@ big_gm_table <- within(big_gm_table, rm("testing"))
 
 big_gm_table$group_name <- big_gm_table$response_var
 # Aggregate scores of sites and normalizations
-agg_gm_table <- aggregate(score ~ training + group_name + shap_path + score_path,
+agg_gm_table <- aggregate(score ~ training + group_name + shap_path + score_path + normalization,
                           big_gm_table, mean)
 
 #add column to hold naked response variables
@@ -205,14 +205,11 @@ for (rw in 1:nrow(max_combine_table)){
 
   out_table_name <- paste0(resp_var, "-", "cross_val_vs_full_ds.csv")
   cross_val_group_name <- max_combine_table$group_name_crss_val[rw]
-  cross_val_group_label <- paste(cross_val_group_name, 
-                                max_combine_table$site_name[rw],
-							  collapse="\n")
+  cross_val_group_label <- paste("cross_val:", max_combine_table$normalization_crss_val[rw], 
+                                max_combine_table$site_name[rw])
   full_ds_group_name <- max_combine_table$group_name_full_dataset[rw]
-  full_ds_group_label <- paste(full_ds_group_name, 
-                              max_combine_table$training[rw],
-                              round(max_combine_table$score_full_dataset[rw],3),
-							  collapse="\n")
+  full_ds_group_label <- paste("full_ds:", max_combine_table$normalization_full_dataset[rw], 
+                              max_combine_table$training[rw])
   cros_val_shap_df <- read.csv(file = max_combine_table$shap_path_crss_val[rw],
                               check.names = FALSE)
   cros_val_shap_df <- cros_val_shap_df[cros_val_shap_df$response_var == cross_val_group_name,]
