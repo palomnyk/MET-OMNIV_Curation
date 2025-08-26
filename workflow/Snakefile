@@ -585,7 +585,7 @@ rule copy_norm_meat_single_sites_to_new_out_folder:
 		expand("output/norm_meat_single/tables/shap_feat_imp_{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-{norm_meat}.csv",
 		metblmcs_lev=metabolomics_levels,clean_site=clean_sites, norm_meat=normaliz_meats),
 	run:
-		shell("mkdir mkdir -p output/norm_meat_single/tables")
+		shell("mkdir -p output/norm_meat_single/tables")
 		for f in input:
 			shell("""
 				cp {f} output/norm_meat_single/tables
