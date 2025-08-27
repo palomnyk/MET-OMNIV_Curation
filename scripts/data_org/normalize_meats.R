@@ -4,8 +4,9 @@
 # •USDA: Grams per 2000 calorie daily requirement
 # •MB/IIT: Grams eaten
 # •Purdue: Grams eaten
-# Need to convert PSU and USDA to grams.
-# Convert all to grams per kg bodyweight.
+# Converts PSU and USDA to grams.
+# Converts all to grams per kg bodyweight and grams per BMI
+# Removes outliers from each normalization
 
 rm(list = ls()) #clear workspace
 
@@ -174,12 +175,12 @@ for (i in seq_along(1:nrow(meta_df))){
     meta_df[i ,paste0(agg_columns,"_g_per_bmi")] <- my_g_per_bmi
   }
   if (site == "Purdue"){
-    # asfddsf
+    my_grams <- meta_df[i ,paste0(agg_columns)]
+    # stopifnot(treat == "VEG")
+    my_grams[is.na(my_grams)] <- 0
+    my_grams <- my_grams + pseudo_c
+    meta_df[i ,paste0(agg_columns,"_g")] <- my_grams
     if (id %in% purdue_meta$short_id){
-      my_grams <- meta_df[i ,paste0(agg_columns)]
-      my_grams[is.na(my_grams)] <- 0
-      my_grams <- my_grams + pseudo_c
-      meta_df[i ,paste0(agg_columns,"_g")] <- my_grams
       my_bw <- purdue_meta[purdue_meta$short_id == id, "Wt (kg)"]
       my_g_per_kg_bw <- my_grams/as.numeric(my_bw)
       meta_df[i ,paste0(agg_columns,"_g_per_kg_bw")] <- my_g_per_kg_bw
@@ -228,13 +229,13 @@ meat_group <- c()
 sample_group <- c()
 samples_removed <- c()
 percent_sample_lost <- c()
-z_score <- c()
 # Q3 <- c()
 # iqr <- c()
 
 for (ac in agg_columns){
   for (ns in norm_suffixes){
     col_name <- paste0(ac,ns)
+    print(col_name)
     my_col <- meta_df[,col_name]
     num_samples <- length(my_col[!is.na(my_col)])
     my_z <- abs(my_col-mean(my_col, na.rm = TRUE))/sd(my_col, na.rm = TRUE)
@@ -246,7 +247,6 @@ for (ac in agg_columns){
     meat_group <- c(meat_group, ac)
     sample_group <- c(sample_group, col_name)
     samples_removed <- c(samples_removed, num_rm)
-    z_score <- c(z_score, my_z)
     percent_sample_lost <- c(percent_sample_lost, num_rm/num_samples*100)
   }
 }
@@ -256,8 +256,7 @@ outlier_df <- data.frame(
   meat_group = meat_group,
   sample_group = sample_group,
   samples_removed = samples_removed,
-  percent_sample_lost = percent_sample_lost,
-  z_score <- z_score
+  percent_sample_lost = percent_sample_lost
 )
 
 write.csv(outlier_df, file = file.path(nut_dir, "z_score_outlier_info.csv"),
