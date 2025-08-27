@@ -100,12 +100,12 @@ for (i in 1:length(dir_files)){
 
 big_table <- data.frame(response_var, site_name, score)
 
-pdf(opt$out_file, width = 18, height = 8)
+pdf(opt$out_file, width = 24, height = 8)
 
 title_text <- paste("Group:", group_pattern, "| metabo lev:", opt$metblmcs_lev)
 #### Functions ####
 
-means <- aggregate(big_table$score, by=list(big_table$response_var), mean)
+means <- aggregate(big_table$score, by=list(big_table$response_var), median)
 names(means) <- c("response_var", "m")
 stdv <- aggregate(big_table$score, by=list(big_table$response_var), sd)
 names(stdv) <- c("response_var", "s")
@@ -115,7 +115,7 @@ g <- ggplot2::ggplot(big_table, aes(x=site_name, y=score)) +
   geom_boxplot() +
   ggplot2::ylab("Score") +
   ggplot2::ggtitle(label = paste(title_text)) +
-  geom_text(data = means, aes(label=paste("m:",round_x), y=m + 0.1, x = 3), color="black") +
+  geom_text(data = means, aes(label=paste("m:",round_x), y=1, x = 3), color="black") +
   ggplot2::scale_x_discrete(guide = guide_axis(angle = 90)) +
   ggplot2::stat_summary(fun=mean, geom="point", shape="-", size=9, color="red", fill="red") +
   # ggplot2::geom_hline(data = means, aes(yintercept = x), color="red", linetype=4) +
