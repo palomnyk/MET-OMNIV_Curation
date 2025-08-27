@@ -72,11 +72,11 @@ for (feat in num_columns){
   no_na <- sum(!is.na(counts))
   supstring <- paste("n:", no_na)
   if (is.numeric(counts)){
-    hist(counts, main = paste("all sites"),
+    hist(counts, main = paste("all sites", ",", no_na),
          xlab = supstring, breaks=num_breaks)
   }else{
     # par(mar=c(20,4,4,4))
-    barplot(table(counts), main = paste("all sites"),
+    barplot(table(counts), main = paste("all sites", ",", no_na),
             las = 3,
             xlab = supstring)
     # my_string <- paste(my_string,"\n",str(table(counts)))
@@ -89,7 +89,7 @@ for (feat in num_columns){
     supstring <- paste("n:", no_na)
     # print(supstring)
     if (is.numeric(counts)){
-      hist(counts, main = paste(site),
+      hist(counts, main = paste(site, ",", no_na),
            xlab = supstring, breaks=num_breaks)
     }else{
       # par(mar=c(20,4,4,4))
@@ -109,6 +109,6 @@ for (feat in num_columns){
 # x: site
 # stacked colors: sex
 
-dev.off()
+# dev.off()
 
 print("End of R script!")
