@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # Author: Aaron Yerke, aaronyerke@gmail.com
-# This is a script for random forest for  biomarkers study
-# Should take a table with predictor/explanatory/independant and another
-# with response/outcome/dependant variable.
+# This is a script for random forest for beef biomarkers study
+# Should take a table with predictor/explanatory/independent and another
+# with response/outcome/dependent variable.
 # Returns accuracy and other metrics and feature importance.
 # Interesting resources for SHAP values:
 # 	1: https://shap.readthedocs.io/en/latest/example_notebooks/tabular_examples/tree_based_models/NHANES%20I%20Survival%20Model.html
@@ -197,7 +197,8 @@ with open(result_fpath, "w+") as fl:
 				# print(f"len resp_train {len(resp_train)}, {resp_train.dtype}")
 				if is_numeric_dtype(resp_train) and resp_train.dtype.name != "boolean":
 					print(f"going to RandomForestRegressor(), {resp_var }")
-					clf = RandomForestRegressor(n_estimators=n_trees, )
+					# clf = RandomForestRegressor(criterion='poisson', max_features='sqrt', min_samples_split=5, n_estimators=n_trees)
+					clf = RandomForestRegressor(n_estimators=100, criterion="poisson", max_depth=None, max_features="sqrt", min_samples_leaf=1, min_samples_split=5)
 					model_name = "RF_Regressor"
 				else:
 					print("going to RandomForestClassifier()")
@@ -206,7 +207,7 @@ with open(result_fpath, "w+") as fl:
 				
 				model_type.append(model_name)
 				clf.fit(pred_train, resp_train)
-				# print(f"len(feat_vales) {len(clf.feature_importances_)}, len(names) {len(clf.feature_names_in_)}")
+
 				#add feature importance to global feature_importance
 				k_feat_import = dict(zip(clf.feature_names_in_, clf.feature_importances_))
 				for key in k_feat_import:

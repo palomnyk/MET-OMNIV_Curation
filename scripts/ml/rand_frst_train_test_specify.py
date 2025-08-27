@@ -186,7 +186,7 @@ with open(result_fpath, "w+") as fl:
 			# print(f"len resp_train {len(resp_train)}, {resp_train.dtype}")
 			if is_numeric_dtype(resp_train) and resp_train.dtype.name != "boolean":
 				print(f"going to RandomForestRegressor(), {resp_var }")
-				clf = RandomForestRegressor(n_estimators=n_trees)
+				clf = RandomForestRegressor(n_estimators=100, criterion="poisson", max_depth=None, max_features="sqrt", min_samples_leaf=1, min_samples_split=5)
 				model_name = "RF_Regressor"
 			else:
 				print("going to RandomForestClassifier()")
