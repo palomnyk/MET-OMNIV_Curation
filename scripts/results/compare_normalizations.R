@@ -30,19 +30,17 @@ option_list <- list(
   optparse::make_option(c("-s", "--out_subdir"), type="character", 
                         default=file.path("output/no_map/graphics"), 
                         help="dataset dir path"),
-  optparse::make_option(c("-o", "--out_file"), type="character", 
+  optparse::make_option(c("-t", "--out_file_tree"), type="character", 
                         help="dataset dir path",
-                        default=file.path("output/no_map/graphics/compr_norm.pdf")),
+                        default=file.path("output/no_map/graphics/compr_norm_tree.png")),
+  optparse::make_option(c("-z", "--out_file_zoom"), type="character", 
+                        help="dataset dir path",
+                        default=file.path("output/no_map/graphics/compr_norm_zoom.png")),
   optparse::make_option(c("-p", "--out_prefix"), type="character", 
                         default=file.path("auto_prot_"), 
                         help="prefix in output file name"),
   optparse::make_option(c("-g", "--group_pattern"), type="character", 
-                        # default="-demo-log-filt_all_bat_norm_imput-chem-meats_g_per_kg_bw_scores.csv",
-                        # default="-demo-log-filt_all_bat_norm_imput-chem-meats_rmOut_g_scores.csv",
-                        default="-demo-log-filt_all_bat_norm_imput-chem-",
-                        # default="-demo-log-filt_all_bat_norm_imput-chem-meats_rmOut_g_per_bmi_scores.csv",
-                        # default="-demo-log-filt_all_bat_norm_imput-chem-meats_g_scores.csv",
-                        # default="-demo-log-filt_all_bat_norm_imput-chem-meats_g_per_bmi_scores.csv",
+                         default="-demo-log-filt_all_bat_norm_imput-chem-",
                         help="pattern to separate score files if there are more than one group in the dir"),
   optparse::make_option(c("-c", "--cancel_pattern"), type="character", 
                         default="", 
@@ -61,7 +59,7 @@ correct_sites <- c("PSU-MED","MB/IIT","Purdue","USDA-MAP","USDA-MED")
 clean_sites <- c("PSU_MED", "MB_IIT", "Purdue", "USDA_MED", "all_sites", "PSU_MED_MB_IIT","PSU_MED_Purdue","PSU_MED_USDA_MED","MB_IIT_Purdue","MB_IIT_USDA_MED",
                  "Purdue_USDA_MED","PSU_MED_MB_IIT_Purdue","PSU_MED_MB_IIT_USDA_MED","PSU_MED_Purdue_USDA_MED",
                  "MB_IIT_Purdue_USDA_MED")
-normalizations <- c("meats_g", "meats_g_per_kg_bw", "meats_g_per_bmi", "meats_rmOut_g", "meats_rmOut_g_per_kg_bw", "meats_rmOut_g_per_bmi")
+normalizations <- c("meats_g", "meats_g_per_kg_bw", "meats_g_per_bmi", "meats_rmOut_g", "meats_rmOut_g_per_kg_bw","meats_rmOut_g_per_bmi")
 
 group_pattern <- gsub('\\"', "", opt$group_pattern)
 
@@ -122,100 +120,98 @@ for (i in 1:length(dir_files)){
 big_table <- data.frame(response_var = as.factor(response_var), site_name,
                         normalization = as.factor(normalization), score)
 
-
-
-
-big_table <- big_table[big_table$score != 1,]
-my_pairs <- lapply(1:length(unique(big_table$response_var)), function(x){
-  c("meat_g","meat_g_per_kg_bw")
-})
-
-my_pairs <- c(c("meat_g","meat_g_per_kg_bw"),c("meat_g","meat_g_per_kg_bw"),c("meat_g","meat_g_per_kg_bw"),c("meat_g","meat_g_per_kg_bw"),c("meat_g","meat_g_per_kg_bw"),c("meat_g","meat_g_per_kg_bw"),c("meat_g","meat_g_per_kg_bw"),c("meat_g","meat_g_per_kg_bw"),c("meat_g","meat_g_per_kg_bw"),c("meat_g","meat_g_per_kg_bw"),c("meat_g","meat_g_per_kg_bw"),c("meat_g","meat_g_per_kg_bw"),c("meat_g","meat_g_per_kg_bw"),c("meat_g","meat_g_per_kg_bw"),c("meat_g","meat_g_per_kg_bw"))
-
-library(ggplot2)
-if (!require("ggpval")) BiocManager::install("ggpval")
-library(ggpval)
-data("PlantGrowth")
-plt <- ggplot(PlantGrowth, aes(group, weight)) +
-  geom_boxplot()
-
-g <- ggplot2::ggplot(big_table, aes(x=normalization, y=score)) + 
+png(file.path(opt$out_file_tree),
+    width = 30, height = 9, units = "in", res = 300)
+#### Plot with pvalue tree and outlier ####
+g <- ggplot2::ggplot(big_table, aes(x=normalization, y=score)) +
   geom_boxplot() +
   ggplot2::ylab("Score") +
   # ggplot2::ggtitle(label = paste(my_title)) +
   # geom_text(data = means, aes(label=paste("m:",round_m), y=m + 0.1, x = 3), color="black") +
   ggplot2::scale_x_discrete(guide = guide_axis(angle = 90)) +
   # ggplot2::stat_summary(fun=mean, geom="point", shape="-", size=9, color="red", fill="red") +
-  coord_cartesian(ylim = c(-0.1,1)) +
+  # coord_cartesian(ylim = c(-0.5,NA)) +
   ggplot2::facet_grid(~ response_var) +
-  ggpubr::stat_compare_means()
-  # geom_signif(comparisons=my_pairs, annotations="***")
+  ggpubr::stat_compare_means(paired=FALSE, method = "kruskal.test",
+                             hide.ns = TRUE) +
+  ggpubr::geom_pwc(method = "wilcox.test", hide.ns = TRUE)
+g <- ggpubr::ggadjust_pvalue(
+  g, p.adjust.method = "BH",
+  label = "{p.adj.format}{p.adj.signif}", hide.ns = TRUE)
+# Note that, tests such as tukey_hsd or games_howell_test handle p-value adjustement internally; they only return the p.adj. 
+
 print(g)
-# https://stackoverflow.com/questions/45047914/how-do-i-annotate-p-values-onto-a-faceted-bar-plots-on-r
-# print(g)
-library(ggsignif)
+dev.off()
 
-
-my_pairs <- lapply(1:length(unique(big_table$response_var)), function(x){
-  c(1,2)
-})
-
-add_pval(g, pairs=list(c(1,2)), test='wilcox.test')
-print(g)
-asfasdf
-
-#### Statistics ####
-if (!requireNamespace("rstatix", quietly = TRUE)) BiocManager::install("rstatix")
-library("rstatix")
-# big_table <- tibble(big_table)
-stat_df <- big_table %>%
-  group_by(response_var) %>%
-  t_test(score ~ normalization) %>%
-  adjust_pvalue(method = "BH") %>%
-  add_significance()
-
-stat_df <- stat_df %>% add_xy_position(x = "supp")
-#### Make plot ####
-big_table$response_var <- as.factor(big_table$response_var)
-# https://www.datanovia.com/en/blog/how-to-add-p-values-to-ggplot-facets/
-g <- ggboxplot(
-  data = big_table, x="normalization", y="score",
-  facet.by = "response_var")
-  # stat_pvalue_manual(
-  #   stat_df, bracket.nudge.y = -2, hide.ns = TRUE,
-  #   label = "{p.adj}{p.adj.signif}")
-print(g)
-
-asdfasd
-# pdf(opt$out_file, width = 18, height = 8)
-
-my_title <- paste("Group:", group_pattern, "| metabo lev:", opt$metblmcs_lev)
-
-means <- aggregate(big_table$score, by=list(big_table$response_var), mean)
-names(means) <- c("response_var", "m")
-stdv <- aggregate(big_table$score, by=list(big_table$response_var), sd)
-names(stdv) <- c("response_var", "s")
-means <- merge(means, stdv)
-means$round_m <- round(means$m, 3)
-print(means)
-g <- ggplot2::ggplot(big_table, aes(x=normalization, y=score)) + 
+##### Plot with clear boxplots
+png(file.path(opt$out_file_zoom),
+    width = 30, height = 9, units = "in", res = 300)
+g <- ggplot2::ggplot(big_table, aes(x=normalization, y=score)) +
   geom_boxplot() +
   ggplot2::ylab("Score") +
-  ggplot2::ggtitle(label = paste(my_title)) +
+  # ggplot2::ggtitle(label = paste(my_title)) +
   # geom_text(data = means, aes(label=paste("m:",round_m), y=m + 0.1, x = 3), color="black") +
   ggplot2::scale_x_discrete(guide = guide_axis(angle = 90)) +
   # ggplot2::stat_summary(fun=mean, geom="point", shape="-", size=9, color="red", fill="red") +
-  coord_cartesian(ylim = c(-0.1,1)) +
-  
-  ggplot2::facet_grid(~ response_var)
-
-# https://stackoverflow.com/questions/45047914/how-do-i-annotate-p-values-onto-a-faceted-bar-plots-on-r
+  coord_cartesian(ylim = c(-2,1.5)) +
+  ggplot2::facet_grid(~ response_var) +
+  ggpubr::stat_compare_means(paired=FALSE, method = "kruskal.test",
+                             hide.ns = TRUE)
 print(g)
 
-# dev.off()
+dev.off()
 
-
-
+# # https://stackoverflow.com/questions/45047914/how-do-i-annotate-p-values-onto-a-faceted-bar-plots-on-r
+# 
+# #### Statistics ####
+# if (!requireNamespace("rstatix", quietly = TRUE)) BiocManager::install("rstatix")
+# library("rstatix")
+# # big_table <- tibble(big_table)
+# stat_df <- big_table %>%
+#   group_by(response_var) %>%
+#   t_test(score ~ normalization) %>%
+#   adjust_pvalue(method = "BH") %>%
+#   add_significance()
+# 
+# stat_df <- stat_df %>% add_xy_position(x = "supp")
+# #### Make plot ####
+# big_table$response_var <- as.factor(big_table$response_var)
+# # https://www.datanovia.com/en/blog/how-to-add-p-values-to-ggplot-facets/
+# g <- ggboxplot(
+#   data = big_table, x="normalization", y="score",
+#   facet.by = "response_var")
+#   # stat_pvalue_manual(
+#   #   stat_df, bracket.nudge.y = -2, hide.ns = TRUE,
+#   #   label = "{p.adj}{p.adj.signif}")
+# # print(g)
+# 
+# # Next try below:
+# # pdf(opt$out_file, width = 18, height = 8)
+# 
+# my_title <- paste("Group:", group_pattern, "| metabo lev:", opt$metblmcs_lev)
+# 
+# means <- aggregate(big_table$score, by=list(big_table$response_var), mean)
+# names(means) <- c("response_var", "m")
+# stdv <- aggregate(big_table$score, by=list(big_table$response_var), sd)
+# names(stdv) <- c("response_var", "s")
+# means <- merge(means, stdv)
+# means$round_m <- round(means$m, 3)
+# print(means)
+# g <- ggplot2::ggplot(big_table, aes(x=normalization, y=score)) + 
+#   geom_boxplot() +
+#   ggplot2::ylab("Score") +
+#   ggplot2::ggtitle(label = paste(my_title)) +
+#   # geom_text(data = means, aes(label=paste("m:",round_m), y=m + 0.1, x = 3), color="black") +
+#   ggplot2::scale_x_discrete(guide = guide_axis(angle = 90)) +
+#   # ggplot2::stat_summary(fun=mean, geom="point", shape="-", size=9, color="red", fill="red") +
+#   coord_cartesian(ylim = c(-0.1,NA)) +
+#   
+#   ggplot2::facet_grid(~ response_var)
+# 
+# # https://stackoverflow.com/questions/45047914/how-do-i-annotate-p-values-onto-a-faceted-bar-plots-on-r
+# # print(g)
+# 
+# # dev.off()
 
 
 print("End of R script")
