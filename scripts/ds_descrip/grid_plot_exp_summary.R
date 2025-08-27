@@ -41,7 +41,10 @@ option_list <- list(
                         # default = "_g_per_bmi",
                         # default = "_g_per_kg_bw",
                         default = "_g",
-                        help="Suffix of columns wanted")
+                        help="Suffix of columns wanted"),
+  optparse::make_option(c("-p", "--pseudocount"), type="double",
+                        default = 0,
+                        help="Amount of artificial pseudocount that must be subtracted from every number first")
 );
 opt_parser <- optparse::OptionParser(option_list=option_list);
 opt <- parse_args(opt_parser);
@@ -66,11 +69,13 @@ max_y <- max(inp_df[,g_cols], na.rm = TRUE) * 1.05
 #### Org data and plot ####
 treats <- unique(inp_df$TREATMENT)
 treat_plots <- lapply(1:length(treats), function(m){
+# for (m in 1:length(treats))
   trmnt <- treats[m]
   print("treatment")
   print(trmnt)
   # Subset data by treatment
   sub_inp_df <- inp_df[inp_df$TREATMENT == trmnt, g_cols]
+  sub_inp_df <- sub_inp_df - opt$pseudocount #remove pseudocount
   # Create long version of dataframe
   long_sub_inp_df <- reshape2::melt(sub_inp_df)
   long_sub_inp_df[is.na(long_sub_inp_df)] <- 0
@@ -93,8 +98,7 @@ treat_plots <- lapply(1:length(treats), function(m){
   
   # Make vector holding number of counts in each boxplot
   
-
-  if (m < length(treats)){
+  # if (m < length(treats)){
     g <- ggplot2::ggplot(long_sub_inp_df, aes(x=variable, y=value)) + 
       geom_boxplot(color = my_colors) +
       ggplot2::ylab(paste(trmnt)) +
@@ -105,41 +109,89 @@ treat_plots <- lapply(1:length(treats), function(m){
                # y = rep(max_y * 0.95, length(my_counts)),
                label = my_counts,
                col = "blue",
-               vjust = - 1) +
+               hjust = 1.5,
+               vjust = -1) +
       ggplot2::scale_x_discrete(guide = guide_axis(angle = 90)) +
       theme(axis.title.x=element_blank(),
             axis.text.x=element_blank(),
             axis.ticks.x=element_blank()) +
       scale_color_manual(values=my_colors) +
-      coord_cartesian(ylim = c(0, max_y))
-    g
-  }else{
-    g <- ggplot2::ggplot(long_sub_inp_df, aes(x=variable, y=value)) + 
-      geom_boxplot(color = unlist(my_colors)) +
-      ggplot2::ylab(paste(trmnt)) +
       coord_cartesian(ylim = c(0, max_y)) +
-      theme(axis.title.x=element_blank()) +
-      ggplot2::annotate("text",
-                        x = 1:length(my_counts),
-                        y = aggregate(value ~ variable, long_sub_inp_df, median)[ , 2],
-                        # y = rep(max_y * 0.95, length(my_counts)),
-                        label = my_counts,
-                        col = "blue",
-                        vjust = - 1) 
-      # ggplot2::ggtitle(label = paste(trmnt)) +
-      # ggplot2::scale_x_discrete(guide = guide_axis(angle = 90))
+      theme(#text=element_text(size=20), #change font size of all text
+        axis.text=element_text(size=12), #change font size of axis text
+        axis.title=element_text(size=15)) #change font size of axis titles
     g
+  # }else{
+  #   g <- ggplot2::ggplot(long_sub_inp_df, aes(x=variable, y=value)) + 
+  #     geom_boxplot(color = unlist(my_colors)) +
+  #     ggplot2::ylab(paste(trmnt)) +
+  #     coord_cartesian(ylim = c(0, max_y)) +
+  #     theme(axis.title.x=element_blank()) +
+  #     ggplot2::annotate("text",
+  #                       x = 1:length(my_counts),
+  #                       y = aggregate(value ~ variable, long_sub_inp_df, median)[ , 2],
+  #                       # y = rep(max_y * 0.95, length(my_counts)),
+  #                       label = my_counts,
+  #                       col = "blue",
+  #                       vjust = - 4) +
+  #     theme(#text=element_text(size=20), #change font size of all text
+  #             axis.text=element_text(size=11), #change font size of axis text
+  #             axis.title=element_text(size=15)) #change font size of axis titles
+  #     # ggplot2::ggtitle(label = paste(trmnt)) +
+  #     # ggplot2::scale_x_discrete(guide = guide_axis(angle = 90))
+  #   g
+  # }
+})
+
+#### Totals plot: data reorg ####
+sub_inp_df <- inp_df[inp_df$TREATMENT %in% treats, g_cols]
+sub_inp_df <- sub_inp_df - opt$pseudocount #remove pseudocount
+long_inp_df <- reshape2::melt(sub_inp_df)
+long_inp_df[is.na(long_inp_df)] <- 0
+# Make colors: red if boxplot is empty, black if it is >0
+my_colors <- c()
+my_counts <- c()
+for (v in unique(long_inp_df$variable)){
+  my_subset <- long_inp_df[long_inp_df$variable == v,"value"]
+  if (all(unique(my_subset[!is.na(my_subset)]) %in% c(0)) || all(is.na(my_subset))){
+    my_colors <- c(my_colors,"red")
+  }else{
+    my_colors <- c(my_colors,"black")
   }
+  my_counts <- c(my_counts, length(my_subset[my_subset != 0]))
+}
+
+#### Totals plot: plot ####
+total_plot <- lapply(1:1, function(m){
+g <- ggplot2::ggplot(long_inp_df, aes(x=variable, y=value)) + 
+  geom_boxplot(color = my_colors) +
+  ggplot2::ylab(paste("Totals")) +
+  # ggplot2::ggtitle(label = paste(trmnt)) +
+  ggplot2::annotate("text",
+                    x = 1:length(my_counts),
+                    y = aggregate(value ~ variable, long_inp_df, median)[ , 2],
+                    # y = rep(max_y * 0.95, length(my_counts)),
+                    label = my_counts,
+                    col = "blue",
+                    hjust = 1.5,
+                    vjust = -1) +
+  scale_color_manual(values=my_colors) +
+  coord_cartesian(ylim = c(0, max_y)) +
+  theme(axis.title.x=element_blank(),
+    #text=element_text(size=20), #change font size of all text
+    axis.text=element_text(size=12), #change font size of axis text
+    axis.title=element_text(size=15)) #change font size of axis titles
+g
 })
 
 #### Arrange plots and save output ####
 
-pdf(file.path(output_dir, "graphics", opt$out_name),
-    width = 24, height = 10)
+png(file.path(output_dir, "graphics", opt$out_name),
+    width = 22, height = 11, units = "in", res = 300)
 
-grid.arrange(arrangeGrob(grobs = treat_plots,
-             ncol = 1, # Second row with 2 plots in 2 different columns
-             nrow = length(treats)))
+grid.arrange(grobs = c(treat_plots, total_plot),
+             ncol = 1,
+             nrow = (length(treats)+1))
 
 dev.off()
 
