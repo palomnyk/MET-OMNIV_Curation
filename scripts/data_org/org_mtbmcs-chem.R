@@ -30,9 +30,10 @@ print("Loaded packages")
 filter_metabolites <- function(df) {
   print(paste(colnames(df)[1:5], collapse = ", "))
   #Remove columns that all but 2 NA
+  print(paste("Original nrow/ncol", nrow(df), ncol(df)))
   df <- df[,!sapply(df, function(x) length(which(is.na(x))) >= nrow(df)-2)]
-  
-  #Remove features with more than 80% zeros
+  print(paste("Rm NA nrow/ncol", paste(dim(df), collapse = "/")))
+  print("Remove features with more than 80% zeros")
   na_table <- df # Lauren wants to keep NA as NA for cv filter
   na_table[is.na(na_table)] <- 0
   df <- df[,!sapply(na_table, function(x) mean(x == 0) > 0.8)]
@@ -83,6 +84,8 @@ write.csv(filtered_mtbcs, file.path("data", "metabolomics", "filt_all_bat_norm_i
 filtered_mtbcs <- log2(filtered_mtbcs)
 
 filtered_mtbcs$PARENT_SAMPLE_NAME <- row.names(filtered_mtbcs)
+
+print(paste("Metabolites samples/columns:", nrow(filtered_mtbcs), ncol(filtered_mtbcs)))
 
 write.csv(filtered_mtbcs, file.path("data", "metabolomics", "log-filt_all_bat_norm_imput-chem.csv"),
           row.names = FALSE)
