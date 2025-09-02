@@ -1,5 +1,5 @@
 # Author: Aaron Yerke (aaronyerke@gmail.com)
-# Script for making vin diagrams to compare feature importances from 
+# Script for making Venn diagrams to compare feature importances from 
 # random forest
 
 rm(list = ls()) #clear workspace
