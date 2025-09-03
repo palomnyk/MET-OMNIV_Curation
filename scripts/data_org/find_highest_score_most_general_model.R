@@ -229,15 +229,4 @@ write.csv(max_combine_table, file.path(output_dir, "tables", "max_score_combine_
 
 print("End of R script")
 
-max_acc_beef_min_row <- which(max_accuracy_table$response_var == "beef_min_proc")
-
-test_cv_beef_min_shap <- read.csv(file = max_accuracy_table$shap_path[max_acc_beef_min_row],
-                                   check.names = FALSE)
-test_cv_beef_min_score <- read.csv(file = max_accuracy_table$score_path[max_acc_beef_min_row],
-                                  check.names = FALSE)
-
-test_cv_beef_min_score$mean_scores <- apply(my_table[, 3:ncol(my_table)], MARGIN = 1, FUN = mean)
-
-
-
 

@@ -10,10 +10,10 @@ if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocMana
 if (!requireNamespace("networkD3", quietly = TRUE))  BiocManager::install("networkD3")
 # Load package
 library("networkD3")
-if (!requireNamespace("pandoc", quietly = TRUE)) BiocManager::install("pandoc")
-library("pandoc")
 if (!requireNamespace("optparse", quienotly = TRUE)) BiocManager::install("optparse")
 library("optparse")
+if (!requireNamespace("webshot", quietly = TRUE)) BiocManager::install("webshot")
+library("webshot")
 
 print("Loaded dependencies")
 source(file.path("scripts","data_org", "data_org_func.R"))
@@ -145,5 +145,11 @@ p
 # # p <- htmlwidgets::appendContent(p, htmltools::tags$p("Higgins KA, Rawal R, Kramer M, Baer DJ, Yerke A, Klurfeld DM. An overview of reviews on the association of low calorie sweetener consumption with body weight and adiposity. Advances in Nutrition (accepted)."))
 # 
 saveNetwork(p, file=file.path(output_dir, "graphics", opt$out_name), selfcontained = TRUE)
+
+print("Make pdf")
+Sys.setenv(OPENSSL_CONF="/dev/null")
+webshot(url = file.path(output_dir, "graphics", opt$out_name),
+        file = file.path(output_dir, "graphics", paste0(sub('\\..[^\\.]*$', '', opt$out_name),".pdf")))#remove extention and add .pdf ext
+
 
 print("End R script.")
