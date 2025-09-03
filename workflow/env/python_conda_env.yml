@@ -27,6 +27,7 @@ dependencies:
   - r-readxl
   - r-fastDummies
   - r-networkd3
+  - r-VennDiagram
   - pandoc
 
 #To install conda on wsl:
