@@ -23,7 +23,7 @@ option_list <- list(
                         default="chem",
                         help="pathway_level, keyword to help find right random forest scores"),
   optparse::make_option(c("-i", "--in_dir"), type="character", 
-                        default=file.path("output", "norm_meat", "tables"), 
+                        default=file.path("output", "demo_scor", "tables"), 
                         help="dir with input 'scores' files"),
   optparse::make_option(c("-s", "--out_subdir"), type="character", 
                         default=file.path("output/no_map/graphics"), 
@@ -34,10 +34,10 @@ option_list <- list(
                         default=file.path("auto_prot_"), 
                         help="prefix in output file name"),
   optparse::make_option(c("-n", "--group_name"), type="character", 
-                        default="my_group",
+                        default="24-42,42-73",
                         help="Name to label the group that the group_pattern finds, can be a comma seperated list as a string"),
   optparse::make_option(c("-g", "--group_pattern"), type="character", 
-                        default="-demo-log-filt_all_bat_norm_imput-chem-meats_rmOut_g_per_kg_bw_scores.csv",
+                        default="-age24_42-demo-log-filt_all_bat_norm_imput-chem-meats_rmOut_g_per_kg_bw_scores.csv,-age42_73-demo-log-filt_all_bat_norm_imput-chem-meats_rmOut_g_per_kg_bw_scores.csv",
                         help="pattern to separate score files if there are more 
                         than one group in the dir, can be a comma seperated list as a string"),
   optparse::make_option(c("-c", "--cancel_pattern"), type="character", 
@@ -118,13 +118,13 @@ big_table <- data.frame(response_var, site_name, score, gp_name, gp_pattern)
 big_table$label <- paste0(big_table$gp_name, "-", big_table$sit)
 
 #### Make plots ####
-# pdf(opt$out_file, width = 24, height = 8)
+pdf(opt$out_file, width = 24, height = 8)
 
-for (rv in unique(big_table$response_var)) {
-  my_table <- big_table[big_table$response_var == rv, ]
-  my_table <- my_table[order(my_table$site_name, decreasing = TRUE),]
+for (st in unique(big_table$site_name)) {
+  my_table <- big_table[big_table$site_name == st, ]
+  # my_table <- my_table[order(my_table$site_name, decreasing = TRUE),]
   
-  title_text <- paste("Response variable:", rv, "| metabo lev:", opt$metblmcs_lev)
+  title_text <- paste("Site:", st, "| metabo lev:", opt$metblmcs_lev)
   
   medians <- aggregate(my_table$score, by=list(my_table$response_var), median)
   names(medians) <- c("response_var", "m")
@@ -143,7 +143,7 @@ for (rv in unique(big_table$response_var)) {
     # ggplot2::geom_hline(data = means, aes(yintercept = x + s), color="blue", linetype=2) +
     # ggplot2::geom_hline(data = means, aes(yintercept = x - s), color="blue", linetype=2) +
     # coord_cartesian(ylim = c(-0.1,1)) +
-    ggplot2::facet_grid(~site_name) +
+    ggplot2::facet_grid(~response_var) +
     # ggpubr::stat_compare_means(paired=FALSE, method = "kruskal.test",
     #                            hide.ns = TRUE) +
     ggpubr::geom_pwc(method = "wilcox.test", hide.ns = TRUE)
@@ -154,7 +154,7 @@ for (rv in unique(big_table$response_var)) {
   print(g)
 }
 
-# dev.off()
+dev.off()
 
 print("End of R script")
 
