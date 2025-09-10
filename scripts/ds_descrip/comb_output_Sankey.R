@@ -47,8 +47,13 @@ option_list <- list(
                         help="Number of comparison features in plot."),
   optparse::make_option(c("-r", "--group_subset"), type="character",
                         default = FALSE,
-                        # default = "beef_rmOut_g_per_kg_bw,chicken_rmOut_g_per_kg_bw,pork_rmOut_g_per_kg_bw,turkey_rmOut_g_per_kg_bw,meat_rmOut_g_per_kg_bw",
-                        help="Array of acceptable grouping column variables as coma seperated string. Use if wanting to use a subset of the available grouping column variables")
+                        help="Array of acceptable grouping column variables as 
+                        coma seperated string. Use if wanting to use a subset of 
+                        the available grouping column variables. Ex:
+                        'beef_rmOut_g_per_kg_bw,chicken_rmOut_g_per_kg_bw,pork_rmOut_g_per_kg_bw,turkey_rmOut_g_per_kg_bw,meat_rmOut_g_per_kg_bw'"),
+  optparse::make_option(c("-e", "--plot_height"), type="integer",
+                        default = 500,
+                        help="Height of Sankey plot")
 );
 opt_parser <- optparse::OptionParser(option_list=option_list);
 opt <- parse_args(opt_parser);
@@ -80,7 +85,7 @@ if (opt$group_subset != FALSE){
 
 # Aggregate accuracies by grouping column
 ave_accuracies <- aggregate(feat_imp$accuracy, by=list(feat_imp[,opt$grouping_column,]), mean)
-#remove features below threshold
+# remove features below threshold
 ave_accuracies <- ave_accuracies[ave_accuracies$x > accuracy_threshold, ]
 
 #empty variables to fill in
@@ -121,9 +126,9 @@ nodes <- data.frame(nodes = unique_nodes)
 #### Make plot ####
 p <- sankeyNetwork(Links = links, Nodes = nodes, Source = "source",
                    Target = "target", Value = "count", NodeID = "nodes",
-                   units = "Ave_score", fontSize = 14, nodeWidth = 30, 
+                   units = "Ave_score", fontSize = 14,# nodeWidth = 30, 
                    margin = list(50,100,500,100), sinksRight = TRUE,
-                   height = 500, width = 600)
+                   height = opt$plot_height, width = 600)
 
 p <- htmlwidgets::prependContent(p, htmltools::tags$h1(sub('\\..[^\\.]*$', '', basename(opt$featimp_path))))
 # p <- htmlwidgets::appendContent(p, htmltools::tags$p("*, SR that included children/adolescents only; ~, SR that included only adults; all other SR included all age groups."))
