@@ -59,7 +59,7 @@ correct_sites <- c("PSU-MED","MB/IIT","Purdue","USDA-MAP","USDA-MED")
 clean_sites <- c("PSU_MED", "MB_IIT", "Purdue", "USDA_MED", "all_sites", "PSU_MED_MB_IIT","PSU_MED_Purdue","PSU_MED_USDA_MED","MB_IIT_Purdue","MB_IIT_USDA_MED",
                  "Purdue_USDA_MED","PSU_MED_MB_IIT_Purdue","PSU_MED_MB_IIT_USDA_MED","PSU_MED_Purdue_USDA_MED",
                  "MB_IIT_Purdue_USDA_MED")
-normalizations <- c("meats_g", "meats_g_per_kg_bw", "meats_g_per_bmi", "meats_rmOut_g", "meats_rmOut_g_per_kg_bw","meats_rmOut_g_per_bmi")
+normalizations <- c("meats_g", "meats_g_per_kg_bw", "meats_g_per_bmi", "meats_rmOut_g", "meats_rmOut_g_per_kg_bw","meats_rmOut_g_per_BMI")
 
 group_pattern <- gsub('\\"', "", opt$group_pattern)
 
@@ -117,8 +117,10 @@ for (i in 1:length(dir_files)){
   
 }
 
+normalization <- gsub("meats_", "", normalization)
 big_table <- data.frame(response_var = as.factor(response_var), site_name,
                         normalization = as.factor(normalization), score)
+
 
 png(file.path(opt$out_file_tree),
     width = 30, height = 9, units = "in", res = 300)
