@@ -1,7 +1,14 @@
 #Author: Aaron Yerke (aaronyerke@gmail.com)
 #Script for adding HEI/FPED categories to ESHA output
-# Requires a HEI pivot table with dietary items and HEI equivalence categories and
-# conversion factors.
+# Inputs: 
+#   1. HEI pivot table with dietary items and HEI equivalence categories and
+#     conversion factors.
+#   2. Table with esha dietary information with new categories
+# Outputs:
+#   1. Table with esha dietary information with new categories
+#   2. Long format conversion table
+#   3. Wide format conversion table
+#   4. Table with missing information (should actually be empty)
 
 rm(list = ls()) #clear workspace
 
@@ -24,14 +31,14 @@ option_list <- list(
                         default = "data/diet/nutrition_data/HEI Pivot table.xlsx",
                         help="path of HEI conversion table"),
   optparse::make_option(c("-i", "--input"), type="character",
-                        # default = "data/diet/nutrition_data/combined_esha_studies.tsv",
-                        default = "data/diet/nutrition_data/mb_2112_esha.tsv",
+                        default = "data/diet/nutrition_data/combined_esha_studies.tsv",
+                        # default = "data/diet/nutrition_data/mb_2112_esha.tsv",
                         help='Dietary data with the following columns: "Study"             "Intervention"      "Day"               "Meal"             
  "Recipe"            "Item Name"         "Quantity"          "Measure"          
   "Wgt (g)"           "Cals (kcal)", and other nutritional features'),
   optparse::make_option(c("-o", "--out_prefix"), type="character",
-                        # default = "",
-                        default = "mb-",
+                        default = "",
+                        # default = "mb-",
                         help="Prefix to show which group of data this is, since 
                         we didn't add to the first dataset, this is empty.")
 );
@@ -110,6 +117,7 @@ for (rw in 1:nrow(big_sheet)){
   # }
 }
 
+#### Create long HEI conversion table####
 conv_tab_names <- c("item","Category","HEI_equiv","HEI_unit") 
 conversion_table <- data.frame(conv_item, conv_cat, conv_equ, conv_unit)
 names(conversion_table) <- conv_tab_names
@@ -144,54 +152,54 @@ for (i in 1:length(uniq_items)){
       wide_conv_tabl[i,] <- my_row
     }else{
       if (h == "Whole Grain"){
-        my_row[match("HEI_WholeGrains_Conv", wide_columns)] <- conversion_table$Category[i]
+        my_row[match("HEI_WholeGrains_Conv", wide_columns)] <- conversion_table$HEI_equiv[i]
         my_row[match("HEI_WholeGrains_Unit", wide_columns)] <- conversion_table$HEI_unit[i]
-        my_row[match("HEI_WholeGrains_Cat", wide_columns)] <- conversion_table$HEI_equiv[i]
+        my_row[match("HEI_WholeGrains_Cat", wide_columns)] <- conversion_table$Category[i]
       }
       if (h == "Dairy"){
-        my_row[match("HEI_Dairy_Conv", wide_columns)] <- conversion_table$Category[i]
+        my_row[match("HEI_Dairy_Conv", wide_columns)] <- conversion_table$HEI_equiv[i]
         my_row[match("HEI_Dairy_Unit", wide_columns)] <- conversion_table$HEI_unit[i]
-        my_row[match("HEI_Dairy_Cat", wide_columns)] <- conversion_table$HEI_equiv[i]
+        my_row[match("HEI_Dairy_Cat", wide_columns)] <- conversion_table$Category[i]
       }
       if (h == "Added Sugar"){
-        my_row[match("HEI_AddedSugar_Conv", wide_columns)] <- conversion_table$Category[i]
+        my_row[match("HEI_AddedSugar_Conv", wide_columns)] <- conversion_table$HEI_equiv[i]
         my_row[match("HEI_AddedSugar_Unit", wide_columns)] <- conversion_table$HEI_unit[i]
-        my_row[match("HEI_AddedSugar_Cat", wide_columns)] <- conversion_table$HEI_equiv[i]
+        my_row[match("HEI_AddedSugar_Cat", wide_columns)] <- conversion_table$Category[i]
       }
       if (h == "Total Fruit"){
-        my_row[match("HEI_TotalFruit_Conv", wide_columns)] <- conversion_table$Category[i]
+        my_row[match("HEI_TotalFruit_Conv", wide_columns)] <- conversion_table$HEI_equiv[i]
         my_row[match("HEI_TotalFruit_Unit", wide_columns)] <- conversion_table$HEI_unit[i]
-        my_row[match("HEI_TotalFruit_Cat", wide_columns)] <- conversion_table$HEI_equiv[i]
+        my_row[match("HEI_TotalFruit_Cat", wide_columns)] <- conversion_table$Category[i]
       }
       if (h == "Refined Grain"){
-        my_row[match("HEI_RefinedGrain_Conv", wide_columns)] <- conversion_table$Category[i]
+        my_row[match("HEI_RefinedGrain_Conv", wide_columns)] <- conversion_table$HEI_equiv[i]
         my_row[match("HEI_RefinedGrain_Unit", wide_columns)] <- conversion_table$HEI_unit[i]
-        my_row[match("HEI_RefinedGrain_Cat", wide_columns)] <- conversion_table$HEI_equiv[i]
+        my_row[match("HEI_RefinedGrain_Cat", wide_columns)] <- conversion_table$Category[i]
       }
       if (h == "Total Protein"){
-        my_row[match("HEI_TotalProtein_Conv", wide_columns)] <- conversion_table$Category[i]
+        my_row[match("HEI_TotalProtein_Conv", wide_columns)] <- conversion_table$HEI_equiv[i]
         my_row[match("HEI_TotalProtein_Unit", wide_columns)] <- conversion_table$HEI_unit[i]
-        my_row[match("HEI_TotalProtein_Cat", wide_columns)] <- conversion_table$HEI_equiv[i]
+        my_row[match("HEI_TotalProtein_Cat", wide_columns)] <- conversion_table$Category[i]
       }
       if (h == "Greens and Beans"){
-        my_row[match("HEI_GreensBean_Conv", wide_columns)] <- conversion_table$Category[i]
+        my_row[match("HEI_GreensBean_Conv", wide_columns)] <- conversion_table$HEI_equiv[i]
         my_row[match("HEI_GreensBean_Unit", wide_columns)] <- conversion_table$HEI_unit[i]
-        my_row[match("HEI_GreensBean_Cat", wide_columns)] <- conversion_table$HEI_equiv[i]
+        my_row[match("HEI_GreensBean_Cat", wide_columns)] <- conversion_table$Category[i]
       }
       if (h == "Total Vegetable"){
-        my_row[match("HEI_TotalVegetable_Conv", wide_columns)] <- conversion_table$Category[i]
+        my_row[match("HEI_TotalVegetable_Conv", wide_columns)] <- conversion_table$HEI_equiv[i]
         my_row[match("HEI_TotalVegetable_Unit", wide_columns)] <- conversion_table$HEI_unit[i]
-        my_row[match("HEI_TotalVegetable_Cat", wide_columns)] <- conversion_table$HEI_equiv[i]
+        my_row[match("HEI_TotalVegetable_Cat", wide_columns)] <- conversion_table$Category[i]
       }
       if (h == "Seafood and Plant Protein"){
-        my_row[match("HEI_SeaPlantPro_Conv", wide_columns)] <- conversion_table$Category[i]
+        my_row[match("HEI_SeaPlantPro_Conv", wide_columns)] <- conversion_table$HEI_equiv[i]
         my_row[match("HEI_SeaPlantPro_Unit", wide_columns)] <- conversion_table$HEI_unit[i]
-        my_row[match("HEI_SeaPlantPro_Cat", wide_columns)] <- conversion_table$HEI_equiv[i]
+        my_row[match("HEI_SeaPlantPro_Cat", wide_columns)] <- conversion_table$Category[i]
       }
       if (h == "Whole Fruit"){
-        my_row[match("HEI_WholeFruit_Conv", wide_columns)] <- conversion_table$Category[i]
+        my_row[match("HEI_WholeFruit_Conv", wide_columns)] <- conversion_table$HEI_equiv[i]
         my_row[match("HEI_WholeFruit_Unit", wide_columns)] <- conversion_table$HEI_unit[i]
-        my_row[match("HEI_WholeFruit_Cat", wide_columns)] <- conversion_table$HEI_equiv[i]
+        my_row[match("HEI_WholeFruit_Cat", wide_columns)] <- conversion_table$Category[i]
       }
     }
     wide_conv_tabl[i,] <- my_row
