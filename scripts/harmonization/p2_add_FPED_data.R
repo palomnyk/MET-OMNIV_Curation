@@ -1,14 +1,12 @@
 #Author: Aaron Yerke (aaronyerke@gmail.com)
-#Script for adding HEI/FPED categories to ESHA output
+#Script for creating HEI/FPED categories conversion table from Pat's Pivot tables.
 # Inputs: 
 #   1. HEI pivot table with dietary items and HEI equivalence categories and
 #     conversion factors.
 #   2. Table with esha dietary information with new categories
 # Outputs:
-#   1. Table with esha dietary information with new categories
-#   2. Long format conversion table
-#   3. Wide format conversion table
-#   4. Table with missing information (should actually be empty)
+#   1. Long format HEI conversion table
+#   2. Wide format HEI conversion table
 
 rm(list = ls()) #clear workspace
 
@@ -21,9 +19,18 @@ if (!requireNamespace("readxl", quietly = TRUE))  BiocManager::install("readxl")
 library("readxl")
 if (!requireNamespace("data.table", quietly = TRUE))  BiocManager::install("data.table")
 library("data.table")
+if (!requireNamespace("tools", quietly = TRUE))  BiocManager::install("tools")
+library("tools")
 if (!requireNamespace("optparse", quietly = TRUE)) BiocManager::install("optparse")
 library("optparse")
 print("Libraries are loaded.")
+
+#### Functions ####
+title_case <- function(y) {
+  my_strings <- strsplit(y, " ")[[1]]
+  paste(toupper(substring(my_strings, 1,1)), substring(my_strings, 2),
+        sep="", collapse=" ")
+}
 
 #### Parse command line arguments ####
 option_list <- list(
@@ -55,7 +62,7 @@ data_dir <- file.path("data", "diet", "nutrition_data")
 my_excel <- file.path(opt$HEI_conv)#default is modified table 
 # has several columns removed that were extra in 2 of the sheets
 my_sheets <- readxl::excel_sheets(my_excel)
-df <- data.table::fread(file = file.path(opt$input),
+combined_studies <- data.table::fread(file = file.path(opt$input),
                         check.names = FALSE)
 req_columns <- c("Category","","1 oz equiv. (g)", "1 tsp equiv. (g)")
 conversion_cols <- c("1 cup equiv. (g)","1 oz equiv. (g)", "1 tsp equiv. (g)")
@@ -87,39 +94,52 @@ conv_cat <- c()
 conv_equ <- c()
 conv_unit <- c()
 
+need_cup <- c("Dairy", "Greens and Beans", "Total Vegetable", "Total Fruit",
+              "Whole Grain","Whole Fruit")
+need_oz <- c("Seafood and Plant Protein","Refined Grain", "Total Protein")
+
 for (rw in 1:nrow(big_sheet)){
-  my_cat <- unlist(big_sheet[rw,"Category"])
   my_convers <- which(!is.na(unlist(big_sheet[rw, conversion_cols])))
-  if (!all(is.na(my_convers))){
+  if (!all(is.na(my_convers))){#pick the value that is not NA
     my_item <- unlist(big_sheet[rw,"Menu Item"])
-    if (!my_item %in% conv_item){
-      my_quant <- unlist((big_sheet[rw, "Quantity (g)"]))
-      #pick the value that is not NA
-      my_unit <- names(my_convers)[1]
-      conv_cat <- c(conv_cat, my_cat)
-      conv_item <- c(conv_item, my_item)
-      conv_equ <- c(conv_equ, unlist(big_sheet[rw, my_unit]))
-      conv_unit <- c(conv_unit, my_unit)
+    my_cats <- unlist(strsplit(unlist(big_sheet[rw,"Category"]), "/ "))
+    for (my_cat in my_cats){
+      if (!is.na(my_cat)){
+        my_cat <- tools::toTitleCase(trimws(unlist(my_cat)))
+        if (my_cat %in% need_cup){
+          my_unit <- "1 cup equiv. (g)"
+          conv_cat <- c(conv_cat, my_cat)
+          conv_item <- c(conv_item, my_item)
+          conv_equ <- c(conv_equ, unlist(big_sheet[rw, my_unit]))
+          conv_unit <- c(conv_unit, my_unit)
+        }else{
+          if (my_cat %in% need_oz){
+            my_unit <- "1 oz equiv. (g)"
+            conv_cat <- c(conv_cat, my_cat)
+            conv_item <- c(conv_item, my_item)
+            conv_equ <- c(conv_equ, unlist(big_sheet[rw, my_unit]))
+            conv_unit <- c(conv_unit, my_unit)
+          }else{
+            if (my_cat == "Added Sugar"){
+              my_unit <- "1 tsp equiv. (g)"
+              conv_cat <- c(conv_cat, my_cat)
+              conv_item <- c(conv_item, my_item)
+              conv_equ <- c(conv_equ, unlist(big_sheet[rw, my_unit]))
+              conv_unit <- c(conv_unit, my_unit)
+            }else{
+              stop(paste("HEI category not found:", my_cat))
+            }
+          }
+        }
+      }
     }
   }
-  # else{
-  #   print("In ELSE")
-  #   my_item <- unlist(big_sheet[rw,"Menu Item"])
-  #   if (!my_item %in% conv_item){
-  #     my_quant <- unlist((big_sheet[rw, "Quantity (g)"]))
-  #     #pick the value that is not NA
-  #     my_unit <- names(my_convers)[1]
-  #     conv_cat <- c(conv_cat, my_cat)
-  #     conv_item <- c(conv_item, my_item)
-  #     conv_equ <- c(conv_equ, NA)
-  #     conv_unit <- c(conv_unit, my_unit)
-  #   }
-  # }
 }
 
 #### Create long HEI conversion table####
 conv_tab_names <- c("item","Category","HEI_equiv","HEI_unit") 
 conversion_table <- data.frame(conv_item, conv_cat, conv_equ, conv_unit)
+
 names(conversion_table) <- conv_tab_names
 
 data.table::fwrite(conversion_table, file = file.path(data_dir, paste0(opt$out_prefix, "HEI_conversion_table_long.tsv")),
@@ -141,7 +161,7 @@ wide_columns <- c("item", "HEI_TotalVeg_Cat", "HEI_TotalVeg_Conv", "HEI_TotalVeg
 wide_conv_tabl <- data.frame(matrix(ncol = length(wide_columns)))
 names(wide_conv_tabl) <- wide_columns
 
-uniq_items <- unique(df$`Item Name`)
+uniq_items <- unique(combined_studies$`Item Name`)
 for (i in 1:length(uniq_items)){
   print(conversion_table$item[i])
   my_row <- rep(NA, length(wide_conv_tabl))
@@ -206,40 +226,6 @@ for (i in 1:length(uniq_items)){
   }
 }
 data.table::fwrite(wide_conv_tabl, file = file.path(data_dir, paste0(opt$out_prefix, "HEI_conversion_table_wide.tsv")),
-                   sep = "\t", row.names = F)
-
-#### Add HEI data to ESHA combined dataset ####
-new_info <- data.frame(matrix(nrow = nrow(df), ncol = length(req_columns)))
-colnames(new_info) <- conv_tab_names
-names(new_info)[1] <- "HEI_volume"
-
-for (rw in 1:nrow(df)){
-  my_item <- unlist(df[rw,"Item Name"])
-  if (my_item %in% conversion_table$item){
-    my_quantity <- as.numeric(unlist(df[rw, "Quantity"]))
-    my_convers_row <- conversion_table[which(conversion_table$item == my_item),]
-    conv_item <- my_convers_row[1]
-    if (my_item == conv_item){
-      my_unit <- my_convers_row[4]
-      my_HEI_num <- my_convers_row[3]
-      my_cat <- my_convers_row[2]
-      my_value <- my_quantity/my_HEI_num
-      # print(paste(my_item, my_convers_row))
-      # my_row <- my_sub[1, req_columns]
-      new_info[rw,] <- c(my_value, my_cat, my_HEI_num, my_unit)
-    }
-  }
-} 
-
-out_df <- cbind(df, new_info)
-
-data.table::fwrite(out_df, file = file.path(data_dir, paste0(opt$out_prefix,"combined_esha_studies_HEI.tsv")), 
-                   sep = "\t", row.names = F)
-
-missing_HEI <- out_df[is.na(out_df$HEI_volumne), ]
-missing_items <- unique(missing_HEI$`Item Name`)
-
-data.table::fwrite(list(missing_items), file = file.path(data_dir, paste0(opt$out_prefix,"HEI_missing_items.tsv")),
                    sep = "\t", row.names = F)
 
 print("Completed R script!")
