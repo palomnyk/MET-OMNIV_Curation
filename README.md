@@ -7,7 +7,6 @@ This repository is meant to be run through [Snakemake](https://snakemake.readthe
 The flow of this workflow is dictated through Snakemake rules found in the Snakefile in the workflow folder. These rules follow the following flow:
 ![rulegraph 1](workflow\reports\rulegraph.png "Flow of rules")
 
-
 ![directed acyclic graph](workflow/reports/dag.png "Rules with wildcards")
 
 ### Harmonizing data
@@ -43,6 +42,8 @@ We will have 3 ESHA dietary datasets and one from NDSA. Currently, 2 ESHA datase
 3. Launch snakemake:\
 `snakemake --profile workflow/config`
 
+## Developer notes
+### Useful commands
 conda env update --file workflow/env/python_conda_env.yml --prune
 
 snakemake --dag |dot -Tpng > workflow/reports/dag.png
@@ -55,64 +56,22 @@ snakemake --forceall --dag |dot -Tpdf > workflow/reports/forceall.pdf
 --forceall 
  snakemake --forceall --dag | dot -Tpdf > dag.pdf
 
-snakemake --filegraph --dag | dot -Tpdf > dag.pdf
-
-  -e pred_table, --pred_path pred_table
-                        path, relative to cwd, to table with predictor/explanatory/independant vars
-  -o OUTPUT_LABEL, --output_label OUTPUT_LABEL
-                        base label for output files (additional info will be added to it)
-  -c RESPONSE_COL, --response_col RESPONSE_COL
-                        Feature column to use in response var, if empty, all will be used
-  -f out_sub, --out_folder out_sub
-                        path, sub folder in 'output'.
-  -r resp_fn, --response_fn resp_fn
-                        Name of file that holds response vars.
-  -l delim, --delimiter delim
-                        File delimiting symbol for metadata. Default is tab.
-  -t title, --title title
-                        Title for visualizations
-  -v id_var, --id_var id_var
-                        String, column name of row variables
-
-python scripts/ml/random_forest_cross_val.py\
-  --pred_path data/metabolomics/log_filt_all_bat_norm_imput.csv \
-  --response_col beef_level \
-  --output_label beef_lev_NO_MAP \
-  --out_folder no_med \
-  --response_fn data/mapping/all_sites_metadata.csv \
-  --delimiter , \
-  --title "Beef Level Predictions" \
-  --id_var "PARENT_SAMPLE_NAME"
-
-python scripts/ml/random_forest_cross_val.py\
-  --pred_path data/metabolomics/log_filt_all_bat_norm_imput.csv \
-  --response_col beef_level \
-  --output_label beef_lev_NO_MAP \
-  --out_folder no_map \
-  --response_fn data/mapping/all_sites_metadata.csv \
-  --delimiter , \
-  --title "Beef Level Predictions (3 levels)" \
-  --id_var "PARENT_SAMPLE_NAME"
-
-python scripts/ml/random_forest_cross_val.py\
-  --pred_path data/metabolomics/log_filt_all_bat_norm_imput.csv \
-  --response_col "TIMEPOINT" \
-  --output_label pre_post_treat_NO_MAP \
-  --out_folder no_map \
-  --response_fn data/mapping/all_sites_metadata.csv \
-  --delimiter , \
-  --title "Pre vs post treatment" \
-  --id_var "PARENT_SAMPLE_NAME"
-
-
-python scripts/ml/random_forest_cross_val.py\
-  --pred_path data/metabolomics/log_filt_all_bat_norm_imput.csv \
-  --out_folder no_map \
-  --response_fn data/mapping/rf_noMed_metadata.csv \
-  --delimiter , \
-  --id_var "PARENT_SAMPLE_NAME"\
-  --respons_df_start 1
-
-
-mv tables/*meat-demo-log-filt_all_bat_norm_imput*.csv extra_tables
-
+#### Remaining coding tasks:
+* Finish normalization comparison plot
+	1. Add pvalue tree	X
+* Fix Sankey plots showing how each meat type aggrees by top level metabolites X
+* Fix Sankey plots that show how sites compare for each meat type X
+* Create Sankey plots showing highest score vs most versitile
+	1. create new tables that have both highest score and most versitile
+	2. run new tables through Sankey script
+* Create Sankey plots showing processed verse other processed using most versitile site
+	1. create new tables that have all processed
+	2. run new tables through Sankey script
+* Create Sankey plots showing min processed verse other min processed most versitile site
+	1. create new tables that have all min processed
+	2. run new tables through Sankey script
+* Create Sankey plots showing each meat type vs each other meat type most versitile site X (for beef)
+	1. create new tables that have meats
+	2. run new tables through Sankey script
+* Make rule for comparing response variables by site
+* Add HEI calculating scripts and plots
