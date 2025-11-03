@@ -13,12 +13,10 @@ metabolomics_levels = ["chem"]#, "sub_pathway","super_pathway"]
 clean_sites = ["PSU_MED", "MB_IIT", "Purdue", "USDA_MED", "all_sites"]
 clean_sites1 = ["PSU_MED", "MB_IIT", "Purdue", "USDA_MED", "all_sites"]
 orgi_sites = ["PSU-MED", "MB/IIT", "Purdue", "USDA-MED"]
-rf_columns = ["PARENT_SAMPLE_NAME", "SITE", "TIMEPOINT","TREATMENT","controls","beef_level","beef_level_oz"]
-nutri_dir = os.path.join("data", "diet", "nutrition_data")
 mapping_predictor_groups = ["rf_demographics_meats", "rf_meats"]
 metabo_pred_dietarys = ["log-filt_all_bat_norm_imput", "demo-log-filt_all_bat_norm_imput"]
 metabo_pred_cvds = ["meat-demo-log-filt_all_bat_norm_imput"]
-normaliz_meats = ["meats_g", "meats_g_per_kg_bw", "meats_g_per_bmi", "meats_rmOut_g", "meats_rmOut_g_per_kg_bw", "meats_rmOut_g_per_bmi"]
+normaliz_meats = ["meats:_g", "meats:_g_per_kg_bw", "meats:_g_per_BMI", "meats:_g•", "meats:_g_per_kg_bw•", "meats:_g_per_BMI•"]
 cvd_prefix = "CVD"
 multi_sites = ["PSU_MED_MB_IIT","PSU_MED_Purdue","PSU_MED_USDA_MED","MB_IIT_Purdue","MB_IIT_USDA_MED",
 	"Purdue_USDA_MED","PSU_MED_MB_IIT_Purdue","PSU_MED_MB_IIT_USDA_MED","PSU_MED_Purdue_USDA_MED",
@@ -26,13 +24,12 @@ multi_sites = ["PSU_MED_MB_IIT","PSU_MED_Purdue","PSU_MED_USDA_MED","MB_IIT_Purd
 all_clean_sites = clean_sites + multi_sites
 all_clean_sites1 = all_clean_sites
 meat_types = ["beef","beef_proc","beef_min_proc","chicken", "chicken_proc", "chicken_min_proc",
-	"pork","pork_proc", "pork_min_proc","turkey", "turkey_proc", "turkey_min_proc", "meat","meat_proc","meat_min_proc" ]
+	"pork","pork_proc", "pork_min_proc","turkey", "turkey_proc", "turkey_min_proc", "meat","meat_proc","meat_min_proc"]
 g_meats = [s + "_g" for s in meat_types]
-g_per_bw_meats = [s + "_g_per_kg_bw" for s in meat_types]
-rmOut_g_per_bw_meats = [s + "_rmOut_g_per_kg_bw" for s in meat_types]
+g_per_bw_meats = [s + ":_g_per_kg_bw" for s in meat_types]
+rmOut_g_per_bw_meats = [s + ":_g_per_kg_bw•" for s in meat_types]
 
-sub_demo = ["male_only", "female_only","age24_42","age42_73",
-	"bmi20.35_27.9", "bmi27.9_40.5"]
+sub_demo = ["male_only", "female_only","Age:24_42","Age:42_73", "BMI:20.35_27.9", "BMI:27.9_40.5"]
 
 rule completed:
 	input:
@@ -40,6 +37,7 @@ rule completed:
 		# i os.path.join("data", "diet", "nutrition_data", "combined_esha_studies.tsv"),
 		# i expand("data/diet/nutrition_data/mb-{file}",\
 		#    file=["HEI_with_proportions_long.tsv","HEI_with_proportions_long.xlsx", "HEI_with_proportions_long.tsv"]),
+		
 # Beef biomarker random forest
 	# Random forest regressor hyperparameter optimization
 		# "output/hyper_param/tables/best_param.txt",
@@ -54,23 +52,23 @@ rule completed:
 		# expand("output/demo_scor/graphics/demo_comp-{metblmcs_lev}-{norm_meat}-{sub_demo}-site_compar.pdf",
 		# metblmcs_lev=metabolomics_levels, norm_meat=normaliz_meats, sub_demo=sub_demo),
 	# Check if age/sex/BMI changes output of biomarker model
-		# expand("output/demo_scor/graphics/demo_comp-{metblmcs_lev}-{norm_meat}-age-site_compar.pdf",
-		# metblmcs_lev=metabolomics_levels, norm_meat=normaliz_meats),
-		# expand("output/demo_scor/graphics/demo_comp-{metblmcs_lev}-{norm_meat}-sex-site_compar.pdf",
-		# metblmcs_lev=metabolomics_levels, norm_meat=normaliz_meats),
-		# expand("output/demo_scor/graphics/demo_comp-{metblmcs_lev}-{norm_meat}-bmi-site_compar.pdf",
-		# metblmcs_lev=metabolomics_levels, norm_meat=normaliz_meats),
+		expand("output/demo_scor/graphics/demo_comp-{metblmcs_lev}-{norm_meat}-age-site_compar.pdf",
+		metblmcs_lev=metabolomics_levels, norm_meat=normaliz_meats),
+		expand("output/demo_scor/graphics/demo_comp-{metblmcs_lev}-{norm_meat}-sex-site_compar.pdf",
+		metblmcs_lev=metabolomics_levels, norm_meat=normaliz_meats),
+		expand("output/demo_scor/graphics/demo_comp-{metblmcs_lev}-{norm_meat}-bmi-site_compar.pdf",
+		metblmcs_lev=metabolomics_levels, norm_meat=normaliz_meats),
 	# Boxplots compare normalizations
 		# Plot with tree
 		"output/norm_meat/graphics/compr_norm_tree.png",
 		# Plot zoomed
 		"output/norm_meat/graphics/compr_norm_zoom.png",
 	# Intermediate step to see how sites agree on metabolite importance using Sankey plot
-		expand("output/norm_meat_site_reorg/tables/reorg-{resp_var}-shap_feat_imp-demo-log-filt_all_bat_norm_imput-chem-meats_rmOut_g_per_kg_bw-{metblmcs_lev}-.csv",
-		resp_var=rmOut_g_per_bw_meats, metblmcs_lev=metabolomics_levels),
-	# Sankey plot comparing sites
-		expand("output/norm_meat_site_reorg/graphics/reorg-{resp_var}-shap_feat_imp-demo-log-filt_all_bat_norm_imput-chem-meats_rmOut_g_per_kg_bw-{metblmcs_lev}-.pdf",
-		resp_var=rmOut_g_per_bw_meats, metblmcs_lev=metabolomics_levels),
+	# 	expand("output/norm_meat_site_reorg/tables/reorg-{resp_var}-shap_feat_imp-demo-log-filt_all_bat_norm_imput-chem-meats:_g_per_kg_bw•-{metblmcs_lev}-.csv",
+	# 	resp_var=rmOut_g_per_bw_meats, metblmcs_lev=metabolomics_levels),
+	# # Sankey plot comparing sites
+	# 	expand("output/norm_meat_site_reorg/graphics/reorg-{resp_var}-shap_feat_imp-demo-log-filt_all_bat_norm_imput-chem-meats:_g_per_kg_bw•-{metblmcs_lev}-.pdf",
+	# 	resp_var=rmOut_g_per_bw_meats, metblmcs_lev=metabolomics_levels),
 	# 2nd Intermediate step for Sankey comparing sites
 		# expand("output/norm_meat/tables/reorg-{resp_var}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-meats_g_per_kg_bw.csv",
 		# resp_var=rmOut_g_per_bw_meats metblmcs_lev=metabolomics_levels),#allow_missing=True
@@ -82,7 +80,7 @@ rule completed:
 		expand("output/norm_meat/graphics/all_sites-metblt_Sankey_protn-{metblmcs_lev}-{norm_meat}.html",
 		metblmcs_lev=metabolomics_levels, norm_meat=normaliz_meats),
 	# Sankey compares metabolites of only beef
-		expand("output/norm_meat/graphics/all_sites-metblt_Sankey_protn_beef_only-{metblmcs_lev}-beef_rmOut_g.html",
+		expand("output/norm_meat/graphics/all_sites-metblt_Sankey_protn_beef_only-{metblmcs_lev}-beef:_g•.html",
 		metblmcs_lev=metabolomics_levels),
 	# Shape of demographic data
 		"output/norm_meat/graphics/demo_plots.pdf",
@@ -91,13 +89,13 @@ rule completed:
 		"output/norm_meat/graphics/boxplot_grid_summary_meats_g.png",
 # Beef biomarker Venn diagrams
 	# Venn plot comparing sites
-		expand("output/norm_meat_site_reorg/graphics/Venn-reorg-{resp_var}-shap_feat_imp-demo-log-filt_all_bat_norm_imput-chem-meats_rmOut_g_per_kg_bw-{metblmcs_lev}-.png",
-		resp_var=rmOut_g_per_bw_meats, metblmcs_lev=metabolomics_levels),
+		# expand("output/norm_meat_site_reorg/graphics/Venn-reorg-{resp_var}-shap_feat_imp-demo-log-filt_all_bat_norm_imput-chem-meats:_g_per_kg_bw•-{metblmcs_lev}-.png",
+		# resp_var=rmOut_g_per_bw_meats, metblmcs_lev=metabolomics_levels),
 	# # Venn plot that compares metabolites of all the response variables of single normalization
 	# 	expand("output/norm_meat/graphics/all_sites-metblt_Venn_protn-{metblmcs_lev}-{norm_meat}.html",
 	# 	metblmcs_lev=metabolomics_levels, norm_meat=normaliz_meats),
 	# # Venn compares metabolites of only beef
-	# 	expand("output/norm_meat/graphics/all_sites-metblt_Sankey_protn_beef_only-{metblmcs_lev}-beef_rmOut_g.html",
+	# 	expand("output/norm_meat/graphics/all_sites-metblt_Sankey_protn_beef_only-{metblmcs_lev}-beef:_g•.html",
 	# 	metblmcs_lev=metabolomics_levels),
 # Random forest for CVD Markers
 		# expand("output/no_map_CVD/tables/{clean_site}-meat-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-CVD_scores.csv",
@@ -124,8 +122,6 @@ rule completed:
 # For making github readme:
 		"workflow/reports/rulegraph.png",
 		"workflow/reports/dag.png"
-
-
 
 rule combine_MB_dietary_to_single_table:
 	conda:"env/python_conda_env.yml"
@@ -242,7 +238,7 @@ rule organize_response_data_beef_only:
 rule organize_metabolomics:
 	conda:"env/python_conda_env.yml"
 	input:
-		"data/metabolomics/UARS-01-23ML+/UARS-01-23ML+ DATA TABLES (DATA ADJUSTED BY BASELINE SAMPLES FROM EACH SITE).xlsx",
+		"data/metabolomics/UARS-01-23ML+/UARS-01-23ML+ DATA TABLES (DATA ADJUSTED BY BASELINE SAMPLES ROM EACH SITE).xlsx",
 	output: "data/metabolomics/filt_all_bat_norm_imput-{metblmcs_lev}.csv",
 			"data/metabolomics/log-filt_all_bat_norm_imput-{metblmcs_lev}.csv"
 	shell:
@@ -261,7 +257,7 @@ rule organize_demographics:
 		"data/mapping/mb/MB-2112_Screen and Rand.xlsx",
 		"data/mapping/purdue/AY_sample_codebook 9.12.2024 Campbell data.xlsx",
 	output: "data/mapping/full_demo.csv",
-			"data/mapping/all_sites_demo.csv"
+			"data/mapping/EDTA-all_sites_demo.csv"
 	shell:
 		"""
 		Rscript scripts/data_org/org_demo_help.R
@@ -270,7 +266,7 @@ rule organize_demographics:
 rule combine_metadata_demo:
 	conda:"env/python_conda_env.yml"
 	input:
-		diet_org = "data/mapping/all_sites_demo.csv",
+		diet_org = "data/mapping/EDTA-all_sites_demo.csv",
 		helper = "data/mapping/all_sites-meats.csv"
 	output:
 		"data/mapping/all_sites-meats-demo.csv"
@@ -290,7 +286,7 @@ rule combine_metabol_demo:
 	conda:"env/python_conda_env.yml"
 	input:
 		diet_org = "data/metabolomics/log-filt_all_bat_norm_imput-{metblmcs_lev}.csv",
-		helper = "data/mapping/all_sites_demo.csv"
+		helper = "data/mapping/EDTA-all_sites_demo.csv"
 	output:
 		"data/metabolomics/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv"
 	resources:
@@ -407,7 +403,7 @@ rule exp_org_boxplot_grid:#Sankey shows experimental organization
 	conda:"env/python_conda_env.yml"
 	input: "data/diet/nutrition_data/all_sites-meats_normalize_full_df.csv"
 	output:
-		"output/norm_meat/graphics/boxplot_grid_summary_meats_g.png"
+		"output/norm_meat/graphics/boxplot_grid_summary_meats:_g.png"
 	params:
 	resources:
 		time=60, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
@@ -417,8 +413,8 @@ rule exp_org_boxplot_grid:#Sankey shows experimental organization
 		   Rscript scripts/ds_descrip/grid_plot_exp_summary.R\
 		    	--input {input[0]}\
 		   		--output_dir norm_meat\
-				--out_name boxplot_grid_summary_meats_g.png\
-				--suffix _g\
+				--out_name boxplot_grid_summary_meats:_g.png\
+				--suffix :_g\
 				--pseudocount 0.000001
 
 		"""
@@ -435,7 +431,6 @@ rule org_auto_protein_label_response_data:
 		   		"HEI_conversion_table_long.tsv","combined_esha_studies_HEI.tsv","HEI_missing_items.tsv"])
 	output: 
 		"data/mapping/all_sites-meats.csv"
-	params:
 	shell:
 		"""
 		Rscript scripts/data_org/org_metadata_auto_protn.R
@@ -447,7 +442,6 @@ rule normalize_auto_protein_meats:
 		"data/mapping/all_sites-meats.csv",
 	output: 
 		expand("data/mapping/{all_site}-rf_{norm_meat}.csv", all_site=all_clean_sites, norm_meat=normaliz_meats)
-	params:
 	shell:
 		"""
 		Rscript scripts/data_org/normalize_meats.R
@@ -476,10 +470,10 @@ rule Sankey_norm_meat_all_resp_var:#Compares top hits of feature importance for 
 rule Sankey_norm_meat_only_beef:#Compares top hits of feature importance for RF run for beef
 	conda:"env/python_conda_env.yml"
 	input:
-		"output/norm_meat/tables/shap_feat_imp_all_sites-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-meats_rmOut_g.csv"
+		"output/norm_meat/tables/shap_feat_imp_all_sites-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-meats:_g•.csv"
 	output:
-		"output/norm_meat/graphics/all_sites-metblt_Sankey_protn_beef_only-{metblmcs_lev}-beef_rmOut_g.html",
-		"output/norm_meat/graphics/all_sites-metblt_Sankey_protn_beef_only-{metblmcs_lev}-beef_rmOut_g.pdf"
+		"output/norm_meat/graphics/all_sites-metblt_Sankey_protn_beef_only-{metblmcs_lev}-beef:_g•.html",
+		"output/norm_meat/graphics/all_sites-metblt_Sankey_protn_beef_only-{metblmcs_lev}-beef:_g•.pdf"
 	params:
 		label = "norm_meat",
 	shell:
@@ -487,19 +481,19 @@ rule Sankey_norm_meat_only_beef:#Compares top hits of feature importance for RF 
 			Rscript scripts/ds_descrip/comb_output_Sankey.R\
 				--featimp_path {input[0]}\
 				--output_dir {params.label}\
-				--out_name output/norm_meat/graphics/all_sites-metblt_Sankey_protn_beef_only-{wildcards.metblmcs_lev}-beef_rmOut_g.html\
+				--out_name output/norm_meat/graphics/all_sites-metblt_Sankey_protn_beef_only-{wildcards.metblmcs_lev}-beef:_g•.html\
 				--grouping_column "response_var"\
 				--top_X 10\
-				--group_subset "beef_min_proc_rmOut_g,beef_proc_rmOut_g,beef_rmOut_g"
+				--group_subset "Beef_min_proc:_g•,Beef_proc:_g•,beef:_g•"
 		"""
 # rule Sankey_norm_meat_all_resp_var:#Compares top hits of feature importance for RF run
 # 	# Sankey plot that compares metabolites of all the response variables of single normalization
 # 	conda:"env/python_conda_env.yml"
 # 	input:
-# 		"output/norm_meat/tables/shap_feat_imp_all_sites-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-meats_rmOut_g_per_kg_bw.csv"
+# 		"output/norm_meat/tables/shap_feat_imp_all_sites-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-meats:_g_per_kg_bw•.csv"
 # 	output:
-# 		"output/norm_meat/graphics/all_sites-metblt_Sankey_protn-{metblmcs_lev}-meats_rmOut_g_per_kg_bw.html",
-# 		"output/norm_meat/graphics/all_sites-metblt_Sankey_protn-{metblmcs_lev}-meats_rmOut_g_per_kg_bw.pdf"
+# 		"output/norm_meat/graphics/all_sites-metblt_Sankey_protn-{metblmcs_lev}-meats:_g_per_kg_bw•.html",
+# 		"output/norm_meat/graphics/all_sites-metblt_Sankey_protn-{metblmcs_lev}-meats:_g_per_kg_bw•.pdf"
 # 	params:
 # 		label = "norm_meat",
 # 	shell:
@@ -507,9 +501,9 @@ rule Sankey_norm_meat_only_beef:#Compares top hits of feature importance for RF 
 # 			Rscript scripts/ds_descrip/comb_output_Sankey.R\
 # 				--featimp_path {input[0]}\
 # 				--output_dir {params.label}\
-# 				--out_name output/norm_meat/graphics/all_sites-metblt_Sankey_protn-{wildcards.metblmcs_lev}-meats_rmOut_g_per_kg_bw.html\
+# 				--out_name output/norm_meat/graphics/all_sites-metblt_Sankey_protn-{wildcards.metblmcs_lev}-meats:_g_per_kg_bw•.html\
 # 				--grouping_column "response_var"\
-# 				--group_subset "beef_min_proc_rmOut_g,beef_proc_rmOut_g,beef_rmOut_g"\
+# 				--group_subset "Beef_min_proc:_g•,Beef_proc:_g•,beef:_g•"\
 # 				--plot_height 800
 # 		"""
 
@@ -557,7 +551,7 @@ rule combine_metabol_demo_meat:
 		diet_org = "data/metabolomics/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv",
 		helper = expand("data/mapping/{all_site}-rf_{norm_meat}.csv", all_site=all_clean_sites, norm_meat=normaliz_meats)
 	output:
-		"data/metabolomics/{norm_meat}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv"
+		"data/metabolomics/meat_{norm_meat}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv"
 	resources:
 		runtime=60, #format: M, M:S, H:M:S, D-H, D-H:M, or D-H:M:S
 		mem="16gb"
@@ -624,12 +618,13 @@ rule copy_norm_meat_single_sites_to_new_out_folder:
 				""")
 
 rule combine_rf_resp_var_by_site_normalize_meat_rmOut_g_per_kg_bw:
+	# Creates input for plot that shows how each site performs on each treatment
 	conda:"env/python_conda_env.yml"
 	input:
-		expand("output/norm_meat_single/tables/shap_feat_imp_{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-meats_rmOut_g_per_kg_bw.csv",
+		expand("output/norm_meat_single/tables/shap_feat_imp_{clean_site}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}-meats:_g_per_kg_bw•.csv",
 		metblmcs_lev=metabolomics_levels,clean_site=clean_sites),
 	output:
-		expand("output/norm_meat_site_reorg/tables/reorg-{resp_var}-shap_feat_imp-demo-log-filt_all_bat_norm_imput-chem-meats_rmOut_g_per_kg_bw-{metblmcs_lev}-.csv",
+		expand("output/norm_meat_site_reorg/tables/reorg-{resp_var}-shap_feat_imp-demo-log-filt_all_bat_norm_imput-chem-meats:_g_per_kg_bw•-{metblmcs_lev}-.csv",
 		resp_var=rmOut_g_per_bw_meats, metblmcs_lev=metabolomics_levels)
 	shell:
 		"""
@@ -637,15 +632,15 @@ rule combine_rf_resp_var_by_site_normalize_meat_rmOut_g_per_kg_bw:
 			--metblmcs_lev {wildcards.metblmcs_lev} \
 			--in_dir output/norm_meat_single/tables\
 			--out_dir output/norm_meat_site_reorg\
-			--data_pattern "demo-log-filt_all_bat_norm_imput-{wildcards.metblmcs_lev}-meats_rmOut_g_per_kg_bw"
+			--data_pattern "demo-log-filt_all_bat_norm_imput-{wildcards.metblmcs_lev}-meats:_g_per_kg_bw•"
 		"""
 
 rule Sankey_reorg_rf_resp_var_by_site_normalize_rmOut_g_per_kg_bw:
 	conda:"env/python_conda_env.yml"
 	input:
-		"output/norm_meat_site_reorg/tables/reorg-{resp_var}-shap_feat_imp-demo-log-filt_all_bat_norm_imput-chem-meats_rmOut_g_per_kg_bw-{metblmcs_lev}-.csv"
+		"output/norm_meat_site_reorg/tables/reorg-{resp_var}-shap_feat_imp-demo-log-filt_all_bat_norm_imput-chem-meats:_g_per_kg_bw•-{metblmcs_lev}-.csv"
 	output:
-		"output/norm_meat_site_reorg/graphics/reorg-{resp_var}-shap_feat_imp-demo-log-filt_all_bat_norm_imput-chem-meats_rmOut_g_per_kg_bw-{metblmcs_lev}-.pdf"
+		"output/norm_meat_site_reorg/graphics/reorg-{resp_var}-shap_feat_imp-demo-log-filt_all_bat_norm_imput-chem-meats:_g_per_kg_bw•-{metblmcs_lev}-.pdf"
 	params:
 		label = "norm_meat_site_reorg"
 	shell:
@@ -653,7 +648,7 @@ rule Sankey_reorg_rf_resp_var_by_site_normalize_rmOut_g_per_kg_bw:
 			Rscript scripts/ds_descrip/comb_output_Sankey.R\
 				--featimp_path {input[0]}\
 				--output_dir {params.label}\
-				--out_name output/norm_meat_site_reorg/graphics/reorg-{wildcards.resp_var}-shap_feat_imp-demo-log-filt_all_bat_norm_imput-chem-meats_rmOut_g_per_kg_bw-{wildcards.metblmcs_lev}-.html \
+				--out_name output/norm_meat_site_reorg/graphics/reorg-{wildcards.resp_var}-shap_feat_imp-demo-log-filt_all_bat_norm_imput-chem-meats:_g_per_kg_bw•-{wildcards.metblmcs_lev}-.html \
 				--grouping_column "SITE"
 
 		"""
@@ -661,9 +656,9 @@ rule Sankey_reorg_rf_resp_var_by_site_normalize_rmOut_g_per_kg_bw:
 rule Venn_reorg_rf_resp_var_by_site_normalize_rmOut_g_per_kg_bw:
 	conda:"env/python_conda_env.yml"
 	input:
-		"output/norm_meat_site_reorg/tables/reorg-{resp_var}-shap_feat_imp-demo-log-filt_all_bat_norm_imput-chem-meats_rmOut_g_per_kg_bw-{metblmcs_lev}-.csv"
+		"output/norm_meat_site_reorg/tables/reorg-{resp_var}-shap_feat_imp-demo-log-filt_all_bat_norm_imput-chem-meats:_g_per_kg_bw•-{metblmcs_lev}-.csv"
 	output:
-		"output/norm_meat_site_reorg/graphics/Venn-reorg-{resp_var}-shap_feat_imp-demo-log-filt_all_bat_norm_imput-chem-meats_rmOut_g_per_kg_bw-{metblmcs_lev}-.png",
+		"output/norm_meat_site_reorg/graphics/Venn-reorg-{resp_var}-shap_feat_imp-demo-log-filt_all_bat_norm_imput-chem-meats:_g_per_kg_bw•-{metblmcs_lev}-.png",
 	params:
 		label = "norm_meat_site_reorg"
 	shell:
@@ -703,7 +698,7 @@ rule random_forest_cvd_meat:
 rule combine_meat_demo:#Combine numeric meat data with demographic data
 	conda:"env/python_conda_env.yml"
 	input:
-		demo = "data/mapping/all_sites_demo.csv",
+		demo = "data/mapping/EDTA-all_sites_demo.csv",
 		all_sites = expand("data/mapping/{all_site}-rf_{norm_meat}", all_site=all_clean_sites, norm_meat=normaliz_meats)
 	output:
 		expand("data/mapping/{all_site}-rf_{norm_meat}-demo.csv", all_site=all_clean_sites, norm_meat=normaliz_meats)
@@ -847,14 +842,15 @@ rule best_gen_model_chem:
 rule make_demo_metabolom_subsets:
 	conda:"env/python_conda_env.yml"
 	input:
-		"data/metabolomics/demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv"
+		demo_met = "data/metabolomics/demo-log-filt_all_bat_norm_imput-chem.csv"
 	output:
 		expand("data/metabolomics/all_site-{sub_demo}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv",
 		sub_demo=sub_demo, metblmcs_lev=metabolomics_levels)
-	script:
+		# "data/metabolomics/all_site-{sub_demo}-demo-log-filt_all_bat_norm_imput-{metblmcs_lev}.csv"
+	shell:
 		"""
 		Rscript scripts/data_org/subset_demo_metabol.R\
-			--infile {input[0]}\
+			--demo_met {input.demo_met}\
 			--outdir data/metabolomics
 		"""
 
@@ -902,7 +898,7 @@ rule compare_sites_demo_scor_age:
 			--in_dir output/demo_scor/tables/\
 			--out_subdir output/demo_scor/graphics/\
 			--out_file {output[0]}\
-			--out_prefix {params.prefix} \
+			--out_prefix {params.prefix}\
 			--group_pattern '"-age24_42-demo-log-filt_all_bat_norm_imput-{wildcards.metblmcs_lev}-{wildcards.norm_meat}_scores.csv,-age42_73-demo-log-filt_all_bat_norm_imput-{wildcards.metblmcs_lev}-{wildcards.norm_meat}_scores.csv"'\
 			--group_name "age:24-42,age:42-73"
 		"""
