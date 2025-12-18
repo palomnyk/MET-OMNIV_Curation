@@ -1,5 +1,6 @@
 #Author: Aaron Yerke (aaronyerke@gmail.com)
 #Script for labeling the protein sources based off of rudimentary text mining
+#For biomarkers and CVD paper
 #Runs directly off of the output from "p2_add_FPED_data.R
 #And adding HEI values
 #HEI_conversion_table_LEO wide.xlsx was hand made by Lauren for checking our work.
@@ -360,13 +361,13 @@ esha_studies$meat <- vector(length = nrow(esha_studies), mode = "double")
 
 #HEI vars
 esha_studies$HEI_gb_cup <- vector(length = nrow(esha_studies), mode = "double")
-esha_studies$HEI_dairy_oz <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$HEI_dairy_cp <- vector(length = nrow(esha_studies), mode = "double")
 esha_studies$HEI_total_pro_oz <- vector(length = nrow(esha_studies), mode = "double")
 esha_studies$HEI_SeaPlantPro_oz <- vector(length = nrow(esha_studies), mode = "double")
 esha_studies$HEI_refinedG_oz <- vector(length = nrow(esha_studies), mode = "double")
 esha_studies$HEI_addedSug_tsp <- vector(length = nrow(esha_studies), mode = "double")
 esha_studies$HEI_total_veg_cup <- vector(length = nrow(esha_studies), mode = "double")
-esha_studies$HEI_total_total_fruit_cup <- vector(length = nrow(esha_studies), mode = "double")
+esha_studies$HEI_total_fruit_cup <- vector(length = nrow(esha_studies), mode = "double")
 esha_studies$HEI_total_wholeFruit_cup <- vector(length = nrow(esha_studies), mode = "double")
 esha_studies$HEI_total_wholeGrains_cup <- vector(length = nrow(esha_studies), mode = "double")
 

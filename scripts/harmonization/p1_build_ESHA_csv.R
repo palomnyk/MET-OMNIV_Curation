@@ -1,5 +1,7 @@
 #Author: Aaron Yerke (aaronyerke@gmail.com)
-#Script for building CSV from ESHA output
+#Script for building CSV from ESHA output from 
+#"MAP Study Complete ESHA Analysis Spreadsheet.xlsx" and
+#"MED Diet Complete ESHA Analysis Spreadsheet.xlsx"
 ##Meant to give a starting point to our harmonization dictionaries
 
 rm(list = ls()) #clear workspace
@@ -13,6 +15,8 @@ if (!requireNamespace("readxl", quietly = TRUE))  BiocManager::install("readxl")
 library("readxl")
 if (!requireNamespace("data.table", quietly = TRUE))  BiocManager::install("data.table")
 library("data.table")
+if (!requireNamespace("openxlsx", quietly = TRUE))  BiocManager::install("openxlsx")
+library("openxlsx")
 print("Libraries are loaded.")
 
 #Read in data
@@ -149,36 +153,17 @@ out_df <- data.frame(apply(out_df, MARGIN = 2, FUN = trimws), check.names = FALS
 # str_df <- sapply(out_df, as.numeric)
 # str_df <- data.frame(lapply(out_df, as.numeric))
 
-# write.table(out_df, file = file.path(data_dir, "combined_esha_studies.tsv"), 
-#           sep = "\t", row.names = F)
-data.table::fwrite(out_df, file = file.path(data_dir, "nutrition_data", "combined_esha_studies.tsv"), 
+#### Save output ####
+data.table::fwrite(out_df, file = file.path(data_dir, "nutrition_data", "combined_esha_studies.tsv"),
                              sep = "\t", row.names = F)
 
 #create xlsx version
-if (!requireNamespace("openxlsx", quietly = TRUE))  BiocManager::install("openxlsx")
-library("openxlsx")
 openxlsx::write.xlsx(out_df, file = file.path(data_dir, "nutrition_data", "combined_esha_studies.xlsx"),
                  sheetName="Sheet1")
 
 #Reading in and out to strip leading and trailing whitespace
 out_df1 <- data.table::fread(file = file.path(data_dir, "nutrition_data", "combined_esha_studies.tsv"))
 
-#some data munging for Lauren
-missing_important_cols <- c("SugAdd..g.", "SatFat..g.", "MonoFat..g.", "PolyFat..g.",
-                            "Sod..mg.", "Pro..g.", "Fat..g.", "Carb..g.")
-missing_important <- c()
-
-for (mic in missing_important_cols){
-  my_missing <- which(is.na(out_df$SugAdd..g.))
-  my_zeros <- which( out_df$SugAdd..g. == 0 )
-  
-  missing_important <- c(missing_important, my_missing, my_zeros)
-}
-
-missing_important <- unique(missing_important)
-
-na_sugAdd <- out_df[missing_important,]
-data.table::fwrite(na_sugAdd, file = file.path(data_dir, "nutrition_data", "combined_esha_missing_important.tsv"), 
-                   sep = "\t", row.names = F)
+identical(out_df, out_df1)
 
 print("End R script!")
