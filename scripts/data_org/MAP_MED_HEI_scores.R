@@ -65,22 +65,6 @@ intrv_diet <- combined_esha[combined_esha$`Intervention`==intrvntn,]
 intrvntns <- unique(combined_esha$`Intervention`)
 
 #### Calculate sums of HEI variables ####
-##### HEI variables that we already have in the combined studies df #####
-HEI_to_calc <- c("HEI_addedSug_tsp","HEI_dairy_cup",
-                 "HEI_gb_cup","HEI_SeaPlantPro_oz",
-                 "HEI_total_pro_oz","HEI_total_veg_cup",
-                 "HEI_total_fruit_cup","HEI_refinedG_oz",
-                 "HEI_total_wholeFruit_cup",
-                 "HEI_total_wholeGrains_oz")
-HEI_calc_df_names <- c("HEI_category","Totals","Daily Avg.","Max Points",
-                       "Total Points","Cutoff points")
-HEI_calc_df <- data.frame(matrix(nrow = nrow(Pats_high_HEI_unproc_cat_vals),
-                                  ncol = length(HEI_calc_df_names)))
-names(HEI_calc_df) <- HEI_calc_df_names
-HEI_calc_df$HEI_category <- Pats_high_HEI_unproc_cat_vals$Our_name
-HEI_calc_df$`Max Points`<- Pats_high_HEI_unproc_cat_vals[match(HEI_calc_df$HEI_category, Pats_high_HEI_unproc_cat_vals$Our_name), "Max Points"]
-HEI_calc_df$Goal<- Pats_high_HEI_unproc_cat_vals[match(HEI_calc_df$HEI_category, Pats_high_HEI_unproc_cat_vals$Our_name), "Goal"]
-
 big_table <- data.frame() #Empty placeholder for table of intervention results together
 ###### Data for debugging ######
 HEI_scores <- c()
@@ -89,11 +73,30 @@ intrv_sum_sug_conv <- c()
 intrv_count_sug_conv <- c()
 intrv_sum_sug_HEI <- c()
 
-#####For loop to build table of HEI scores #####
+####For loop to build table of HEI scores ####
 for(intrvntn in intrvntns){
+  ##### Make table to fill out #####
+  HEI_to_calc <- c("HEI_addedSug_tsp","HEI_dairy_cup",
+                   "HEI_gb_cup","HEI_SeaPlantPro_oz",
+                   "HEI_total_pro_oz","HEI_total_veg_cup",
+                   "HEI_total_fruit_cup","HEI_refinedG_oz",
+                   "HEI_total_wholeFruit_cup",
+                   "HEI_total_wholeGrains_oz")
+  HEI_calc_df_names <- c("HEI_category","Totals","Daily Avg.","Max Points",
+                         "Total Points","Cutoff points")
+  HEI_calc_df <- data.frame(matrix(nrow = nrow(Pats_high_HEI_unproc_cat_vals),
+                                   ncol = length(HEI_calc_df_names)))
+  names(HEI_calc_df) <- HEI_calc_df_names
+  HEI_calc_df$HEI_category <- Pats_high_HEI_unproc_cat_vals$Our_name
+  HEI_calc_df$`Max Points`<- Pats_high_HEI_unproc_cat_vals[match(HEI_calc_df$HEI_category, Pats_high_HEI_unproc_cat_vals$Our_name), "Max Points"]
+  HEI_calc_df$Goal <- Pats_high_HEI_unproc_cat_vals[match(HEI_calc_df$HEI_category, Pats_high_HEI_unproc_cat_vals$Our_name), "Goal"]
+  HEI_calc_df$Totals <- vector(mode = "numeric", length = nrow(HEI_calc_df))
+  
+  ##### Fill out HEI_calc_df table ######
   print(intrvntn)
-  daily_total_energy <- sum(intrv_diet$Energy)/7
   intrv_diet <- combined_esha[combined_esha$Intervention == intrvntn, ]
+  study <- substr(intrv_diet$Study[1], 1,3)
+  daily_total_energy <- sum(intrv_diet$Energy)/7
   
   for (rw in 1:length(HEI_to_calc)) {
     HEI_cat <- HEI_calc_df$HEI_category[rw]
@@ -225,8 +228,10 @@ for(intrvntn in intrvntns){
   ##### Store the results in the big table #####
   HEI_score <- sum(HEI_calc_df$`Cutoff points`)
   HEI_scores <- c(HEI_scores, HEI_score)
+  fin_rw <- c("Final Score", 0, 0, sum(HEI_calc_df$`Max Points`), sum(HEI_calc_df$`Total Points`), sum(HEI_calc_df$`Cutoff points`), NA)
+  HEI_calc_df <- rbind(HEI_calc_df, fin_rw)
   HEI_calc_df$Intervention <- rep(intrvntn, nrow(HEI_calc_df))
-  HEI_calc_df$Final_score <- rep(HEI_score, nrow(HEI_calc_df))
+  HEI_calc_df$Study <- rep(study, nrow(HEI_calc_df))
   
   ##### Debug details #####
   intrv_sum_gram <- c(intrv_sum_gram, sum(intrv_diet$Gram_weight))
