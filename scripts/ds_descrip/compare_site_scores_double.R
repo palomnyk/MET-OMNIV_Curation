@@ -25,11 +25,13 @@ option_list <- list(
   optparse::make_option(c("-i", "--in_dir"), type="character", 
                         default=file.path("output", "demo_scor", "tables"), 
                         help="dir with input 'scores' files"),
-  optparse::make_option(c("-s", "--out_subdir"), type="character", 
-                        default=file.path("output/no_map/graphics"), 
+  optparse::make_option(c("-s", "--out_subdir"), type="character",
+                        # default=file.path("output/no_map/graphics"), 
                         help="dataset dir path"),
   optparse::make_option(c("-o", "--out_file"), type="character", 
-                        help="dataset dir path"),
+                        help="output dir path for plots"),
+  # optparse::make_option(c("-t", "--out_table"), type="character", 
+  #                       help="output dir path for table"),
   optparse::make_option(c("-p", "--out_prefix"), type="character", 
                         default=file.path("auto_prot_"), 
                         help="prefix in output file name"),
@@ -58,11 +60,20 @@ clean_sites <- c("PSU_MED", "MB_IIT", "Purdue", "USDA_MED", "all_sites", "PSU_ME
                 "MB_IIT_Purdue_USDA_MED")
 
 ##### Preprocess command line options #####
-group_pats <- unlist(strsplit(opt$group_pattern, split = ","))
+group_pattern <- gsub(('/"'), "", opt$group_pattern, fixed = TRUE)
+group_pattern <- gsub(("\\"), "", group_pattern, fixed = TRUE)
+group_pattern <- gsub("[[:space:]]", "", group_pattern)
+group_pattern <- paste0(group_pattern, "")#hack to remove special char from string literal
+group_pats <- unlist(strsplit(group_pattern, split = ","))
 group_names <- unlist(strsplit(opt$group_name, split = ","))
+normalization <- tail(unlist(strsplit(opt$group_pattern, "-", fixed = TRUE)),n=1)
+normalization <- unlist(strsplit(split = "_scores.csv", normalization))[1]
+normalization <- gsub("meats_", "", normalization)
+print(paste("Normalization:", normalization))
 
 # create empty vectors to fill through iteration
 response_var <- vector(mode = "character")
+simple_rsp_var <- vector(mode = "character")
 site_name <- vector(mode = "character")
 score <- vector(mode = "numeric")
 gp_pattern <- vector(mode = "character")
@@ -75,6 +86,7 @@ for (gp in 1:length(group_pats)){
   ##### Scrape dir to find data for pattern#####
   group_pattern <- gsub('\\"', "", my_pat)
   expected_files <- paste0(clean_sites, group_pattern)
+  print(paste("expected file:", expected_files[1]))
   
   dir_files <- list.files(file.path(opt$in_dir), pattern = "_scores.csv")
   # # Take only our "group" by filtering for group pattern
@@ -99,7 +111,10 @@ for (gp in 1:length(group_pats)){
       # print(dim(my_table))
       for (r in 1:nrow(my_table)){
         if(!my_table$response_var[r] %in% c("PARENT_SAMPLE_NAME")){
-          response_var <- c(response_var, rep(my_table$response_var[r], length(3:ncol(my_table))))
+          resp_var <- my_table$response_var[r]
+          simp_res_v <- gsub(paste0("_",normalization), "", resp_var, fixed = TRUE)
+          response_var <- c(response_var, rep(resp_var, length(3:ncol(my_table))))
+          simple_rsp_var <- c(simple_rsp_var, rep(simp_res_v, length(3:ncol(my_table))))
           site_name <- c(site_name, rep(my_site, length(3:ncol(my_table))))
           score <- c(score, unlist(my_table[r, 3:ncol(my_table)]))
           gp_pattern <- c(gp_pattern, rep(my_pat, length(3:ncol(my_table))))
@@ -113,44 +128,64 @@ for (gp in 1:length(group_pats)){
 }
 
 #### Combine tables ####
-big_table <- data.frame(response_var, site_name, score, gp_name, gp_pattern)
+big_table <- data.frame(simple_rsp_var, response_var, site_name, score, gp_name, gp_pattern)
 
-big_table$label <- paste0(big_table$gp_name, "-", big_table$sit)
+print(head(big_table))
+big_table$label <- paste0(big_table$gp_name, "-", big_table$site)
+
+#### Make table of high scores for each response var ####
+hi_score_df <- lapply(unique(big_table$response_var), function(x){
+  my_table <- big_table[big_table$response_var == x & big_table$site_name=="all_sites", ]
+  hi_scor_row <- which(my_table$score == max(my_table$score))
+  return(my_table[hi_scor_row,])
+})
+
+hi_score_df <- do.call(rbind.data.frame, hi_score_df)
+print(hi_score_df)
+
+hi_score_fname <- tools::file_path_sans_ext(basename(opt$out_file))
+write.csv(hi_score_df, file = file.path(dirname(opt$out_subdir), "tables", paste0(hi_score_fname, ".csv")),
+          row.names = FALSE)
 
 #### Make plots ####
-pdf(opt$out_file, width = 24, height = 8)
+pdf(opt$out_file, width = 13, height = 5)
 
-for (st in unique(big_table$site_name)) {
+for (st in c("all_sites")){
   my_table <- big_table[big_table$site_name == st, ]
   # my_table <- my_table[order(my_table$site_name, decreasing = TRUE),]
   
-  title_text <- paste("Site:", st, "| metabo lev:", opt$metblmcs_lev)
+  title_text <- paste("Site:", st, "| metabo lev:", opt$metblmcs_lev, "| normalization:", normalization)
   
-  medians <- aggregate(my_table$score, by=list(my_table$response_var), median)
-  names(medians) <- c("response_var", "m")
-  stdv <- aggregate(my_table$score, by=list(my_table$response_var), sd)
-  names(stdv) <- c("response_var", "s")
-  medians <- merge(medians, stdv)
-  medians$round_x <- round(medians$m, 3)
   g <- ggplot2::ggplot(my_table, aes(x=gp_name, y=score)) + 
     geom_boxplot() +
     ggplot2::ylab("Score") +
     ggplot2::ggtitle(label = paste(title_text)) +
+    ggplot2::theme(axis.ticks.x = element_blank(),
+                   axis.title.x = element_blank()) +
     # geom_text(data = medians, aes(label=paste("m:",round_x), y=1, x = 3), color="black") +
     ggplot2::scale_x_discrete(guide = guide_axis(angle = 90)) +
-    # ggplot2::stat_summary(fun=mean, geom="point", shape="-", size=9, color="red", fill="red") +
-    # ggplot2::geom_hline(data = means, aes(yintercept = x), color="red", linetype=4) +
-    # ggplot2::geom_hline(data = means, aes(yintercept = x + s), color="blue", linetype=2) +
-    # ggplot2::geom_hline(data = means, aes(yintercept = x - s), color="blue", linetype=2) +
     # coord_cartesian(ylim = c(-0.1,1)) +
-    ggplot2::facet_grid(~response_var) +
+    ggplot2::facet_grid(~simple_rsp_var) +
     # ggpubr::stat_compare_means(paired=FALSE, method = "kruskal.test",
     #                            hide.ns = TRUE) +
-    ggpubr::geom_pwc(method = "wilcox.test", hide.ns = TRUE)
+    ggpubr::geom_pwc(method = "wilcox.test", hide.ns = TRUE, y.position = 0.90)
   # g <- ggpubr::ggadjust_pvalue(
   #   g, p.adjust.method = "BH",
   #   label = "{p.adj.format}{p.adj.signif}", hide.ns = TRUE)
-  # Note that, tests such as tukey_hsd or games_howell_test handle p-value adjustement internally; they only return the p.adj. 
+  # Note that, tests such as tukey_hsd or games_howell_test handle p-value adjustement internally; they only return the p.adj.
+  print(g)
+  
+  
+  g <- ggplot2::ggplot(my_table, aes(x=gp_name, y=score)) + 
+    geom_boxplot() +
+    ggplot2::ylab("Score") +
+    ggplot2::ggtitle(label = paste(title_text)) +
+    ggplot2::theme(axis.ticks.x = element_blank(),
+                   axis.title.x = element_blank()) +
+    ggplot2::scale_x_discrete(guide = guide_axis(angle = 90)) +
+    coord_cartesian(ylim = c(-0.5,1)) +
+    ggplot2::facet_grid(~simple_rsp_var) +
+    ggpubr::geom_pwc(method = "wilcox.test", hide.ns = TRUE, y.position = 1)
   print(g)
 }
 
