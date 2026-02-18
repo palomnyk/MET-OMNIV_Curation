@@ -5,7 +5,7 @@
 # •MB/IIT: Grams eaten
 # •Purdue: Grams eaten
 # Converts PSU and USDA to grams.
-# Converts all to grams per kg bodyweight and grams per BMI
+# Converts all to grams per kg body weight and grams per BMI
 # Removes outliers from each normalization
 
 rm(list = ls()) #clear workspace
@@ -14,13 +14,12 @@ print(paste("Working in", getwd()))
 
 #### Loading dependencies ####
 if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
-if (!requireNamespace("combinat", quietly = TRUE))  BiocManager::install("combinat")
+if (!requireNamespace("combinat", quietly = TRUE))  BiocManAger::install("combinat")
 library("combinat")
-if (!requireNamespace("optparse", quietly = TRUE)) BiocManager::install("optparse")
+if (!requireNamespace("optparse", quietly = TRUE)) BiocManAger::install("optparse")
 library("optparse")
 
 print("Loaded dependencies")
-source(file.path("scripts","data_org", "data_org_func.R"))
 
 #### Functions ####
 
@@ -77,24 +76,24 @@ purdue_meta <- openxlsx::read.xlsx(file.path("data","mapping", "purdue", "AY_sam
                                    sheet = "Subject Characteristics",
                                    sep.names = " ")
 purdue_meta$short_id <- sapply(strsplit(purdue_meta$`Participant ID`, "-"), "[", 3)#take 3rd part of split
-demo_data <- read.csv("data/mapping/all_sites_demo.csv", check.names = FALSE,
+demo_data <- read.csv("data/mapping/EDTA-all_sites_demo.csv", check.names = FALSE,
                       row.names = "PARENT_SAMPLE_NAME")
 correct_sites <- c("PSU-MED","MB/IIT","Purdue","USDA-MAP","USDA-MED")
 base_col_names <- c("beef", "chicken", "pork", "turkey", "meat")
-norm_suffixes <- c("_g", "_g_per_kg_bw", "_g_per_bmi")
+norm_suffixes <- c(":_g", ":_g_per_kg_bw", ":_g_per_BMI")
 clean_sites <- c()#to bee filled in section: Make all 2 site datasets
 pseudo_c <- 0.000001
 
 # Organize meat type of column names
 agg_columns <- unlist(lapply(base_col_names, function(x){
-  c(x, paste0(x, "_proc"), paste0(x, "_min_proc"))
+  c(paste0(x), paste0(x, "_proc"), paste0(x, "_min_proc"))
 }))
 
 #### Add columns to fill in to meta_df ####
 for (ac in agg_columns){
-  meta_df[,paste0(ac,"_g")] <- meta_df[,ac]
-  meta_df[,paste0(ac,"_g_per_kg_bw")] <- meta_df[,ac]
-  meta_df[,paste0(ac,"_g_per_bmi")] <- meta_df[,ac]
+  meta_df[,paste0(ac,":_g")] <- meta_df[,ac]
+  meta_df[,paste0(ac,":_g_per_kg_bw")] <- meta_df[,ac]
+  meta_df[,paste0(ac,":_g_per_BMI")] <- meta_df[,ac]
 }
 
 ##### Cycle through participants and convert meats to absolute values and g/kg #####
@@ -102,9 +101,9 @@ missing_data <- c()
 missing_ids <- c()
 body_weight <- vector(mode = "numeric", length = nrow(meta_df))
 daily_energy <- vector(mode = "numeric", length = nrow(meta_df))
-bmi <- vector(mode = "numeric", length = nrow(meta_df))
-sex <- vector(mode = "numeric", length = nrow(meta_df))
-age <- vector(mode = "numeric", length = nrow(meta_df))
+BMI <- vector(mode = "numeric", length = nrow(meta_df))
+Sex <- vector(mode = "numeric", length = nrow(meta_df))
+Age <- vector(mode = "numeric", length = nrow(meta_df))
 
 for (i in seq_along(1:nrow(meta_df))){
   id <- meta_df$CLIENT_SAMPLE_ID[i]
@@ -113,9 +112,9 @@ for (i in seq_along(1:nrow(meta_df))){
   treat <- meta_df$TREATMENT[i]
   timep <- meta_df$TIMEPOINT[i]
   chron_tp <- meta_df$CHRONOLOGICAL_TIMEPOINT[i]
-  my_bmi <- demo_data[psn, "bmi"]
-  my_sex <- demo_data[psn, "sex"]
-  my_age <- demo_data[psn, "age"]
+  my_BMI <- demo_data[psn, "BMI"]
+  my_Sex <- demo_data[psn, "Sex"]
+  my_Age <- demo_data[psn, "Age"]
   print(paste(id, site, timep, chron_tp))
   my_energy <- NA
   my_weight <- NA
@@ -125,34 +124,34 @@ for (i in seq_along(1:nrow(meta_df))){
                                       usda_energy_weight$Period == chron_tp,
                                     "Calorie Level (kcal/d)"]
     my_grams <- (meta_df[i, agg_columns] * my_energy/2000) + pseudo_c
-    meta_df[i ,paste0(agg_columns,"_g")] <- my_grams
+    meta_df[i ,paste0(agg_columns,":_g")] <- my_grams
     my_bw <- usda_energy_weight[usda_energy_weight$SUBJCODE == id &
                                   usda_energy_weight$Period == chron_tp,
                                 "Weight (kg)"]
 
     my_g_per_kg_bw <- my_grams/as.numeric(my_bw)
-    meta_df[i ,paste0(agg_columns,"_g_per_kg_bw")] <- my_g_per_kg_bw
+    meta_df[i ,paste0(agg_columns,":_g_per_kg_bw")] <- my_g_per_kg_bw
 
-	  my_g_per_bmi <- my_grams/as.numeric(my_bmi)
-    meta_df[i ,paste0(agg_columns,"_g_per_bmi")] <- my_g_per_bmi
+	  my_g_per_BMI <- my_grams/as.numeric(my_BMI)
+    meta_df[i ,paste0(agg_columns,":_g_per_BMI")] <- my_g_per_BMI
   }
   if (site %in% c("PSU-MED")){
     my_energy <- psu_energy[psu_energy$ID == paste0("MED", id),treat]
     my_grams <- (meta_df[i, agg_columns] * my_energy/2000) + pseudo_c
-    meta_df[i ,paste0(agg_columns,"_g")] <- my_grams
+    meta_df[i ,paste0(agg_columns,":_g")] <- my_grams
     my_bw <- PSU_weight[PSU_weight$ID == id &
                           PSU_weight$PERIOD == chron_tp - 1,
                         "WT_kg"]
     my_g_per_kg_bw <- my_grams/as.numeric(my_bw)
-    meta_df[i ,paste0(agg_columns,"_g_per_kg_bw")] <- my_g_per_kg_bw
+    meta_df[i ,paste0(agg_columns,":_g_per_kg_bw")] <- my_g_per_kg_bw
     
-    my_g_per_bmi <- my_grams/as.numeric(my_bmi)
-    meta_df[i ,paste0(agg_columns,"_g_per_bmi")] <- my_g_per_bmi
+    my_g_per_BMI <- my_grams/as.numeric(my_BMI)
+    meta_df[i ,paste0(agg_columns,":_g_per_BMI")] <- my_g_per_BMI
   }
   if (site == "USDA-MAP" ){
     meta_df[i ,agg_columns] <- rep(NA,length(agg_columns))
-    meta_df[i ,paste0(agg_columns,"_g")] <- rep(NA,length(agg_columns))
-    meta_df[i ,paste0(agg_columns,"_g_per_kg_bw")] <- rep(NA,length(agg_columns))
+    meta_df[i ,paste0(agg_columns,":_g")] <- rep(NA,length(agg_columns))
+    meta_df[i ,paste0(agg_columns,":_g_per_kg_bw")] <- rep(NA,length(agg_columns))
   }
   if (site == "MB/IIT"){
     mb_screen <- mb_map[mb_map$Randomization == id, "Screen"]
@@ -166,40 +165,40 @@ for (i in seq_along(1:nrow(meta_df))){
     print(paste("MB weight:", my_bw))
     
     #add pseudo count
-    meta_df[i ,paste0(agg_columns,"_g")] <- my_grams
+    meta_df[i ,paste0(agg_columns,":_g")] <- my_grams
     
     my_g_per_kg_bw <- my_grams/as.numeric(my_bw)
-    meta_df[i ,paste0(agg_columns,"_g_per_kg_bw")] <- my_g_per_kg_bw
+    meta_df[i ,paste0(agg_columns,":_g_per_kg_bw")] <- my_g_per_kg_bw
     
-    my_g_per_bmi <- my_grams/as.numeric(my_bmi)
-    meta_df[i ,paste0(agg_columns,"_g_per_bmi")] <- my_g_per_bmi
+    my_g_per_BMI <- my_grams/as.numeric(my_BMI)
+    meta_df[i ,paste0(agg_columns,":_g_per_BMI")] <- my_g_per_BMI
   }
   if (site == "Purdue"){
     my_grams <- meta_df[i ,paste0(agg_columns)]
     # stopifnot(treat == "VEG")
     my_grams[is.na(my_grams)] <- 0
     my_grams <- my_grams + pseudo_c
-    meta_df[i ,paste0(agg_columns,"_g")] <- my_grams
+    meta_df[i ,paste0(agg_columns,":_g")] <- my_grams
     if (id %in% purdue_meta$short_id){
       my_bw <- purdue_meta[purdue_meta$short_id == id, "Wt (kg)"]
       my_g_per_kg_bw <- my_grams/as.numeric(my_bw)
-      meta_df[i ,paste0(agg_columns,"_g_per_kg_bw")] <- my_g_per_kg_bw
-      my_g_per_bmi <- my_grams/as.numeric(my_bmi)
-      meta_df[i ,paste0(agg_columns,"_g_per_bmi")] <- my_g_per_bmi
+      meta_df[i ,paste0(agg_columns,":_g_per_kg_bw")] <- my_g_per_kg_bw
+      my_g_per_BMI <- my_grams/as.numeric(my_BMI)
+      meta_df[i ,paste0(agg_columns,":_g_per_BMI")] <- my_g_per_BMI
     }else{
       missing <- paste("meta_row:",i, "|site:", site,"|id:", id, "|treatment:", treat)
       missing_data <- c(missing_data, paste("site:", site,"| id:", id))
       missing_ids <- c(missing_ids, id)
-      meta_df[i ,paste0(agg_columns,"_g_per_kg_bw")] <- rep(NA,length(agg_columns))
+      meta_df[i ,paste0(agg_columns,":_g_per_kg_bw")] <- rep(NA,length(agg_columns))
       my_bw <- NA
-      my_bmi <- NA
+      my_BMI <- NA
     }
   }
   body_weight[i] <- my_bw[1]
   daily_energy[i] <- my_energy
-  bmi[i] <- my_bmi
-  sex[i] <- my_sex
-  age[i] <- my_age
+  BMI[i] <- my_BMI
+  Sex[i] <- my_Sex
+  Age[i] <- my_Age
 }
 
 print(paste("Missing ids:", paste(unique(missing_data), collapse = ",")))
@@ -207,15 +206,15 @@ print(paste("Missing ids:", paste(unique(missing_data), collapse = ",")))
 row.names(meta_df) <- meta_df$PARENT_SAMPLE_NAME
 meta_df$bodyweight <- body_weight
 meta_df$daily_energy <- daily_energy
-meta_df$sex <- sex
-meta_df$age <- age
-meta_df$bmi <- bmi
+meta_df$Sex <- Sex
+meta_df$Age <- Age
+meta_df$BMI <- BMI
 
 #### Log rf columns ####
 # for (ac in agg_columns){
-#   meta_df[,paste0(ac,"_g")] <- log(meta_df[,paste0(ac,"_g")] + 1)
-#   meta_df[,paste0(ac,"_g_per_kg_bw")] <- log(meta_df[,paste0(ac,"_g_per_kg_bw")] + 1)
-#   meta_df[,paste0(ac,"_g_per_bmi")] <- log(meta_df[,paste0(ac,"_g_per_bmi")] + 1)
+#   meta_df[,paste0(ac,":_g")] <- log(meta_df[,paste0(ac,":_g")] + 1)
+#   meta_df[,paste0(ac,":_g_per_kg_bw")] <- log(meta_df[,paste0(ac,":_g_per_kg_bw")] + 1)
+#   meta_df[,paste0(ac,":_g_per_BMI")] <- log(meta_df[,paste0(ac,":_g_per_BMI")] + 1)
 # }
 
 #### Remove high outliers ####
@@ -241,7 +240,7 @@ for (ac in agg_columns){
     my_z <- abs(my_col-mean(my_col, na.rm = TRUE))/sd(my_col, na.rm = TRUE)
     num_rm <- sum(my_z > 3, na.rm = TRUE)
     my_col[my_z > 3] <- NA
-    meta_df[paste0(ac,"_rmOut",ns)] <- my_col
+    meta_df[paste0(ac,ns,"•")] <- my_col
     #Save values for output table
     normalization <- c(normalization, ns)
     meat_group <- c(meat_group, ac)
@@ -262,19 +261,14 @@ outlier_df <- data.frame(
 write.csv(outlier_df, file = file.path(nut_dir, "z_score_outlier_info.csv"),
           row.names = FALSE)
 
-all_suffixes <- c(norm_suffixes, paste0("_rmOut",norm_suffixes))
+all_suffixes <- c(norm_suffixes, paste0(norm_suffixes,"•"))
 #### Save output ####
 write.csv(meta_df,
           file = file.path(nut_dir, "all_sites-meats_normalize_full_df.csv"),
           row.names = FALSE)
 
 ##### Data for Dr. Jonathan Shao #####
-meta_demo <- meta_df[c("SITE", "CLIENT_IDENTIFIER", "TREATMENT", "beef", "beef_g", "beef_g_per_kg_bw", "bodyweight", "daily_energy", "bmi", "sex", "age")]
-# "chicken", "pork", "turkey", "processed","meat"
-# "beef_g", "beef_g_per_kg_bw", "age","bmi", "age","sex"
-# "chicken_g", "chicken_g_per_kg_bw", "pork_g","pork_g_per_kg_bw",
-# "turkey_g","turkey_g_per_kg_bw","processed_g","processed_g_per_kg_bw",
-# "meat_g", "meat_g_per_kg_bw",
+meta_demo <- meta_df[c("SITE", "CLIENT_IDENTIFIER", "TREATMENT", "beef", "beef:_g", "beef:_g_per_kg_bw", "bodyweight", "daily_energy", "BMI", "Sex", "Age")]
 set.seed((777))
 meta_demo <- meta_demo[sample(nrow(meta_demo), 200), ]
 write.csv(meta_demo,
@@ -289,22 +283,22 @@ for (site in unique(meta_df$SITE)){
   sub_df <- meta_df[meta_df$SITE == site,]
   
   for (ns in all_suffixes){
-  fname <- paste0(clean_site, "-", "meats", ns, ".csv")
-  write.csv(sub_df, file = file.path("data", "mapping", fname),
-            row.names = FALSE)
-  print(fname)
-  # Remove LCMS technical data for testing in random forest
-  # sub_df <- sub_df[c("PARENT_SAMPLE_NAME", "SITE", "TREATMENT", agg_columns)]
-  sub_df1 <- sub_df[c("PARENT_SAMPLE_NAME", paste0(agg_columns,ns))]
-  fname <- paste0(clean_site, "-", "rf_meats",ns,".csv")
-  write.csv(sub_df1, file = file.path("data", "mapping", fname),
-            row.names = FALSE)
-  print(fname)
-  # Add demo data to meats
-  sub_df1 <- merge(sub_df1, demo_data, all = FALSE, by = 0)
-  sub_df1 <- within(sub_df1, rm("Row.names"))
-  fname <- paste0(clean_site, "-", "rf_demographics_meats",ns,".csv")
-  write.csv(sub_df1, file = file.path("data", "mapping", fname),
+    fname <- paste0(clean_site, "-", "meats", ns, ".csv")
+    write.csv(sub_df, file = file.path("data", "mapping", fname),
+              row.names = FALSE)
+    print(fname)
+    # Remove LCMS technical data for testing in random forest
+    # sub_df <- sub_df[c("PARENT_SAMPLE_NAME", "SITE", "TREATMENT", agg_columns)]
+    sub_df1 <- sub_df[c("PARENT_SAMPLE_NAME", paste0(agg_columns,ns))]
+    fname <- paste0(clean_site, "-", "rf_meats",ns,".csv")
+    write.csv(sub_df1, file = file.path("data", "mapping", fname),
+              row.names = FALSE)
+    print(fname)
+    # Add demo data to meats
+    sub_df1 <- merge(sub_df1, demo_data, all = FALSE, by = 0)
+    sub_df1 <- within(sub_df1, rm("Row.names"))
+    fname <- paste0(clean_site, "-", "rf_demographics_meats",ns,".csv")
+    write.csv(sub_df1, file = file.path("data", "mapping", fname),
             row.names = FALSE)
       print(fname)
   }
@@ -387,7 +381,4 @@ for (st in seq_along(1:ncol(three_sites))){
 }
 
 print("End R script.")
-
-
-
 

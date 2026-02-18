@@ -24,7 +24,6 @@ print("Loaded packages")
 base_dir <- file.path("data", "metabolomics", "UARS-01-23ML+")
 metabo_f <- file.path(base_dir,
                       "UARS-01-23ML+ DATA TABLES (EDTA PLASMA SAMPLES).xlsx")
-metabo_f_new <- file.path(base_dir,"NCBA_siteCorrected_mod.xlsx")
 
 #### Loading in data ####
 # Original sample metadata to get ids and sites
@@ -103,21 +102,16 @@ for (i in seq_along(1:nrow(meta_df))){
 sex[sex == "M"] <- 1
 sex[sex == "F"] <- 0
 
-meta_df$age <- age
-meta_df$bmi <- bmi
-meta_df$sex <- sex
+meta_df$Age <- age
+meta_df$BMI <- bmi
+meta_df$Sex <- sex
 
-meta_demo <- meta_df[,c("PARENT_SAMPLE_NAME", "age", "bmi", "sex")]
-
-write.csv(meta_demo, file = file.path("data", "mapping", "full_demo.csv"),
-          row.names = FALSE)
 meta_df <- meta_df[meta_df$CORRECTED_SITE != "USDA-MAP",]
 
-meta_df <- meta_df[,c("PARENT_SAMPLE_NAME", "age", "bmi", "sex")]
+meta_df <- meta_df[,c("PARENT_SAMPLE_NAME", "Age", "BMI", "Sex")]
 
-write.csv(meta_df, file = file.path("data", "mapping", "all_sites_demo.csv"),
+write.csv(meta_df, file = file.path("data", "mapping", "EDTA-all_sites_demo.csv"),
           row.names = FALSE)
-
 
 print("End R script.")
 

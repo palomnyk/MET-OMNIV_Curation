@@ -59,7 +59,7 @@ correct_sites <- c("PSU-MED","MB/IIT","Purdue","USDA-MAP","USDA-MED")
 clean_sites <- c("PSU_MED", "MB_IIT", "Purdue", "USDA_MED", "all_sites", "PSU_MED_MB_IIT","PSU_MED_Purdue","PSU_MED_USDA_MED","MB_IIT_Purdue","MB_IIT_USDA_MED",
                  "Purdue_USDA_MED","PSU_MED_MB_IIT_Purdue","PSU_MED_MB_IIT_USDA_MED","PSU_MED_Purdue_USDA_MED",
                  "MB_IIT_Purdue_USDA_MED")
-normalizations <- c("meats_g", "meats_g_per_kg_bw", "meats_g_per_bmi", "meats_rmOut_g", "meats_rmOut_g_per_kg_bw","meats_rmOut_g_per_BMI")
+normalizations <- c("meats_g", "meats_g_per_kg_bw", "meats_g_per_bmi", "meats_rmOut_g", "meats_rmOut_g_per_kg_bw","meats_rmOut_g_per_bmi")
 
 group_pattern <- gsub('\\"', "", opt$group_pattern)
 
@@ -122,8 +122,8 @@ big_table <- data.frame(response_var = as.factor(response_var), site_name,
                         normalization = as.factor(normalization), score)
 
 
-png(file.path(opt$out_file_tree),
-    width = 30, height = 9, units = "in", res = 300)
+# png(file.path(opt$out_file_tree),
+#     width = 30, height = 9, units = "in", res = 300)
 #### Plot with pvalue tree and outlier ####
 g <- ggplot2::ggplot(big_table, aes(x=normalization, y=score)) +
   geom_boxplot() +
@@ -143,11 +143,11 @@ g <- ggpubr::ggadjust_pvalue(
 # Note that, tests such as tukey_hsd or games_howell_test handle p-value adjustement internally; they only return the p.adj. 
 
 print(g)
-dev.off()
+# dev.off()
 
 ##### Plot with clear boxplots
-png(file.path(opt$out_file_zoom),
-    width = 30, height = 9, units = "in", res = 300)
+# png(file.path(opt$out_file_zoom),
+#     width = 30, height = 9, units = "in", res = 300)
 g <- ggplot2::ggplot(big_table, aes(x=normalization, y=score)) +
   geom_boxplot() +
   ggplot2::ylab("Score") +
@@ -158,10 +158,10 @@ g <- ggplot2::ggplot(big_table, aes(x=normalization, y=score)) +
   coord_cartesian(ylim = c(-2,1.5)) +
   ggplot2::facet_grid(~ response_var) +
   ggpubr::stat_compare_means(paired=FALSE, method = "kruskal.test",
-                             hide.ns = TRUE)
+                             hide.ns = TRUE, label = "p.format",)
 print(g)
 
-dev.off()
+# dev.off()
 
 # # https://stackoverflow.com/questions/45047914/how-do-i-annotate-p-values-onto-a-faceted-bar-plots-on-r
 # 
