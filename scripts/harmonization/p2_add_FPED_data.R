@@ -1,5 +1,5 @@
 #Author: Aaron Yerke (aaronyerke@gmail.com)
-#Script for creating HEI/FPED categories conversion table from Pat's Pivot tables.
+#Script for creating HEI/FPED categories conversion table from Pat's diet record tables.
 # Inputs: 
 #   1. HEI pivot table with dietary items and HEI equivalence categories and
 #     conversion factors.
@@ -73,15 +73,19 @@ for (sht in 1:length(my_sheets)){
   my_sheet <- my_sheets[sht]
   if (!startsWith(my_sheet, "PIVOT")){#We don't want the PIVOT sheets
     print(my_sheet)
-    pivot <- readxl::read_excel(my_excel, sheet = my_sheet)
-    pivot <- pivot[,req_columns]
-    if (is.null(big_sheet)) big_sheet <- pivot
+    diet_rec <- readxl::read_excel(my_excel, sheet = my_sheet)
+    diet_rec <- diet_rec[,req_columns]
+    if (is.null(big_sheet)) big_sheet <- diet_rec
     else{
       print(paste("# names bigsheet:", length(names(big_sheet))))
-      print(paste("# names pivot:", length(names(pivot))))
-      if (identical(names(big_sheet), names(pivot))){
+      print(paste("# names diet_rec:", length(names(diet_rec))))
+      if (identical(names(big_sheet), names(diet_rec))){
         print(paste("Adding", my_sheet, "to big table"))
-        big_sheet <- rbind(big_sheet,pivot)
+        big_sheet <- rbind(big_sheet,diet_rec)
+      }
+      else{
+        print("Names bigsheet and diet rec don't match")
+        stop()
       }
     }
   }
