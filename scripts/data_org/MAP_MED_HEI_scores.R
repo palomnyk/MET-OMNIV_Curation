@@ -60,8 +60,6 @@ Pats_high_HEI_unproc_cat_vals <- read.csv(file = file.path("data","unit_test","H
 # a maximum. Cutoff points is the number of points that doesn't exceed the
 # maximum points.
 
-intrvntn <- "HIgh HEI Further Processed"
-intrv_diet <- combined_esha[combined_esha$`Intervention`==intrvntn,]
 intrvntns <- unique(combined_esha$`Intervention`)
 
 #### Calculate sums of HEI variables ####
@@ -82,13 +80,14 @@ for(intrvntn in intrvntns){
                    "HEI_total_fruit_cup","HEI_refinedG_oz",
                    "HEI_total_wholeFruit_cup",
                    "HEI_total_wholeGrains_oz")
-  HEI_calc_df_names <- c("HEI_category","Totals","Daily Avg.","Max Points",
+  HEI_calc_df_names <- c("HEI_category","Our_name", "Totals","Daily Avg.","Max Points",
                          "Total Points","Cutoff points")
   HEI_calc_df <- data.frame(matrix(nrow = nrow(Pats_high_HEI_unproc_cat_vals),
                                    ncol = length(HEI_calc_df_names)))
   names(HEI_calc_df) <- HEI_calc_df_names
-  HEI_calc_df$HEI_category <- Pats_high_HEI_unproc_cat_vals$Our_name
-  HEI_calc_df$`Max Points`<- Pats_high_HEI_unproc_cat_vals[match(HEI_calc_df$HEI_category, Pats_high_HEI_unproc_cat_vals$Our_name), "Max Points"]
+  HEI_calc_df$HEI_category <- Pats_high_HEI_unproc_cat_vals$HEI_category
+  HEI_calc_df$Our_name <- Pats_high_HEI_unproc_cat_vals$Our_name
+  HEI_calc_df$`Max Points`<- Pats_high_HEI_unproc_cat_vals[match(HEI_calc_df$Our_name, Pats_high_HEI_unproc_cat_vals$Our_name), "Max Points"]
   HEI_calc_df$Goal <- Pats_high_HEI_unproc_cat_vals[match(HEI_calc_df$HEI_category, Pats_high_HEI_unproc_cat_vals$Our_name), "Goal"]
   HEI_calc_df$Totals <- vector(mode = "numeric", length = nrow(HEI_calc_df))
   
@@ -96,13 +95,14 @@ for(intrvntn in intrvntns){
   print(intrvntn)
   intrv_diet <- combined_esha[combined_esha$Intervention == intrvntn, ]
   study <- substr(intrv_diet$Study[1], 1,3)
-  daily_total_energy <- sum(intrv_diet$Energy)/7
+  # daily_total_energy <- sum(intrv_diet$Energy)/7
+  daily_total_energy <- 2000 #converting to constant for troubleshooting
   
   for (rw in 1:length(HEI_to_calc)) {
-    HEI_cat <- HEI_calc_df$HEI_category[rw]
+    HEI_cat <- HEI_calc_df$Our_name[rw]
     HEI_calc_df$Totals[rw] <- sum(intrv_diet[,HEI_cat])
     HEI_calc_df$`Daily Avg.`[rw] <- HEI_calc_df$Totals[rw]/7
-    print(HEI_cat)
+    # print(HEI_cat)
     if (HEI_cat == "HEI_addedSug_tsp"){
       threshold <- daily_total_energy * 0.065 # Should be ≤ 6.5% energy
       HEI_calc_df$`Total Points`[rw] <- threshold/HEI_calc_df$`Daily Avg.`[rw] * HEI_calc_df$`Max Points`[rw]
@@ -168,7 +168,7 @@ for(intrvntn in intrvntns){
   
   # Saturated fat goal : for 10 points ≤8% of energy and 0 points for ≥16% of energy
   saturated_fat_total <- sum(intrv_diet$SFA)
-  sat_fat_daily <- saturated_fat_total/7
+  sat_fat_daily <- saturated_fat_total/7*9 #divide by 7 for daily, and multiply by nine to convert to
   sat_fat_percent <- sat_fat_daily/daily_total_energy * 100
   
   sat_fat_point <- ifelse(sat_fat_percent >= 16,0,NA)
@@ -179,7 +179,7 @@ for(intrvntn in intrvntns){
   
   sat_fat_point <- ifelse(is.na(sat_fat_point), sat_fat_tot_point, sat_fat_point)
   
-  sat_fat_save_rw <- which(HEI_calc_df$HEI_category == "Saturated Fats")
+  sat_fat_save_rw <- which(HEI_calc_df$Our_name == "Saturated Fats")
   HEI_calc_df[sat_fat_save_rw, "Totals"] <- saturated_fat_total
   HEI_calc_df[sat_fat_save_rw, "Daily Avg."] <- sat_fat_daily
   HEI_calc_df[sat_fat_save_rw, "Cutoff points"] <- sat_fat_point
@@ -199,7 +199,7 @@ for(intrvntn in intrvntns){
   fa_points <- ifelse(fatty_acid_ratio <= 1.2,0, fa_points)
   fa_tot_point <- 10*((fatty_acid_ratio-1.2)/(2.5-1.2))
   fa_points <- ifelse(is.na(fa_points), fa_tot_point, fa_points)
-  fa_save_rw <- which(HEI_calc_df$HEI_category == "Fatty Acids")
+  fa_save_rw <- which(HEI_calc_df$Our_name == "Fatty Acids")
   HEI_calc_df[fa_save_rw, "Totals"] <- fatty_acid_ratio
   HEI_calc_df[fa_save_rw, "Daily Avg."] <- fatty_acid_ratio
   HEI_calc_df[fa_save_rw, "Cutoff points"] <- fa_points
@@ -218,8 +218,8 @@ for(intrvntn in intrvntns){
   sodium_tot_point <- 10 - (10*(sodium - sodium_low_threshold)/(sodium_high_thres - sodium_low_threshold))
   sodium_point <- ifelse(is.na(sodium_point), sodium_tot_point, sodium_point)
   
-  print(paste("sodium: amount, point; ", sodium, sodium_point))
-  sodium_save_rw <- which(HEI_calc_df$HEI_category == "Sodium")
+  print(paste("sodium: amount, point,sodium_high_threshold - sodium_low_threshold; ", sodium, sodium_point, sodium_high_thres - sodium_low_threshold))
+  sodium_save_rw <- which(HEI_calc_df$Our_name == "Sodium")
   HEI_calc_df[sodium_save_rw, "Totals"] <- sodium_total
   HEI_calc_df[sodium_save_rw, "Daily Avg."] <- sodium
   HEI_calc_df[sodium_save_rw, "Cutoff points"] <- sodium_point
@@ -228,7 +228,7 @@ for(intrvntn in intrvntns){
   ##### Store the results in the big table #####
   HEI_score <- sum(HEI_calc_df$`Cutoff points`)
   HEI_scores <- c(HEI_scores, HEI_score)
-  fin_rw <- c("Final Score", 0, 0, sum(HEI_calc_df$`Max Points`), sum(HEI_calc_df$`Total Points`), sum(HEI_calc_df$`Cutoff points`), NA)
+  fin_rw <- c("Final Score", "Final Score", 0, 0, sum(HEI_calc_df$`Max Points`), sum(HEI_calc_df$`Total Points`), sum(HEI_calc_df$`Cutoff points`), NA)
   HEI_calc_df <- rbind(HEI_calc_df, fin_rw)
   HEI_calc_df$Intervention <- rep(intrvntn, nrow(HEI_calc_df))
   HEI_calc_df$Study <- rep(study, nrow(HEI_calc_df))
@@ -247,17 +247,18 @@ for(intrvntn in intrvntns){
   
 }
 names(HEI_scores) <- intrvntns
-for (i in 1:length(HEI_scores)){
-  print(names(HEI_scores)[i])
-  print(paste("HEI_scores", HEI_scores[i]))
-  print(paste("intrv_sum_gram", intrv_sum_gram[i]))
-  print(paste("intrv_sum_sug_conv", intrv_sum_sug_conv[i]))
-  print(paste("intrv_count_sug_conv", intrv_count_sug_conv[i]))
-  print(paste("intrv_sum_sug_HEI", intrv_sum_sug_HEI[i]))
-  print(paste(" "))
-}
+# for (i in 1:length(HEI_scores)){
+#   print(names(HEI_scores)[i])
+#   print(paste("HEI_scores", HEI_scores[i]))
+#   print(paste("intrv_sum_gram", intrv_sum_gram[i]))
+#   print(paste("intrv_sum_sug_conv", intrv_sum_sug_conv[i]))
+#   print(paste("intrv_count_sug_conv", intrv_count_sug_conv[i]))
+#   print(paste("intrv_sum_sug_HEI", intrv_sum_sug_HEI[i]))
+#   print(paste(" "))
+# }
 
-write.csv(big_table, file = file.path("data", "diet", "nutrition_data", "MAP_MED_HEI_scores.csv"),
+
+write.csv(big_table, file = file.path("data", "diet", "nutrition_data", "MAP_MED_HEI_scores_dail_en_const.csv"),
           row.names = FALSE)
 
 print("Reached end of script!")
