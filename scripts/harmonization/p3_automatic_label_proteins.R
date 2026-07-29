@@ -15,6 +15,8 @@ if (!requireNamespace("readxl", quietly = TRUE)) BiocManager::install("readxl")
 library("readxl")
 if (!requireNamespace("data.table", quietly = TRUE)) BiocManager::install("data.table")
 library("data.table")
+if (!requireNamespace("openxlsx", quietly = TRUE)) BiocManager::install("openxlsx")
+library("openxlsx")
 if (!requireNamespace("optparse", quietly = TRUE)) BiocManager::install("optparse")
 library("optparse")
 print("Libraries are loaded.")
@@ -47,8 +49,9 @@ hand_lab <- readxl::read_excel(file.path(data_dir, labeled_file), sheet = labele
                                trim_ws = F, na = c("", "NA"))
 hand_lab <- hand_lab[!duplicated(hand_lab),]
 
-conv_table <- data.table::fread(file = file.path(data_dir, "HEI_conversion_table_wide.tsv"),
-                                check.names = FALSE)
+conv_table <- read.csv(file = file.path(data_dir, "HEI_conversion_table_wide.tsv"),
+                       sep = "\t", check.names = FALSE)
+
 conv_table <- conv_table[!duplicated(conv_table),]
 
 #### Dictionaries for classifying food ####
@@ -92,6 +95,7 @@ pro_source_prediction <- data.frame("item" = character(length = nrow(conv_table)
 #### Cycle through items and label them ####
 for (rw in 1:nrow(conv_table)){
   itm <- conv_table$item[rw]
+  if(startsWith(itm, "banana")) print(paste("debug:",itm))
   pro_source_prediction$item[rw] <- itm
   #START label protein source
   meat_found <- c()
@@ -271,6 +275,7 @@ esha_studies$HEI_total_wholeGrains_oz_convs <- vector(length = nrow(esha_studies
 
 for (rw in 1:nrow(esha_studies)){
   my_item <- esha_studies$Item_Name[rw]
+  print(my_item)
   grms <- as.numeric(esha_studies$Gram_weight[rw])
   if (my_item %in% conv_table$item){
     HEI_index <- which(conv_table$item == my_item)
@@ -356,7 +361,7 @@ test_item <- esha_studies[which(esha_studies$Item_Name == "preserves, strawberry
 # preserves, strawberry: 0.056000448			2.312138728
 
 test_item <- esha_studies[esha_studies$Item_Name == "oats, steel cut, dry, whole grain, gluten free", new_cols]
-
+# test_esha <- esha_studies[startsWith(esha_studies$Item_Name, "banana"),]
 
 ##### Columns for debugging difference between mine and Patricks work #####
 debug_cols <- c("Intervention",
