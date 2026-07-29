@@ -31,6 +31,15 @@ title_case <- function(y) {
   paste(toupper(substring(my_strings, 1,1)), substring(my_strings, 2),
         sep="", collapse=" ")
 }
+Mode <- function(x, na.rm = FALSE) {
+  # from https://stackoverflow.com/questions/2547402/how-to-find-the-statistical-mode
+  if(na.rm){
+    x = x[!is.na(x)]
+  }
+  
+  ux <- unique(x)
+  return(ux[which.max(tabulate(match(x, ux)))])
+}
 
 #### Parse command line arguments ####
 option_list <- list(
@@ -147,8 +156,42 @@ for (rw in 1:nrow(big_sheet)){
 conv_tab_names <- c("item","Category","HEI_equiv","HEI_unit") 
 conversion_table <- data.frame(conv_item, conv_cat, conv_equ, conv_unit)
 names(conversion_table) <- conv_tab_names
-conversion_table <- conversion_table[!duplicated(conversion_table), ]
 
+##### First double check for competing values ######
+# conversion_table <- conversion_table[!duplicated(conversion_table), ]
+# check_for_competing_equiv <- conversion_table[,c("item","Category")]
+# check_for_competing_equiv <- check_for_competing_equiv[duplicated(check_for_competing_equiv), ]
+# print(check_for_competing_equiv)
+# Items where Patrick put competing values:
+# 335               bell pepper, fire roasted red, canned, drained  Total Vegetable
+# 562                VFI Study: Whole Egg, liquid (GLENVIEW FARMS)    Total Protein
+# 591                                      jalapeno peppers, fresh  Total Vegetable
+# 892                                                   mayonnaise    Total Protein
+# 971                 spinach, boiled, from frozen, drained, 10 oz Greens and Beans
+# 972                 spinach, boiled, from frozen, drained, 10 oz  Total Vegetable
+# 1169                                                    egg, raw    Total Protein
+# 1194 green beans, boiled, from frozen, drained (Meas Frozen-Raw)  Total Vegetable
+# 1206                      scallions, fresh, tops & bulb, chopped  Total Vegetable
+
+
+# conversion_table <- t(lapply(split(conversion_table, conversion_table$split_col, drop = F)[1], colMeans))
+# dup_row_count <- nrow(conversion_table)
+
+##### Need to fix typos in the "HEI_equiv" row #####
+#Doing this by using the most popular value (Mode) for each HEI_equiv
+#conversion_table$split_col <- paste0(c(conversion_table$item,conversion_table$Category,conversion_table$HEI_unit), collapse = "MySplt") #column used to split up the dataframe into groups
+
+conversion_table$split_col <- apply( conversion_table[ , c("item","Category","HEI_unit") ] , 1 , paste , collapse = "MySplt" )
+
+hei_equiv_mode <- data.frame(
+  sapply(split(unlist(conversion_table["HEI_equiv"]), conversion_table$split_col, drop = F), Mode))
+
+split_df <- data.frame(t(data.frame(strsplit(as.character(row.names(hei_equiv_mode)),"MySplt"))))
+names(split_df) <- c(c("item","Category","HEI_unit"))
+
+conversion_table <- cbind(split_df, hei_equiv_mode)
+
+names(conversion_table)[4] <- "HEI_equiv"
 
 data.table::fwrite(conversion_table, file = file.path(data_dir, paste0(opt$out_prefix, "HEI_conversion_table_long.tsv")),
                    sep = "\t", row.names = F)
@@ -239,7 +282,7 @@ data.table::fwrite(wide_conv_tabl, file = file.path(data_dir, paste0(opt$out_pre
 
 test_item <- wide_conv_tabl[wide_conv_tabl$item == "preserves, strawberry", wide_columns]
 # Should be:
-# preserves, strawberry: HEI_WholeGrains_Conv 357.14			HEI_AddedSugar_Conv 8.65
+# preserves, strawberry: HEI_TotalFruit_Conv 357.14			HEI_AddedSugar_Conv 8.65
 
 missing_from_conv_table <- setdiff(unique(combined_studies$`Item Name`), wide_conv_tabl$item)
 my_intersect <- intersect(unique(combined_studies$`Item Name`), wide_conv_tabl$item)
