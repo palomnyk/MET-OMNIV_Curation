@@ -184,7 +184,7 @@ names(conversion_table) <- conv_tab_names
 conversion_table$split_col <- apply( conversion_table[ , c("item","Category","HEI_unit") ] , 1 , paste , collapse = "MySplt" )
 
 hei_equiv_mode <- data.frame(
-  sapply(split(unlist(conversion_table["HEI_equiv"]), conversion_table$split_col, drop = F), Mode))
+  sapply(split(unlist(conversion_table["HEI_equiv"]), conversion_table$split_col, drop = F), mean))
 
 split_df <- data.frame(t(data.frame(strsplit(as.character(row.names(hei_equiv_mode)),"MySplt"))))
 names(split_df) <- c(c("item","Category","HEI_unit"))
@@ -221,7 +221,7 @@ for (i in 1:length(uniq_items)){
   my_row[1] <- my_item
   my_HEI_rows <- which(conversion_table$item == my_item)
   for(rw in my_HEI_rows){
-    print(paste("on", rw, "of", paste(my_HEI_rows, collapse = "&")))
+    # print(paste("on", rw, "of", paste(my_HEI_rows, collapse = "&")))
     h <- conversion_table[rw, "Category"]
 
     if (h == "Whole Grain"){
