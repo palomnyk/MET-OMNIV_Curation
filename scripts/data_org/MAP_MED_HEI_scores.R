@@ -20,6 +20,8 @@
 # According to https://epi.grants.cancer.gov/hei/comparing.html, the 2015 HEI 
 # and the 2020 HEI scores are the same for adults.
 # 
+# Check my work: https://a2zcalculators.com/health-and-medicine-calculators/healthy-eating-index-calculator
+
 # Datasets:
 #   MAP and MED:
 #   File: esha_combined_meats_HEI_vals.xlsx
@@ -97,19 +99,34 @@ for(intrvntn in intrvntns){
   study <- substr(intrv_diet$Study[1], 1,3)
   # daily_total_energy <- sum(intrv_diet$Energy)/7
   daily_total_energy <- 2000 #converting to constant for troubleshooting
-  
-  for (rw in 1:length(HEI_to_calc)) {
+  print(colSums(intrv_diet[HEI_to_calc] != 0))
+
+  for (rw in 1:length(HEI_to_calc)) {#iterate through HEI categories
     HEI_cat <- HEI_calc_df$Our_name[rw]
     HEI_calc_df$Totals[rw] <- sum(intrv_diet[,HEI_cat])
     HEI_calc_df$`Daily Avg.`[rw] <- HEI_calc_df$Totals[rw]/7
-    # print(HEI_cat)
     if (HEI_cat == "HEI_addedSug_tsp"){
-      threshold <- daily_total_energy * 0.065 # Should be ≤ 6.5% energy
-      HEI_calc_df$`Total Points`[rw] <- threshold/HEI_calc_df$`Daily Avg.`[rw] * HEI_calc_df$`Max Points`[rw]
-      
-      if (HEI_calc_df$`Total Points`[rw] > HEI_calc_df$`Max Points`[rw]) HEI_calc_df$`Cutoff points`[rw] <- HEI_calc_df$`Max Points`[rw]
-      else HEI_calc_df$`Cutoff points` <- HEI_calc_df$`Total Points`[rw]
-    }
+      # IF &kcal > 0 then ADDSUG_PERC=100*(&add_sugars*16/&kcal); Why is it *16?
+      # ADDSUGMIN=6.5;
+      # ADDSUGMAX=26;
+      # IF ADDSUG_PERC >= ADDSUGMAX THEN HEI2020_ADDSUG=0;
+      # ELSE IF ADDSUG_PERC <= ADDSUGMIN THEN HEI2020_ADDSUG=10;
+      # ELSE HEI2020_ADDSUG= 10 - ( 10* (ADDSUG_PERC-ADDSUGMIN) / (ADDSUGMAX-ADDSUGMIN) );
+      addsug_energy <- sum(intrv_diet$Added_Sugar) * 4#Why is it *16?
+      add_sug_prop_of_energy <- addsug_energy / daily_total_energy
+      min_threshold <- 0.065 # Should be ≤ 6.5% energy
+      max_threshold <- 0.26
+      print(paste("add sug prop energy", add_sug_prop_of_energy))
+      HEI_calc_df$`Total Points`[rw] <- 10 - (10 * (add_sug_prop_of_energy - min_threshold)/(max_threshold-min_threshold))}
+      if (add_sug_prop_of_energy >= max_threshold) {HEI_calc_df$`Cutoff points`[rw] <- 0}
+      else {
+        if (add_sug_prop_of_energy <= min_threshold)  {HEI_calc_df$`Cutoff points`[rw] <- 10}
+        else{
+          HEI_calc_df$`Cutoff points`[rw] <- 10 - (10 * (add_sug_prop_of_energy - min_threshold)/(max_threshold-min_threshold))}
+      }
+      # if (HEI_calc_df$`Total Points`[rw] > HEI_calc_df$`Max Points`[rw]) HEI_calc_df$`Cutoff points`[rw] <- HEI_calc_df$`Max Points`[rw]
+      # else HEI_calc_df$`Cutoff points` <- HEI_calc_df$`Total Points`[rw]
+    # }
     if (HEI_cat == "HEI_dairy_cup"){
       threshold <- 2.6 # Should be >= 2.6 cups
       HEI_calc_df$`Total Points`[rw] <- HEI_calc_df$`Daily Avg.`[rw]/threshold * HEI_calc_df$`Max Points`[rw]
@@ -190,7 +207,7 @@ for(intrvntn in intrvntns){
   total_MUFA <- sum(intrv_diet$MUFA)
   total_PUFA <- sum(intrv_diet$PUFA)
   fatty_acid_ratio <- (total_MUFA + total_PUFA)/saturated_fat_total
-  print(paste("fatty_acid:",fatty_acid_ratio))
+  # print(paste("fatty_acid:",fatty_acid_ratio))
   
   fa_points <- ifelse(saturated_fat_total == 0 & total_MUFA == 0,10, NA)
   fa_points <- ifelse(fatty_acid_ratio >= 2.5, 10, NA)
@@ -218,7 +235,7 @@ for(intrvntn in intrvntns){
   sodium_tot_point <- 10 - (10*(sodium - sodium_low_threshold)/(sodium_high_thres - sodium_low_threshold))
   sodium_point <- ifelse(is.na(sodium_point), sodium_tot_point, sodium_point)
   
-  print(paste("sodium: amount, point,sodium_high_threshold - sodium_low_threshold; ", sodium, sodium_point, sodium_high_thres - sodium_low_threshold))
+  # print(paste("sodium: amount, point,sodium_high_threshold - sodium_low_threshold; ", sodium, sodium_point, sodium_high_thres - sodium_low_threshold))
   sodium_save_rw <- which(HEI_calc_df$Our_name == "Sodium")
   HEI_calc_df[sodium_save_rw, "Totals"] <- sodium_total
   HEI_calc_df[sodium_save_rw, "Daily Avg."] <- sodium
@@ -245,6 +262,14 @@ for(intrvntn in intrvntns){
     big_table <- rbind(big_table, HEI_calc_df)
   }
   
+  # if (intrvntn == "High HEI Min Processed"){
+  #   print("Reached High HEI Min Processed")
+  #   test_wf <- intrv_diet[intrv_diet$HEI_total_veg_cup != 0, c("Item_Name","HEI_total_veg_cup")]
+  #   
+  #   print(test_wf[order(test_wf$HEI_total_veg_cup),c("Item_Name")])
+  #   print(test_wf[order(test_wf$HEI_total_veg_cup),c("HEI_total_veg_cup")])
+  #   #stop()
+  # }
 }
 names(HEI_scores) <- intrvntns
 # for (i in 1:length(HEI_scores)){
