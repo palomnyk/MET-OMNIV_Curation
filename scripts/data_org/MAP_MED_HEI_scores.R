@@ -112,7 +112,7 @@ for(intrvntn in intrvntns){
       # IF ADDSUG_PERC >= ADDSUGMAX THEN HEI2020_ADDSUG=0;
       # ELSE IF ADDSUG_PERC <= ADDSUGMIN THEN HEI2020_ADDSUG=10;
       # ELSE HEI2020_ADDSUG= 10 - ( 10* (ADDSUG_PERC-ADDSUGMIN) / (ADDSUGMAX-ADDSUGMIN) );
-      addsug_energy <- sum(intrv_diet$Added_Sugar) * 4#Why is it *16?
+      addsug_energy <- HEI_calc_df$`Daily Avg.`[rw] * 16
       add_sug_prop_of_energy <- addsug_energy / daily_total_energy
       min_threshold <- 0.065 # Should be ≤ 6.5% energy
       max_threshold <- 0.26
@@ -271,17 +271,13 @@ for(intrvntn in intrvntns){
   #   #stop()
   # }
 }
-names(HEI_scores) <- intrvntns
-# for (i in 1:length(HEI_scores)){
-#   print(names(HEI_scores)[i])
-#   print(paste("HEI_scores", HEI_scores[i]))
-#   print(paste("intrv_sum_gram", intrv_sum_gram[i]))
-#   print(paste("intrv_sum_sug_conv", intrv_sum_sug_conv[i]))
-#   print(paste("intrv_count_sug_conv", intrv_count_sug_conv[i]))
-#   print(paste("intrv_sum_sug_HEI", intrv_sum_sug_HEI[i]))
-#   print(paste(" "))
-# }
 
+debug_table <- data.frame(intrvntns, HEI_scores, intrv_sum_gram, intrv_sum_sug_conv, intrv_count_sug_conv,intrv_sum_sug_HEI)
+
+write.csv(debug_table, file = file.path("output", "HEI", "tables", "MAP_MED_HEI_scores_debug.csv"),
+          row.names = FALSE)
+
+names(HEI_scores) <- intrvntns
 
 write.csv(big_table, file = file.path("data", "diet", "nutrition_data", "MAP_MED_HEI_scores_dail_en_const.csv"),
           row.names = FALSE)
