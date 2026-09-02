@@ -90,7 +90,7 @@ for(intrvntn in intrvntns){
   HEI_calc_df$HEI_category <- Pats_high_HEI_unproc_cat_vals$HEI_category
   HEI_calc_df$Our_name <- Pats_high_HEI_unproc_cat_vals$Our_name
   HEI_calc_df$`Max Points`<- Pats_high_HEI_unproc_cat_vals[match(HEI_calc_df$Our_name, Pats_high_HEI_unproc_cat_vals$Our_name), "Max Points"]
-  HEI_calc_df$Goal <- Pats_high_HEI_unproc_cat_vals[match(HEI_calc_df$HEI_category, Pats_high_HEI_unproc_cat_vals$Our_name), "Goal"]
+  HEI_calc_df$Goal <- Pats_high_HEI_unproc_cat_vals[match(HEI_calc_df$Our_name, Pats_high_HEI_unproc_cat_vals$Our_name), "Goal"]
   HEI_calc_df$Totals <- vector(mode = "numeric", length = nrow(HEI_calc_df))
   
   ##### Fill out HEI_calc_df table ######
@@ -184,8 +184,8 @@ for(intrvntn in intrvntns){
   }
   
   # Saturated fat goal : for 10 points ≤8% of energy and 0 points for ≥16% of energy
-  saturated_fat_total <- sum(intrv_diet$SFA)
-  sat_fat_daily <- saturated_fat_total/7*9 #divide by 7 for daily, and multiply by nine to convert to
+  saturated_fat_total <- sum(intrv_diet$`SatCals (kcal)`)
+  sat_fat_daily <- saturated_fat_total/7 #divide by 7 for daily, and multiply by nine to convert to
   sat_fat_percent <- sat_fat_daily/daily_total_energy * 100
   
   sat_fat_point <- ifelse(sat_fat_percent >= 16,0,NA)
@@ -204,9 +204,9 @@ for(intrvntn in intrvntns){
   
   # Fatty acid goal ≥2.5  ≤1.5 or 1.2?
   # (Total Monounsaturated Fatty Acids + Total Polyunsaturated Fatty Acids)/Total Saturated Fatty Acids
-  total_MUFA <- sum(intrv_diet$MUFA)
-  total_PUFA <- sum(intrv_diet$PUFA)
-  fatty_acid_ratio <- (total_MUFA + total_PUFA)/saturated_fat_total
+  total_MUFA <- sum(intrv_diet$`MonoFat (g)`)
+  total_PUFA <- sum(intrv_diet$`PolyFat (g)`)
+  fatty_acid_ratio <- (total_MUFA + total_PUFA)/sum(intrv_diet$`SatFat (g)`)
   # print(paste("fatty_acid:",fatty_acid_ratio))
   
   fa_points <- ifelse(saturated_fat_total == 0 & total_MUFA == 0,10, NA)
@@ -279,8 +279,9 @@ write.csv(debug_table, file = file.path("output", "HEI", "tables", "MAP_MED_HEI_
 
 names(HEI_scores) <- intrvntns
 
-write.csv(big_table, file = file.path("data", "diet", "nutrition_data", "MAP_MED_HEI_scores_dail_en_const.csv"),
+write.csv(big_table, file = file.path("output", "HEI", "tables", "MAP_MED_HEI_scores_dail_en_const.csv"),
           row.names = FALSE)
 
 print("Reached end of script!")
+
 

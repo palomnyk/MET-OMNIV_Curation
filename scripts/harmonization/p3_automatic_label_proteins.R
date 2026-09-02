@@ -232,9 +232,17 @@ openxlsx::write.xlsx(conv_table, file = file.path(data_dir, "HEI_with_proportion
   # Do this in seperate script
 # 7. Lauren to do after this: spot check HEI and meat amounts to see if conversion factors are okay.
 
-esha_studies <- readxl::read_excel(file.path(data_dir, "esha_combined_meats_HEI_vals_LEO_noRed.xlsx"), 
+# esha_studies <- readxl::read_excel(file.path(data_dir, "esha_combined_meats_HEI_vals_LEO_noRed.xlsx"),
+#                                    trim_ws = F, na = c("", "NA"))
+esha_studies <- readxl::read_excel(file.path(data_dir, "combined_esha_studies.xlsx"),
                                    trim_ws = F, na = c("", "NA"))
 esha_studies <- type.convert(esha_studies, as.is = TRUE)#automatically reset incorrectly classified column types
+colnames(esha_studies) <- trimws(colnames(esha_studies))
+names(esha_studies)[names(esha_studies) == "entry_num"] <- "Entry_num"
+names(esha_studies)[names(esha_studies) == "Item Name"] <- "Item_Name"
+
+names(esha_studies)[names(esha_studies) == "Wgt (g)"] <-"Gram_weight"
+names(esha_studies)[names(esha_studies) == "Cals (kcal)"] <- "Energy"
 
 #### Use HEI values to convert g to oz  ####
 # Organize meat type of column names
@@ -248,7 +256,7 @@ for (ag in agg_columns){
   esha_studies[,ag] <- vector(length = nrow(esha_studies), mode = "double")
 }
 
-#HEI vars
+#Empty columns for HEI vars
 esha_studies$HEI_gb_cup <- vector(length = nrow(esha_studies), mode = "double")
 esha_studies$HEI_dairy_cup <- vector(length = nrow(esha_studies), mode = "double")
 esha_studies$HEI_total_pro_oz <- vector(length = nrow(esha_studies), mode = "double")

@@ -84,6 +84,7 @@ for (sht in 1:length(my_sheets)){
     print(my_sheet)
     diet_rec <- readxl::read_excel(my_excel, sheet = my_sheet)
     diet_rec <- diet_rec[,req_columns]
+    diet_rec$project <- rep(my_sheet, nrow(diet_rec))
     if (is.null(big_sheet)) big_sheet <- diet_rec
     else{
       print(paste("# names bigsheet:", length(names(big_sheet))))
